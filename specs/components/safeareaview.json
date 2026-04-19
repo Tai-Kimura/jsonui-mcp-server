@@ -1,0 +1,57 @@
+{
+  "name": "SafeAreaView",
+  "description": "Safe area respecting container",
+  "aliases": [],
+  "platforms": {
+    "swift_generated": true,
+    "swift_dynamic": true,
+    "kotlin_generated": true,
+    "kotlin_dynamic": true,
+    "react": false
+  },
+  "attributes": {
+    "orientation": {
+      "type": "string",
+      "enum": [
+        "horizontal",
+        "vertical"
+      ],
+      "description": "Stack orientation (default: zstack)"
+    },
+    "safeAreaInsetPositions": {
+      "type": "array",
+      "description": "Safe area edges",
+      "items": {
+        "type": "string",
+        "enum": [
+          "top",
+          "bottom",
+          "leading",
+          "trailing",
+          "vertical",
+          "all"
+        ]
+      }
+    },
+    "child": {
+      "type": "array",
+      "description": "Child component(s)"
+    },
+    "children": {
+      "type": "array",
+      "description": "Child components (alias for child)"
+    }
+  },
+  "bindingBehavior": {},
+  "platformSpecific": {
+    "swift": {
+      "view": "Respects safeAreaInsets"
+    },
+    "kotlin": {
+      "composable": "Respects WindowInsets"
+    }
+  },
+  "rules": [
+    "Ensures content doesn't overlap with system UI"
+  ]
+}

@@ -1,0 +1,84 @@
+{
+  "name": "Progress",
+  "description": "Progress bar/indicator",
+  "aliases": [],
+  "platforms": {
+    "swift_generated": true,
+    "swift_dynamic": true,
+    "kotlin_generated": true,
+    "kotlin_dynamic": true,
+    "react": true
+  },
+  "attributes": {
+    "progress": {
+      "type": [
+        "number",
+        "binding"
+      ],
+      "min": 0,
+      "max": 1,
+      "description": "Progress value (0-1, can be binding)"
+    },
+    "tintColor": {
+      "type": "string",
+      "description": "Tint color - hex string or color name from colors.json"
+    },
+    "progressTintColor": {
+      "type": [
+        "string",
+        "binding"
+      ],
+      "description": "Progress portion color - hex string or color name from colors.json (binding supported)"
+    },
+    "trackTintColor": {
+      "type": [
+        "string",
+        "binding"
+      ],
+      "description": "Track portion color - hex string or color name from colors.json (binding supported)"
+    },
+    "progressViewStyle": {
+      "type": "string",
+      "description": "Progress view style: default, bar",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "progressImage": {
+      "type": "string",
+      "description": "Custom progress image",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "trackImage": {
+      "type": "string",
+      "description": "Custom track image",
+      "platform": "swift",
+      "mode": "uikit"
+    }
+  },
+  "bindingBehavior": {
+    "progress": {
+      "direction": "read-only"
+    },
+    "progressTintColor": {
+      "direction": "read-only"
+    },
+    "trackTintColor": {
+      "direction": "read-only"
+    }
+  },
+  "platformSpecific": {
+    "swift": {
+      "view": "ProgressView"
+    },
+    "kotlin": {
+      "composable": "LinearProgressIndicator / CircularProgressIndicator"
+    },
+    "react": {
+      "element": "<progress> or <div> with width percentage"
+    }
+  },
+  "rules": [
+    "value represents progress (0.0 to 1.0)"
+  ]
+}

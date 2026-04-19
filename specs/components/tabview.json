@@ -1,0 +1,125 @@
+{
+  "name": "TabView",
+  "description": "Tab-based navigation container",
+  "aliases": [],
+  "platforms": {
+    "swift_generated": true,
+    "swift_dynamic": true,
+    "kotlin_generated": true,
+    "kotlin_dynamic": true,
+    "react": true
+  },
+  "attributes": {
+    "selectedIndex": {
+      "type": [
+        "number",
+        "binding"
+      ],
+      "description": "Currently selected tab index (binding for two-way)"
+    },
+    "tabs": {
+      "type": "array",
+      "required": true,
+      "description": "Array of tab configurations",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Tab title text"
+          },
+          "icon": {
+            "type": "string",
+            "description": "Tab icon name (SF Symbol for iOS, drawable for Android)"
+          },
+          "selectedIcon": {
+            "type": "string",
+            "description": "Icon when tab is selected (optional, defaults to icon)"
+          },
+          "iconType": {
+            "type": "string",
+            "enum": [
+              "system",
+              "resource"
+            ],
+            "default": "system",
+            "description": "Icon source type: 'system' for platform icons (SF Symbols/Material Icons), 'resource' for custom drawable/asset images"
+          },
+          "badge": {
+            "type": [
+              "string",
+              "number",
+              "binding"
+            ],
+            "description": "Badge value (number or text, can be binding)"
+          },
+          "view": {
+            "type": "string",
+            "description": "Layout file name to display for this tab (without extension)"
+          }
+        }
+      }
+    },
+    "tintColor": {
+      "type": [
+        "string",
+        "binding"
+      ],
+      "description": "Selected tab tint color - hex string or color name from colors.json (binding supported)"
+    },
+    "unselectedColor": {
+      "type": [
+        "string",
+        "binding"
+      ],
+      "description": "Unselected tab color - hex string or color name from colors.json (binding supported)"
+    },
+    "tabBarBackground": {
+      "type": [
+        "string",
+        "binding"
+      ],
+      "description": "Tab bar background color - hex string or color name from colors.json (binding supported)"
+    },
+    "showLabels": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether to show tab labels (default: true)"
+    },
+    "onTabChange": {
+      "type": "binding",
+      "description": "Tab change handler - binding only (@{functionName})"
+    }
+  },
+  "bindingBehavior": {
+    "selectedIndex": {
+      "direction": "two-way"
+    },
+    "tintColor": {
+      "direction": "read-only"
+    },
+    "unselectedColor": {
+      "direction": "read-only"
+    },
+    "tabBarBackground": {
+      "direction": "read-only"
+    },
+    "onTabChange": {
+      "direction": "read-only"
+    }
+  },
+  "platformSpecific": {
+    "swift": {
+      "view": "TabView with tag-based selection"
+    },
+    "kotlin": {
+      "composable": "Scaffold with BottomNavigation"
+    },
+    "react": {
+      "element": "Tab buttons + conditional content rendering"
+    }
+  },
+  "rules": [
+    "Each tab child uses tag for identification"
+  ]
+}

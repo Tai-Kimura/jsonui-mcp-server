@@ -1,0 +1,151 @@
+{
+  "name": "ScrollView",
+  "description": "Scrollable container",
+  "aliases": [],
+  "platforms": {
+    "swift_generated": true,
+    "swift_dynamic": true,
+    "kotlin_generated": true,
+    "kotlin_dynamic": true,
+    "react": true
+  },
+  "attributes": {
+    "child": {
+      "type": "array",
+      "description": "Child component(s)"
+    },
+    "children": {
+      "type": "array",
+      "description": "Child components"
+    },
+    "orientation": {
+      "type": "string",
+      "enum": [
+        "horizontal",
+        "vertical"
+      ],
+      "description": "Scroll orientation"
+    },
+    "showsHorizontalScrollIndicator": {
+      "type": "boolean",
+      "description": "Show horizontal indicator"
+    },
+    "showsVerticalScrollIndicator": {
+      "type": "boolean",
+      "description": "Show vertical indicator"
+    },
+    "paging": {
+      "type": "boolean",
+      "description": "Enable paging"
+    },
+    "bounces": {
+      "type": "boolean",
+      "description": "Enable bounce effect"
+    },
+    "scrollEnabled": {
+      "type": [
+        "boolean",
+        "binding"
+      ],
+      "description": "Enable scrolling (binding supported)"
+    },
+    "contentInsetAdjustmentBehavior": {
+      "type": "string",
+      "enum": [
+        "never",
+        "always",
+        "automatic",
+        "scrollableAxes"
+      ],
+      "description": "Content inset adjustment"
+    },
+    "maxZoom": {
+      "type": [
+        "number",
+        "binding"
+      ],
+      "description": "Maximum zoom scale (binding supported)"
+    },
+    "minZoom": {
+      "type": [
+        "number",
+        "binding"
+      ],
+      "description": "Minimum zoom scale (binding supported)"
+    },
+    "contentSize": {
+      "type": "array",
+      "description": "Content size [width, height]",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "contentOffset": {
+      "type": "array",
+      "description": "Initial offset [x, y]",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "decelerationRate": {
+      "type": "string",
+      "description": "Deceleration rate",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "indicatorStyle": {
+      "type": "string",
+      "description": "Scroll indicator style",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "keyboardDismissMode": {
+      "type": "string",
+      "description": "Keyboard dismiss mode"
+    },
+    "scrollsToTop": {
+      "type": "boolean",
+      "description": "Scroll to top on status bar tap",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "keyboardAvoidance": {
+      "type": "boolean",
+      "description": "Enable keyboard avoidance",
+      "platform": "swift"
+    },
+    "scrollBehavior": {
+      "type": "string",
+      "enum": [
+        "auto",
+        "smooth"
+      ],
+      "description": "Scroll behavior animation",
+      "platform": "react"
+    }
+  },
+  "bindingBehavior": {
+    "scrollEnabled": {
+      "direction": "read-only"
+    },
+    "maxZoom": {
+      "direction": "read-only"
+    },
+    "minZoom": {
+      "direction": "read-only"
+    }
+  },
+  "platformSpecific": {
+    "swift": {
+      "view": "ScrollView(.horizontal/.vertical)"
+    },
+    "kotlin": {
+      "composable": "LazyColumn/LazyRow or verticalScroll/horizontalScroll"
+    },
+    "react": {
+      "element": "<div> with overflow-auto/scroll"
+    }
+  },
+  "rules": [
+    "orientation determines scroll direction",
+    "showsIndicator controls scrollbar visibility"
+  ]
+}

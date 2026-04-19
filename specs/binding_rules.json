@@ -1,0 +1,51 @@
+{
+  "description": "JsonUI binding syntax rules",
+  "format": {
+    "bindingExpression": "@{propertyName}",
+    "negation": "@{!propertyName}",
+    "defaultValue": "@{propertyName ?? defaultValue}",
+    "nestedPath": "@{user.name} (Kotlin Dynamic Mode)"
+  },
+  "directions": {
+    "two-way": {
+      "description": "Component state changes reflect back to data model",
+      "swift": "$data.propertyName",
+      "kotlin": "mutableStateOf + updateData(mapOf(key to value))",
+      "react": "value={data.prop} + auto-generated onChange handler",
+      "applicableAttributes": [
+        "TextField.text",
+        "TextView.text",
+        "Switch.isOn",
+        "Toggle.isOn",
+        "CheckBox.checked",
+        "Slider.value",
+        "Segment.selectedIndex",
+        "Radio.selectedIndex",
+        "SelectBox.selectedIndex",
+        "TabView.selectedIndex"
+      ]
+    },
+    "read-only": {
+      "description": "Display data values only (no write-back)",
+      "swift": "data.propertyName",
+      "kotlin": "data[propertyName]",
+      "react": "{data.propertyName}",
+      "applicableAttributes": [
+        "Label.text",
+        "*.width / *.height (frame values)",
+        "*.enabled",
+        "*.hidden / *.visibility",
+        "*.background / *.fontColor",
+        "*.fontSize",
+        "*.opacity / *.alpha"
+      ]
+    }
+  },
+  "criticalRules": [
+    "Frame values (width, height, etc.) MUST be read-only (data.). $data. is NOT allowed",
+    "Two-way binding is only for stateful input components",
+    "React auto-generates onPropertyNameChange for two-way bindings",
+    "Kotlin Dynamic uses updateData(mapOf(key to value)) for data updates",
+    "onclick (lowercase) = selector format (string), onClick (camelCase) = binding format (@{handler})"
+  ]
+}

@@ -1,0 +1,363 @@
+{
+  "name": "SelectBox",
+  "description": "Dropdown/picker selection",
+  "aliases": [],
+  "platforms": {
+    "swift_generated": true,
+    "swift_dynamic": true,
+    "kotlin_generated": true,
+    "kotlin_dynamic": true,
+    "react": true
+  },
+  "attributes": {
+    "prompt": {
+      "type": "string",
+      "description": "Prompt text (primary)"
+    },
+    "hint": {
+      "type": "string",
+      "description": "Hint text (alias for prompt)"
+    },
+    "placeholder": {
+      "type": "string",
+      "description": "Placeholder text (alias for prompt)"
+    },
+    "hintColor": {
+      "type": [
+        "string",
+        "binding"
+      ],
+      "description": "Hint text color - hex string or color name from colors.json (binding supported)"
+    },
+    "text": {
+      "type": [
+        "string",
+        "binding"
+      ],
+      "description": "Display text (binding supported)",
+      "platform": "swift"
+    },
+    "items": {
+      "type": [
+        "array",
+        "binding"
+      ],
+      "description": "List of items for normal picker (can be template variable)"
+    },
+    "selectItemType": {
+      "type": "string",
+      "enum": [
+        "Normal",
+        "Date"
+      ],
+      "description": "Select item type"
+    },
+    "selectedIndex": {
+      "type": [
+        "number",
+        "binding"
+      ],
+      "min": 0,
+      "description": "Initial selected index for normal picker (two-way binding)"
+    },
+    "selectedItem": {
+      "type": [
+        "string",
+        "binding"
+      ],
+      "description": "Selected item value (two-way binding)",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "selectedDate": {
+      "type": [
+        "string",
+        "binding"
+      ],
+      "description": "Initial selected date (yyyy-MM-dd format, two-way binding)"
+    },
+    "datePickerMode": {
+      "type": "string",
+      "enum": [
+        "date",
+        "time",
+        "datetime",
+        "dateAndTime",
+        "countDown"
+      ],
+      "description": "Date picker mode"
+    },
+    "datePickerStyle": {
+      "type": "string",
+      "enum": [
+        "automatic",
+        "wheel",
+        "wheels",
+        "compact",
+        "graphical",
+        "inline"
+      ],
+      "description": "Date picker style"
+    },
+    "dateStringFormat": {
+      "type": "string",
+      "description": "Date string format"
+    },
+    "minimumDate": {
+      "type": [
+        "string",
+        "binding"
+      ],
+      "description": "Minimum date (yyyy-MM-dd format, binding supported)"
+    },
+    "maximumDate": {
+      "type": [
+        "string",
+        "binding"
+      ],
+      "description": "Maximum date (yyyy-MM-dd format, binding supported)"
+    },
+    "minuteInterval": {
+      "type": "number",
+      "enum": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        10,
+        12,
+        15,
+        20,
+        30
+      ],
+      "description": "Minute interval for time picker"
+    },
+    "font": {
+      "type": "string",
+      "description": "Font name"
+    },
+    "fontSize": {
+      "type": "number",
+      "description": "Font size"
+    },
+    "fontColor": {
+      "type": "string",
+      "description": "Font color - hex string or color name from colors.json"
+    },
+    "labelAttributes": {
+      "type": "object",
+      "description": "Label styling attributes",
+      "properties": {
+        "font": {
+          "type": "string",
+          "description": "Font name"
+        },
+        "fontSize": {
+          "type": "number",
+          "description": "Font size"
+        },
+        "fontColor": {
+          "type": "string",
+          "description": "Font color - hex string or color name from colors.json"
+        },
+        "textAlign": {
+          "type": "string",
+          "enum": [
+            "Left",
+            "Right",
+            "Center"
+          ],
+          "description": "Text alignment"
+        },
+        "text": {
+          "type": "string",
+          "description": "Label text"
+        },
+        "highlightAttributes": {
+          "type": "object",
+          "description": "Highlight attributes"
+        },
+        "highlightColor": {
+          "type": "string",
+          "description": "Highlight color - hex string or color name from colors.json"
+        },
+        "hintAttributes": {
+          "type": "object",
+          "description": "Hint attributes"
+        },
+        "hintColor": {
+          "type": "string",
+          "description": "Hint color - hex string or color name from colors.json"
+        },
+        "lineHeightMultiple": {
+          "type": "number",
+          "description": "Line height multiplier"
+        },
+        "edgeInset": {
+          "type": [
+            "string",
+            "array"
+          ],
+          "description": "Edge insets"
+        },
+        "lineBreakMode": {
+          "type": "string",
+          "enum": [
+            "Char",
+            "Clip",
+            "Word",
+            "Head",
+            "Middle",
+            "Tail"
+          ],
+          "description": "Line break mode"
+        },
+        "lines": {
+          "type": "number",
+          "description": "Number of lines"
+        }
+      }
+    },
+    "caretAttributes": {
+      "type": "object",
+      "description": "Caret/arrow styling attributes",
+      "platform": "swift",
+      "mode": "uikit",
+      "properties": {
+        "src": {
+          "type": "string",
+          "description": "Caret image name"
+        },
+        "width": {
+          "type": "number",
+          "description": "Caret width"
+        },
+        "height": {
+          "type": "number",
+          "description": "Caret height"
+        },
+        "tintColor": {
+          "type": "string",
+          "description": "Caret tint color - hex string or color name from colors.json"
+        },
+        "background": {
+          "type": "string",
+          "description": "Caret background color - hex string or color name from colors.json"
+        }
+      }
+    },
+    "dividerAttributes": {
+      "type": "object",
+      "description": "Divider styling attributes",
+      "platform": "swift",
+      "mode": "uikit",
+      "properties": {
+        "background": {
+          "type": "string",
+          "description": "Divider color - hex string or color name from colors.json"
+        },
+        "height": {
+          "type": "number",
+          "description": "Divider height"
+        },
+        "width": {
+          "type": "number",
+          "description": "Divider width"
+        }
+      }
+    },
+    "canBack": {
+      "type": "boolean",
+      "description": "Show back button",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "includePromptWhenDataBinding": {
+      "type": "boolean",
+      "description": "Include prompt in binding",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "inView": {
+      "type": "string",
+      "description": "Display picker inside view",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "referenceView": {
+      "type": "string",
+      "description": "Reference view for picker",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "onValueChange": {
+      "type": "binding",
+      "description": "Value change handler - binding only (@{functionName})"
+    },
+    "multiple": {
+      "type": "boolean",
+      "description": "Allow multiple selection",
+      "platform": "react"
+    },
+    "size": {
+      "type": "number",
+      "description": "Number of visible options",
+      "platform": "react"
+    },
+    "selectedValue": {
+      "type": [
+        "string",
+        "binding"
+      ],
+      "description": "Selected value (binding for two-way)"
+    }
+  },
+  "bindingBehavior": {
+    "hintColor": {
+      "direction": "read-only"
+    },
+    "text": {
+      "direction": "read-only"
+    },
+    "items": {
+      "direction": "read-only"
+    },
+    "selectedIndex": {
+      "direction": "two-way"
+    },
+    "selectedItem": {
+      "direction": "read-only"
+    },
+    "selectedDate": {
+      "direction": "read-only"
+    },
+    "minimumDate": {
+      "direction": "read-only"
+    },
+    "maximumDate": {
+      "direction": "read-only"
+    },
+    "onValueChange": {
+      "direction": "read-only"
+    },
+    "selectedValue": {
+      "direction": "read-only"
+    }
+  },
+  "platformSpecific": {
+    "swift": {
+      "view": "Picker"
+    },
+    "kotlin": {
+      "composable": "ExposedDropdownMenuBox"
+    },
+    "react": {
+      "element": "<select>"
+    }
+  },
+  "rules": [
+    "selectedIndex tracks currently selected option"
+  ]
+}

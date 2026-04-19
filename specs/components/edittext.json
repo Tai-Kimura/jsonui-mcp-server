@@ -1,0 +1,56 @@
+{
+  "name": "EditText",
+  "description": "Text input (Android naming convention)",
+  "aliases": [],
+  "platforms": {
+    "swift_generated": false,
+    "swift_dynamic": false,
+    "kotlin_generated": true,
+    "kotlin_dynamic": true,
+    "react": false
+  },
+  "attributes": {
+    "text": {
+      "type": [
+        "string",
+        "binding"
+      ],
+      "description": "Text content (binding for two-way)"
+    },
+    "hint": {
+      "type": "string",
+      "description": "Placeholder text (primary)"
+    },
+    "placeholder": {
+      "type": "string",
+      "description": "Placeholder text (alias for hint)"
+    },
+    "hintColor": {
+      "type": [
+        "string",
+        "binding"
+      ],
+      "description": "Placeholder color - hex string or color name from colors.json (binding supported)"
+    },
+    "inputType": {
+      "type": "string",
+      "description": "Input type for Android"
+    }
+  },
+  "bindingBehavior": {
+    "text": {
+      "direction": "two-way"
+    },
+    "hintColor": {
+      "direction": "read-only"
+    }
+  },
+  "platformSpecific": {
+    "kotlin": {
+      "composable": "OutlinedTextField"
+    }
+  },
+  "rules": [
+    "Android-specific alias for TextField functionality"
+  ]
+}

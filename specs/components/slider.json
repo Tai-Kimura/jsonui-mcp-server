@@ -1,0 +1,110 @@
+{
+  "name": "Slider",
+  "description": "Slider/range input",
+  "aliases": [],
+  "platforms": {
+    "swift_generated": true,
+    "swift_dynamic": true,
+    "kotlin_generated": true,
+    "kotlin_dynamic": true,
+    "react": true
+  },
+  "attributes": {
+    "value": {
+      "type": [
+        "number",
+        "binding"
+      ],
+      "description": "Current value (binding for two-way)"
+    },
+    "minValue": {
+      "type": [
+        "number",
+        "binding"
+      ],
+      "description": "Minimum value (binding supported)"
+    },
+    "minimum": {
+      "type": [
+        "number",
+        "binding"
+      ],
+      "description": "Minimum value (alias for minValue) (binding supported)"
+    },
+    "maxValue": {
+      "type": [
+        "number",
+        "binding"
+      ],
+      "description": "Maximum value (binding supported)"
+    },
+    "maximum": {
+      "type": [
+        "number",
+        "binding"
+      ],
+      "description": "Maximum value (alias for maxValue) (binding supported)"
+    },
+    "tintColor": {
+      "type": "string",
+      "description": "Tint color - hex string or color name from colors.json"
+    },
+    "onValueChange": {
+      "type": "binding",
+      "description": "Value change handler - binding only (@{functionName})"
+    },
+    "minimumValueImage": {
+      "type": "string",
+      "description": "Image at minimum end",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "maximumValueImage": {
+      "type": "string",
+      "description": "Image at maximum end",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "step": {
+      "type": "number",
+      "description": "Step increment value",
+      "platform": "react"
+    }
+  },
+  "bindingBehavior": {
+    "value": {
+      "direction": "two-way"
+    },
+    "minValue": {
+      "direction": "read-only"
+    },
+    "minimum": {
+      "direction": "read-only"
+    },
+    "maxValue": {
+      "direction": "read-only"
+    },
+    "maximum": {
+      "direction": "read-only"
+    },
+    "onValueChange": {
+      "direction": "read-only"
+    }
+  },
+  "platformSpecific": {
+    "swift": {
+      "view": "Slider"
+    },
+    "kotlin": {
+      "composable": "Slider with step calculation"
+    },
+    "react": {
+      "element": "<input type=\"range\">"
+    }
+  },
+  "rules": [
+    "value/bind is two-way binding",
+    "minimumValue/maximumValue define range (default 0-100)",
+    "step defines discrete steps"
+  ]
+}

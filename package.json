@@ -1,0 +1,19 @@
+{
+  "name": "jui-tools-mcp-server",
+  "version": "2.0.0",
+  "description": "MCP server for JsonUI project management - wraps jui and jsonui-doc CLIs plus component spec lookup",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "type": "module",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "@types/node": "^22.0.0"
+  }
+}

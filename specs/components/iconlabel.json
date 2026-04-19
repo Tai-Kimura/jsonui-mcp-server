@@ -1,0 +1,92 @@
+{
+  "name": "IconLabel",
+  "description": "Icon with label combination",
+  "aliases": [],
+  "platforms": {
+    "swift_generated": true,
+    "swift_dynamic": true,
+    "kotlin_generated": true,
+    "kotlin_dynamic": true,
+    "react": true
+  },
+  "attributes": {
+    "text": {
+      "type": [
+        "string",
+        "binding"
+      ],
+      "description": "Label text (can be data binding)"
+    },
+    "selected": {
+      "type": [
+        "boolean",
+        "binding"
+      ],
+      "description": "Selected state (binding supported)",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "font": {
+      "type": "string",
+      "description": "Font name"
+    },
+    "fontSize": {
+      "type": "number",
+      "description": "Font size"
+    },
+    "fontColor": {
+      "type": "string",
+      "description": "Text color - hex string or color name from colors.json"
+    },
+    "textShadow": {
+      "type": "string",
+      "description": "Text shadow"
+    },
+    "selectedFontColor": {
+      "type": "string",
+      "description": "Selected text color - hex string or color name from colors.json"
+    },
+    "icon_on": {
+      "type": "string",
+      "description": "Selected icon"
+    },
+    "icon_off": {
+      "type": "string",
+      "description": "Normal icon"
+    },
+    "iconPosition": {
+      "type": "string",
+      "enum": [
+        "Left",
+        "Right",
+        "Top",
+        "Bottom"
+      ],
+      "description": "Icon position relative to text"
+    },
+    "iconMargin": {
+      "type": "number",
+      "description": "Icon-text spacing"
+    }
+  },
+  "bindingBehavior": {
+    "text": {
+      "direction": "read-only"
+    },
+    "selected": {
+      "direction": "read-only"
+    }
+  },
+  "platformSpecific": {
+    "swift": {
+      "view": "Label with systemImage"
+    },
+    "kotlin": {
+      "composable": "Row with Icon + Text"
+    },
+    "react": {
+      "element": "<span> with icon + text"
+    }
+  },
+  "rules": []
+}

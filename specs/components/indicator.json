@@ -1,0 +1,50 @@
+{
+  "name": "Indicator",
+  "description": "Activity indicator / loading spinner",
+  "aliases": [],
+  "platforms": {
+    "swift_generated": true,
+    "swift_dynamic": true,
+    "kotlin_generated": true,
+    "kotlin_dynamic": true,
+    "react": true
+  },
+  "attributes": {
+    "indicatorStyle": {
+      "type": "string",
+      "enum": [
+        "medium",
+        "large"
+      ],
+      "description": "Indicator style"
+    },
+    "color": {
+      "type": [
+        "string",
+        "binding"
+      ],
+      "description": "Indicator color - hex string or color name from colors.json (binding supported)"
+    },
+    "hidesWhenStopped": {
+      "type": "boolean",
+      "description": "Hide when stopped"
+    }
+  },
+  "bindingBehavior": {
+    "color": {
+      "direction": "read-only"
+    }
+  },
+  "platformSpecific": {
+    "swift": {
+      "view": "ProgressView (indeterminate)"
+    },
+    "kotlin": {
+      "composable": "CircularProgressIndicator"
+    },
+    "react": {
+      "element": "Animated spinner div"
+    }
+  },
+  "rules": []
+}

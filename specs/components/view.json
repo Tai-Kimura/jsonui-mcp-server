@@ -1,0 +1,145 @@
+{
+  "name": "View",
+  "description": "Container view (HStack/VStack/ZStack)",
+  "aliases": [],
+  "platforms": {
+    "swift_generated": true,
+    "swift_dynamic": true,
+    "kotlin_generated": true,
+    "kotlin_dynamic": true,
+    "react": true
+  },
+  "attributes": {
+    "orientation": {
+      "type": "string",
+      "enum": [
+        "horizontal",
+        "vertical"
+      ],
+      "description": "Stack orientation (default: zstack)"
+    },
+    "direction": {
+      "type": "string",
+      "enum": [
+        "topToBottom",
+        "bottomToTop",
+        "leftToRight",
+        "rightToLeft",
+        "none"
+      ],
+      "description": "Layout direction"
+    },
+    "child": {
+      "type": "array",
+      "description": "Child component(s)"
+    },
+    "children": {
+      "type": "array",
+      "description": "Child components (alias for child)"
+    },
+    "alignment": {
+      "type": "string",
+      "description": "Child alignment"
+    },
+    "distribution": {
+      "type": "string",
+      "enum": [
+        "fill",
+        "fillEqually",
+        "equalSpacing",
+        "equalCentering"
+      ],
+      "description": "Child distribution mode for stacks",
+      "mode": [
+        "swiftui",
+        "compose",
+        "react"
+      ]
+    },
+    "spacing": {
+      "type": [
+        "number",
+        "binding"
+      ],
+      "description": "Space between children (binding supported)",
+      "mode": [
+        "swiftui",
+        "compose",
+        "react"
+      ]
+    },
+    "gradient": {
+      "type": "array",
+      "description": "Gradient colors",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "gradientDirection": {
+      "type": "string",
+      "description": "Gradient direction",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "locations": {
+      "type": "array",
+      "description": "Gradient color stop locations",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "safeAreaInsetPositions": {
+      "type": "array",
+      "description": "Safe area inset positions (SafeAreaView only)",
+      "items": {
+        "type": "string",
+        "enum": [
+          "top",
+          "bottom",
+          "leading",
+          "trailing",
+          "vertical",
+          "all"
+        ]
+      }
+    },
+    "highlighted": {
+      "type": "boolean",
+      "description": "View highlighted state"
+    },
+    "flexWrap": {
+      "type": "string",
+      "enum": [
+        "nowrap",
+        "wrap",
+        "wrap-reverse"
+      ],
+      "description": "Flex wrap behavior",
+      "platform": "react"
+    }
+  },
+  "bindingBehavior": {
+    "spacing": {
+      "direction": "read-only"
+    }
+  },
+  "platformSpecific": {
+    "swift": {
+      "view": "HStack/VStack/ZStack based on orientation",
+      "weightedChildren": "Special body splitting for weighted layouts",
+      "relativePositioning": "ZStack with alignment for relative layouts"
+    },
+    "kotlin": {
+      "composable": "Row/Column/Box based on orientation",
+      "relativePositioning": "ConstraintLayout if children have alignXyzOfView"
+    },
+    "react": {
+      "element": "<div> with flex classes",
+      "orientation": "horizontal->flex-row, vertical->flex-col, none->relative"
+    }
+  },
+  "rules": [
+    "orientation determines layout: horizontal->HStack/Row, vertical->VStack/Column, none->ZStack/Box",
+    "Children with alignXyzOfView trigger relative/constraint layout",
+    "bottomToTop/rightToLeft reverses child order",
+    "distribution: fillEqually/fill/equalSpacing affects child arrangement"
+  ]
+}

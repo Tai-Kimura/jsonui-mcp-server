@@ -1,0 +1,387 @@
+{
+  "name": "TextField",
+  "description": "Text input field",
+  "aliases": [
+    "EditText",
+    "Input"
+  ],
+  "platforms": {
+    "swift_generated": true,
+    "swift_dynamic": true,
+    "kotlin_generated": true,
+    "kotlin_dynamic": true,
+    "react": true
+  },
+  "attributes": {
+    "text": {
+      "type": [
+        "string",
+        "binding"
+      ],
+      "description": "Text content (binding for two-way)"
+    },
+    "hint": {
+      "type": "string",
+      "description": "Placeholder text (primary)"
+    },
+    "placeholder": {
+      "type": "string",
+      "description": "Placeholder text (alias for hint)"
+    },
+    "hintColor": {
+      "type": [
+        "string",
+        "binding"
+      ],
+      "description": "Placeholder color - hex string or color name from colors.json (binding supported)"
+    },
+    "hintFont": {
+      "type": "string",
+      "description": "Placeholder font"
+    },
+    "hintFontSize": {
+      "type": "number",
+      "description": "Placeholder font size"
+    },
+    "hintAttributes": {
+      "type": "object",
+      "description": "Hint text attributes (font, color, etc.)",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "font": {
+      "type": [
+        "string",
+        "binding"
+      ],
+      "description": "Font name or 'bold' (binding supported)"
+    },
+    "fontSize": {
+      "type": [
+        "number",
+        "binding"
+      ],
+      "description": "Font size (binding supported)"
+    },
+    "fontColor": {
+      "type": [
+        "string",
+        "binding"
+      ],
+      "description": "Font color - hex string or color name from colors.json (binding supported)"
+    },
+    "textAlign": {
+      "type": "string",
+      "enum": [
+        "Left",
+        "Center",
+        "Right",
+        "left",
+        "center",
+        "right"
+      ],
+      "description": "Text alignment"
+    },
+    "borderStyle": {
+      "type": "string",
+      "enum": [
+        "none",
+        "line",
+        "bezel",
+        "roundedRect",
+        "RoundedRect",
+        "Line",
+        "Bezel"
+      ],
+      "description": "Border style"
+    },
+    "input": {
+      "type": "string",
+      "enum": [
+        "default",
+        "alphabet",
+        "allphabet",
+        "email",
+        "number",
+        "phone",
+        "url",
+        "password",
+        "decimal"
+      ],
+      "description": "Input type (includes 'allphabet' typo for backward compatibility)"
+    },
+    "returnKeyType": {
+      "type": "string",
+      "enum": [
+        "Done",
+        "Go",
+        "Next",
+        "Return",
+        "Search",
+        "Send",
+        "Continue",
+        "Join",
+        "Route",
+        "Yahoo",
+        "Google"
+      ],
+      "description": "Return key type"
+    },
+    "contentType": {
+      "type": [
+        "string",
+        "binding"
+      ],
+      "description": "Content type for autofill (binding supported)"
+    },
+    "secure": {
+      "type": [
+        "boolean",
+        "binding"
+      ],
+      "description": "Secure text entry for passwords (can be data binding)"
+    },
+    "fieldPadding": {
+      "type": "number",
+      "description": "Field padding"
+    },
+    "textPaddingLeft": {
+      "type": "number",
+      "description": "Text padding left"
+    },
+    "textPaddingRight": {
+      "type": "number",
+      "description": "Text padding right",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "hasContainer": {
+      "type": "boolean",
+      "description": "Has container view",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "textVerticalAlign": {
+      "type": "string",
+      "description": "Text vertical alignment",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "applyLiquidGlass": {
+      "type": "boolean",
+      "description": "Apply liquid glass effect",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "accessoryCornerRadius": {
+      "type": "number",
+      "description": "Accessory corner radius",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "glassEffectStyle": {
+      "type": "string",
+      "description": "Glass effect style",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "accessoryBackground": {
+      "type": "string",
+      "description": "Input accessory background - hex string or color name from colors.json"
+    },
+    "accessoryTextColor": {
+      "type": "string",
+      "description": "Input accessory text color - hex string or color name from colors.json"
+    },
+    "doneText": {
+      "type": "string",
+      "description": "Done button text"
+    },
+    "tintColor": {
+      "type": "string",
+      "description": "Cursor/caret color - hex string or color name from colors.json"
+    },
+    "caretAttributes": {
+      "type": "object",
+      "description": "Caret styling attributes (fontColor for cursor color)",
+      "properties": {
+        "fontColor": {
+          "type": "string",
+          "description": "Caret color - hex string or color name from colors.json"
+        }
+      }
+    },
+    "onTextChange": {
+      "type": "string",
+      "description": "Text change event handler"
+    },
+    "autocapitalizationType": {
+      "type": "string",
+      "description": "Auto-capitalization type"
+    },
+    "autocorrectionType": {
+      "type": "string",
+      "description": "Auto-correction type"
+    },
+    "spellCheckingType": {
+      "type": "string",
+      "description": "Spell checking type",
+      "platform": "swift"
+    },
+    "keyboardAppearance": {
+      "type": "string",
+      "description": "Keyboard appearance: dark, light"
+    },
+    "clearButtonMode": {
+      "type": "string",
+      "description": "Clear button mode",
+      "platform": "swift"
+    },
+    "onFocus": {
+      "type": "string",
+      "description": "Focus event handler"
+    },
+    "onBlur": {
+      "type": "string",
+      "description": "Blur event handler"
+    },
+    "onBeginEditing": {
+      "type": "string",
+      "description": "Begin editing event handler"
+    },
+    "onEndEditing": {
+      "type": "string",
+      "description": "End editing event handler"
+    },
+    "onDeleteBackward": {
+      "type": "string",
+      "description": "Delete backward (backspace) event handler",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "onShouldReturn": {
+      "type": "string",
+      "description": "Should return event handler (return true to allow)",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "onShouldChangeCharacters": {
+      "type": "string",
+      "description": "Should change characters event handler (return true to allow)",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "onShouldClear": {
+      "type": "string",
+      "description": "Should clear event handler (return true to allow)",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "onChangeSelection": {
+      "type": "string",
+      "description": "Selection change event handler",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "onShouldBeginEditing": {
+      "type": "string",
+      "description": "Should begin editing event handler (return true to allow)",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "onShouldEndEditing": {
+      "type": "string",
+      "description": "Should end editing event handler (return true to allow)",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "leftView": {
+      "type": "object",
+      "description": "Left view configuration",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "rightView": {
+      "type": "object",
+      "description": "Right view configuration",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "leftViewMode": {
+      "type": "string",
+      "description": "Left view display mode",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "rightViewMode": {
+      "type": "string",
+      "description": "Right view display mode",
+      "platform": "swift",
+      "mode": "uikit"
+    },
+    "nextFocus": {
+      "type": "string",
+      "description": "ID of the next field to focus on submit (for focus chain)"
+    },
+    "maxLength": {
+      "type": "number",
+      "description": "Maximum input length"
+    },
+    "pattern": {
+      "type": "string",
+      "description": "Input validation pattern",
+      "platform": "react"
+    },
+    "required": {
+      "type": "boolean",
+      "description": "Required field validation",
+      "platform": "react"
+    }
+  },
+  "bindingBehavior": {
+    "text": {
+      "direction": "two-way"
+    },
+    "hintColor": {
+      "direction": "read-only"
+    },
+    "font": {
+      "direction": "read-only"
+    },
+    "fontSize": {
+      "direction": "read-only"
+    },
+    "fontColor": {
+      "direction": "read-only"
+    },
+    "contentType": {
+      "direction": "read-only"
+    },
+    "secure": {
+      "direction": "read-only"
+    }
+  },
+  "platformSpecific": {
+    "swift": {
+      "view": "TextField / SecureField (when input='password')",
+      "focusManagement": "@FocusState variable generated, nextFocusId for chain",
+      "caretColor": "tintColor or caretAttributes.color"
+    },
+    "kotlin": {
+      "composable": "OutlinedTextField / BasicTextField",
+      "focusManagement": "FocusManager.requestFocus(nextFocusId)",
+      "inputType": "KeyboardOptions based on contentType/input"
+    },
+    "react": {
+      "element": "<input type=\"...\"/>",
+      "autoHandler": "text binding auto-generates onPropChange handler",
+      "inputMapping": "email->email, password->password, number->number, phone->tel"
+    }
+  },
+  "rules": [
+    "input='password' switches to SecureField in SwiftUI",
+    "fieldId + nextFocusId creates focus chain across fields",
+    "text binding MUST be two-way ($data. in Swift)",
+    "React auto-generates onXxxChange from text binding"
+  ]
+}

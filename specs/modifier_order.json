@@ -1,0 +1,70 @@
+{
+  "description": "Platform-specific modifier application order. Order affects rendering.",
+  "swift": {
+    "order": [
+      "centerAlignment",
+      "edgeAlignment",
+      "padding",
+      "frameConstraints (min/max)",
+      "frameSize (width/height)",
+      "insets/insetHorizontal",
+      "background",
+      "cornerRadius",
+      "border",
+      "margins",
+      "alpha/opacity",
+      "shadow",
+      "clipping",
+      "offset",
+      "visibility (hidden/opacity ternary)",
+      "safeAreaInsets",
+      "disabled",
+      "tag (for TabView)",
+      "tintColor",
+      "onClick/onTapGesture",
+      "lifecycle (onAppear/onDisappear)",
+      "confirmationDialog",
+      "accessibilityIdentifier"
+    ],
+    "criticalRules": [
+      "background MUST come after padding (background includes padding area)",
+      "border MUST come after cornerRadius (for rounded border)",
+      "frame MUST come before margins (size before external spacing)",
+      "Image: .resizable() must come first, then .aspectRatio",
+      "Label: .leading alignment added to frame for textAlign to work"
+    ]
+  },
+  "kotlin": {
+    "order": [
+      "testTag",
+      "margins",
+      "weight (caller applies)",
+      "size (width/height, matchParent/wrapContent, min/max/aspectRatio)",
+      "alpha/opacity",
+      "shadow/elevation",
+      "background (cornerRadius -> clip -> border -> bgColor)",
+      "clickable",
+      "padding",
+      "alignment (RowScope/ColumnScope/BoxScope)"
+    ],
+    "criticalRules": [
+      "Modifier.then() chains left-to-right; order matters",
+      "margins before size (outside to inside)",
+      "cornerRadius must be applied as clip before background"
+    ]
+  },
+  "react": {
+    "note": "React uses Tailwind CSS classes; ordering is less strict",
+    "classOrder": [
+      "layout (flex, flex-col/row)",
+      "sizing (w-*, h-*)",
+      "spacing (p-*, m-*)",
+      "typography (text-*, font-*)",
+      "visual (bg-*, rounded-*, border-*, shadow-*)",
+      "opacity",
+      "overflow",
+      "cursor/interaction"
+    ],
+    "dynamicStyles": "Values not mappable to Tailwind use inline style objects"
+  }
+}

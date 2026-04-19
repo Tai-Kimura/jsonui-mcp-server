@@ -1,0 +1,62 @@
+{
+  "name": "Web",
+  "description": "Web view / embedded browser",
+  "aliases": [],
+  "platforms": {
+    "swift_generated": true,
+    "swift_dynamic": true,
+    "kotlin_generated": true,
+    "kotlin_dynamic": true,
+    "react": true
+  },
+  "attributes": {
+    "url": {
+      "type": [
+        "string",
+        "binding"
+      ],
+      "description": "Web page URL (can be data binding)"
+    },
+    "html": {
+      "type": "string",
+      "description": "HTML content"
+    },
+    "allowsBackForwardNavigationGestures": {
+      "type": "boolean",
+      "description": "Enable swipe navigation"
+    },
+    "allowsLinkPreview": {
+      "type": "boolean",
+      "description": "Enable link preview"
+    },
+    "sandbox": {
+      "type": "string",
+      "description": "Iframe sandbox attribute",
+      "platform": "react"
+    },
+    "allow": {
+      "type": "string",
+      "description": "Iframe allow attribute for feature policy",
+      "platform": "react"
+    }
+  },
+  "bindingBehavior": {
+    "url": {
+      "direction": "read-only"
+    }
+  },
+  "platformSpecific": {
+    "swift": {
+      "view": "WKWebView wrapper"
+    },
+    "kotlin": {
+      "composable": "AndroidView with WebView"
+    },
+    "react": {
+      "element": "<iframe>"
+    }
+  },
+  "rules": [
+    "url attribute specifies the web page to load"
+  ]
+}
