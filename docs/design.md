@@ -14,7 +14,8 @@ CLI syntax or re-reading source files. It exposes four groups of tools:
 4. **`jsonui-doc` CLI wrappers** — `init` / `validate` / `generate` /
    `rules` for specs, components, and HTML output.
 
-The server is published as `jui-tools` (version 2.x).
+The server is published as `jui-tools` (version 2.x), currently exposing
+30 tools.
 
 ---
 
@@ -74,7 +75,7 @@ These are served directly by the `get_modifier_order`,
 
 ---
 
-## Tool inventory (29)
+## Tool inventory (30)
 
 ### Group A — Spec lookup (7)
 
@@ -99,11 +100,17 @@ These are served directly by the `get_modifier_order`,
 | `read_spec_file` | One spec file (no parsing beyond `JSON.parse`). |
 | `read_layout_file` | One layout JSON file. |
 
-### Group C — `jui` CLI wrappers (7)
+### Group C — `jui` CLI wrappers (8)
 
 `jui_init`, `jui_generate_project`, `jui_generate_screen`,
 `jui_generate_converter`, `jui_build`, `jui_verify`,
-`jui_migrate_layouts`.
+`jui_migrate_layouts`, `jui_sync_tool`.
+
+`jui_sync_tool` mirrors the home `~/.jsonui-cli/` platform tools into each
+project-local `<platform_root>/<tool>_tools/`, preserving every
+`extensions/` directory and propagating each tool's `.ruby-version` to
+the platform root. Agents call it after a jsonui-cli bump or when
+bootstrapping a freshly scaffolded platform.
 
 ### Group D — `jsonui-doc` CLI wrappers (9)
 
@@ -129,7 +136,7 @@ src/
   tools/
     spec/ (7 files)        # Group A
     context/ (6 files)     # Group B
-    jui/ (7 files)         # Group C
+    jui/ (8 files)         # Group C
     doc/ (9 files)         # Group D
 data/
   attribute_definitions.json  # bundled snapshot (4th-layer fallback)

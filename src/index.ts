@@ -30,6 +30,7 @@ import { register as registerJuiGenerateConverter } from "./tools/jui/jui_genera
 import { register as registerJuiBuild } from "./tools/jui/jui_build.js";
 import { register as registerJuiVerify } from "./tools/jui/jui_verify.js";
 import { register as registerJuiMigrateLayouts } from "./tools/jui/jui_migrate_layouts.js";
+import { register as registerJuiSyncTool } from "./tools/jui/jui_sync_tool.js";
 
 // --- Group D: jsonui-doc CLI ---
 import { register as registerDocInitSpec } from "./tools/doc/doc_init_spec.js";
@@ -89,7 +90,7 @@ registerListLayouts(server, config);
 registerReadSpecFile(server, config);
 registerReadLayoutFile(server, config);
 
-// Register Group C: jui CLI (7 tools)
+// Register Group C: jui CLI (8 tools)
 registerJuiInit(server, config);
 registerJuiGenerateProject(server, config);
 registerJuiGenerateScreen(server, config);
@@ -97,6 +98,7 @@ registerJuiGenerateConverter(server, config);
 registerJuiBuild(server, config);
 registerJuiVerify(server, config);
 registerJuiMigrateLayouts(server, config);
+registerJuiSyncTool(server, config);
 
 // Register Group D: jsonui-doc CLI (9 tools)
 registerDocInitSpec(server, config);
@@ -109,7 +111,7 @@ registerDocGenerateHtml(server, config);
 registerDocRulesInit(server, config);
 registerDocRulesShow(server, config);
 
-log(`Registered 29 tools (7 spec + 6 context + 7 jui + 9 doc)`);
+log(`Registered 30 tools (7 spec + 6 context + 8 jui + 9 doc)`);
 
 async function main() {
   const transport = new StdioServerTransport();
