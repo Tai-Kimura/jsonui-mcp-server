@@ -1,710 +1,206 @@
-# JsonUI MCP Server 設計書
+# jsonui-mcp-server (`jui-tools`) — Design
 
-## 概要
+## Purpose
 
-エージェントがJsonUIコンポーネントの仕様を調べる際に使用するMCPサーバー。
-エージェントが複数ファイル（attribute_definitions.json、converter ソースコード、type_converter.rb等）を都度読みに行く代わりに、MCPツールを呼ぶだけで正確な仕様を即座に取得できるようにする。
+An MCP server that lets an AI agent drive JsonUI projects without memorising
+CLI syntax or re-reading source files. It exposes four groups of tools:
 
-### 現状の問題
+1. **Spec lookup** — answers "what is this component / attribute, and how
+   does it bind?" from the canonical jsonui-cli data files.
+2. **Project context** — reads `jui.config.json`, screen specs, layouts,
+   and component specs on the agent's behalf.
+3. **`jui` CLI wrappers** — `init` / `generate project` / `generate screen`
+   / `generate converter` / `build` / `verify` / `migrate-layouts`.
+4. **`jsonui-doc` CLI wrappers** — `init` / `validate` / `generate` /
+   `rules` for specs, components, and HTML output.
 
-エージェントがコンポーネントの仕様を調べるために毎回以下を読んでいる：
-- `attribute_definitions.json`（3756行、29コンポーネント）
-- `type_converter.rb` / `type_mapping.json`
-- `binding_validator.rb`
-- 各プラットフォームのコンバーターソースコード（Ruby / Swift / Kotlin）
-
-### 解決策
-
-正確な仕様書（JSON）をMCPサーバーに持たせ、エージェントがツールを呼ぶだけで必要な情報を返す。
+The server is published as `jui-tools` (version 2.x).
 
 ---
 
-## 仕様書JSON設計
+## Data pipeline
 
-### ファイル構成
+The spec-lookup tools (Group A) never hand-maintain component data. They
+derive everything at runtime from two files that live in jsonui-cli:
+
+| File | Owner | Role |
+|---|---|---|
+| `shared/core/attribute_definitions.json` | jsonui-cli | Raw schema: every component, every attribute, their `type`s, descriptions, enums, and — for attributes whose `type` includes `"binding"` — an optional `binding_direction: "two-way"` flag. |
+| `shared/core/component_metadata.json` | jsonui-cli | Presentation metadata: per-component description, aliases, which platforms generate the component, platform-specific implementation notes, and agent-facing prose rules. |
+
+`SpecLoader` joins these two at startup to produce the in-memory
+`ComponentSpec` map that the tools read.
+
+### 4-layer resolution
+
+Both files are located via the same fallback chain:
+
+1. `$JSONUI_CLI_PATH/shared/core/<file>` — env override for monorepos or
+   custom checkouts.
+2. `./.jsonui-cli/shared/core/<file>` — per-project override inside the
+   current working directory.
+3. `~/.jsonui-cli/shared/core/<file>` — default location of the
+   jsonui-cli bootstrap installer.
+4. `<mcp-root>/data/<file>` — bundled snapshot, populated at install
+   time by `scripts/fetch-definitions.js` (hit against
+   `raw.githubusercontent.com/Tai-Kimura/jsonui-cli/main/...`).
+
+The highest-priority existing file wins. If all four are missing,
+`SpecLoader` throws at startup with a diagnostic that lists every path
+it tried.
+
+The `get_data_source` tool exposes this information at runtime: which
+layer each file came from, its `mtime`, and a freshness bucket
+(`fresh` ≤30d / `aging` ≤90d / `stale` >90d). Agents that need
+up-to-date schema call this to verify the data they're working against.
+
+### Derived (non-file) content
+
+`src/data/derived.ts` holds content that does not depend on the two
+jsonui-cli files — it encodes fixed cross-platform conventions:
+
+- `MODIFIER_ORDER` (Swift / Kotlin / React application order + critical
+  rules like "background must come after padding").
+- `BINDING_RULES` (`@{}` syntax, two-way vs. read-only summary, direction
+  rules across platforms).
+- `PLATFORM_MAPPING` (`matchParent` / `wrapContent`, `contentMode`,
+  `textAlign`, `fontWeight`, `orientation`, `gravity`, type mappings).
+- `categorizeCommonAttributes(…)` — groups `common.*` attributes into
+  sizing / spacing / visual / visibility / interaction / layout /
+  lifecycle / accessibility / binding buckets for the lookup tools.
+
+These are served directly by the `get_modifier_order`,
+`get_binding_rules`, and `get_platform_mapping` tools.
+
+---
+
+## Tool inventory (29)
+
+### Group A — Spec lookup (7)
+
+| Tool | What it returns |
+|---|---|
+| `lookup_component` | Full spec for a component (attributes, binding behaviour, platform notes, rules). |
+| `lookup_attribute` | Definition + scope (common vs. component) for a single attribute name. |
+| `search_components` | Ranked matches across component names, aliases, descriptions, attribute names, and rules. |
+| `get_modifier_order` | Platform-specific modifier / class ordering. |
+| `get_binding_rules` | Full `@{}` binding reference. |
+| `get_platform_mapping` | Value/enum mapping across Swift/Kotlin/React. |
+| `get_data_source` | Per-file layer, path, `mtime`, freshness bucket. |
+
+### Group B — Project context (6)
+
+| Tool | Reads |
+|---|---|
+| `get_project_config` | `jui.config.json`, resolves relative paths to absolute. |
+| `list_screen_specs` | Screen-spec index with metadata. |
+| `list_component_specs` | Component-spec index with metadata. |
+| `list_layouts` | Layout JSON inventory. |
+| `read_spec_file` | One spec file (no parsing beyond `JSON.parse`). |
+| `read_layout_file` | One layout JSON file. |
+
+### Group C — `jui` CLI wrappers (7)
+
+`jui_init`, `jui_generate_project`, `jui_generate_screen`,
+`jui_generate_converter`, `jui_build`, `jui_verify`,
+`jui_migrate_layouts`.
+
+### Group D — `jsonui-doc` CLI wrappers (9)
+
+`doc_init_spec`, `doc_init_component`, `doc_validate_spec`,
+`doc_validate_component`, `doc_generate_spec`, `doc_generate_component`,
+`doc_generate_html`, `doc_rules_init`, `doc_rules_show`.
+
+`figma fetch/images` and `generate mermaid/adapter` are intentionally
+excluded (token management / low priority).
+
+---
+
+## Source layout
 
 ```
-specs/
-├── components/          # コンポーネント別仕様
-│   ├── label.json
-│   ├── text_field.json
-│   ├── button.json
-│   ├── image.json
-│   ├── network_image.json
-│   ├── view.json
-│   ├── scroll_view.json
-│   ├── collection.json
-│   ├── switch.json
-│   ├── toggle.json
-│   ├── check_box.json
-│   ├── radio.json
-│   ├── select_box.json
-│   ├── segment.json
-│   ├── slider.json
-│   ├── progress.json
-│   ├── indicator.json
-│   ├── circle_view.json
-│   ├── gradient_view.json
-│   ├── blur.json
-│   ├── icon_label.json
-│   ├── web.json
-│   ├── safe_area_view.json
-│   ├── tab_view.json
-│   ├── text_view.json
-│   ├── edit_text.json
-│   └── input.json
-├── common_attributes.json    # 全コンポーネント共通属性（131属性）
-├── modifier_order.json       # プラットフォーム別modifier適用順序
-├── binding_rules.json        # binding構文ルール
-└── platform_mapping.json     # プラットフォーム間の値変換ルール
+src/
+  index.ts                 # registers all 29 tools
+  config.ts                # ServerConfig: JUI_PROJECT_DIR, jui.config.json
+  cli_runner.ts            # execFile wrapper (no shell), timeout defaults
+  spec_loader.ts           # 4-layer fallback + merge pipeline, public API
+  data/
+    derived.ts             # MODIFIER_ORDER / BINDING_RULES / PLATFORM_MAPPING + categorizer
+  tools/
+    spec/ (7 files)        # Group A
+    context/ (6 files)     # Group B
+    jui/ (7 files)         # Group C
+    doc/ (9 files)         # Group D
+data/
+  attribute_definitions.json  # bundled snapshot (4th-layer fallback)
+  component_metadata.json     # bundled snapshot (4th-layer fallback)
+scripts/
+  fetch-definitions.js     # npm postinstall hook — fetches both files
 ```
 
-### コンポーネント仕様フォーマット（例: text_field.json）
+---
+
+## Configuration
+
+### `project_dir` resolution
+
+Each tool in Groups B/C/D accepts an optional `project_dir`. Resolution:
+
+1. Tool parameter, if passed.
+2. `$JUI_PROJECT_DIR` environment variable.
+3. Otherwise the tool returns an actionable error.
+
+### Environment variables
+
+| Variable | Purpose |
+|---|---|
+| `JUI_PROJECT_DIR` | Default project directory for Groups B/C/D. |
+| `JSONUI_CLI_PATH` | Override for layer 1 of the spec-data fallback. |
+| `JSONUI_CLI_RAW_BASE` | Override the GitHub raw base URL used by the postinstall fetch script (defaults to `raw.githubusercontent.com/Tai-Kimura/jsonui-cli/main`). |
+| `JSONUI_ATTR_DEFINITIONS_URL` | Direct URL override for `attribute_definitions.json` in the fetch script. |
+| `JSONUI_COMPONENT_METADATA_URL` | Direct URL override for `component_metadata.json` in the fetch script. |
+
+### Claude Code integration
+
+`~/.claude/settings.json`:
 
 ```json
 {
-  "name": "TextField",
-  "description": "テキスト入力フィールド",
-  "aliases": ["EditText", "Input"],
-  "platforms": {
-    "swift_generated": true,
-    "swift_dynamic": true,
-    "kotlin_generated": true,
-    "kotlin_dynamic": true,
-    "react": true
-  },
-  "attributes": {
-    "text": {
-      "type": ["string", "binding"],
-      "description": "入力テキスト",
-      "bindingDirection": "two-way",
-      "required": false
-    },
-    "hint": {
-      "type": "string",
-      "description": "プレースホルダーテキスト",
-      "aliases": ["placeholder"]
-    },
-    "input": {
-      "type": {
-        "enum": ["text", "email", "password", "number", "phone", "url", "search"]
-      },
-      "description": "入力タイプ。password指定時はSwiftUIでSecureFieldに切替"
-    },
-    "secure": {
-      "type": "boolean",
-      "description": "パスワード入力モード（input='password'と同等）"
-    },
-    "enabled": {
-      "type": ["boolean", "binding"],
-      "description": "入力可否",
-      "bindingDirection": "read-only",
-      "default": true
-    },
-    "maxLines": {
-      "type": "number",
-      "description": "最大行数",
-      "default": 1
-    },
-    "fieldId": {
-      "type": "string",
-      "description": "フォーカス管理用ID。nextFocusIdと組み合わせてフォーカスチェーンを構成"
-    },
-    "nextFocusId": {
-      "type": "string",
-      "description": "サブミット時に次にフォーカスするフィールドのfieldId"
-    },
-    "returnKeyType": {
-      "type": {
-        "enum": ["done", "next", "search", "send", "go"]
-      },
-      "description": "キーボードのリターンキータイプ"
-    },
-    "autocapitalizationType": {
-      "type": {
-        "enum": ["none", "words", "sentences", "allCharacters"]
-      },
-      "description": "自動大文字化"
-    },
-    "autocorrectionType": {
-      "type": {
-        "enum": ["default", "yes", "no"]
-      },
-      "description": "自動修正"
-    },
-    "contentType": {
-      "type": "string",
-      "description": "テキストコンテンツタイプ（emailAddress, password等）"
-    },
-    "fontSize": {
-      "type": ["number", "binding"],
-      "description": "フォントサイズ"
-    },
-    "fontColor": {
-      "type": ["string", "binding"],
-      "description": "テキスト色"
-    },
-    "fontWeight": {
-      "type": "string",
-      "description": "フォントウェイト（bold, light等）"
-    },
-    "hintColor": {
-      "type": "string",
-      "description": "プレースホルダー色"
-    },
-    "tintColor": {
-      "type": "string",
-      "description": "キャレット色（SwiftUI: caretAttributesでも指定可）"
-    },
-    "textAlign": {
-      "type": {
-        "enum": ["left", "center", "right"]
-      },
-      "description": "テキスト配置"
-    },
-    "borderColor": {
-      "type": "string",
-      "description": "ボーダー色"
-    },
-    "borderWidth": {
-      "type": "number",
-      "description": "ボーダー幅"
-    },
-    "highlightBackground": {
-      "type": "string",
-      "description": "フォーカス時の背景色"
-    },
-    "onTextChange": {
-      "type": "callback",
-      "description": "テキスト変更時のコールバック",
-      "signature": "(String) -> Void"
-    },
-    "onSubmit": {
-      "type": "callback",
-      "description": "サブミット時のコールバック",
-      "signature": "() -> Void"
-    }
-  },
-  "bindingBehavior": {
-    "text": {
-      "direction": "two-way",
-      "swift": "$data.propertyName",
-      "kotlin": "updateData(mapOf(varName to newValue))",
-      "react": "value={data.prop} onChange={(e) => data.onPropChange?.(e.target.value)}"
-    },
-    "enabled": {
-      "direction": "read-only",
-      "swift": "data.propertyName",
-      "kotlin": "resolveBoolean(json, \"enabled\", data, default = true)",
-      "react": "disabled={!data.prop}"
-    }
-  },
-  "platformSpecific": {
-    "swift": {
-      "generatedView": "SecureField（input=password時）/ TextField",
-      "focusManagement": "@FocusState変数を生成、nextFocusIdでチェーン構成",
-      "caretAttributes": "tintColorまたはcaretAttributes.colorでキャレット色指定"
-    },
-    "kotlin": {
-      "composable": "OutlinedTextField / BasicTextField",
-      "focusManagement": "FocusManager.requestFocus(nextFocusId)",
-      "inputType": "contentType/inputに基づくKeyboardOptions設定"
-    },
-    "react": {
-      "element": "<input type=\"...\"/>",
-      "autoHandler": "text binding時にonPropChange自動生成",
-      "inputType": "email→email, password→password, number→number, phone→tel"
-    }
-  },
-  "rules": [
-    "input='password'の場合、SwiftUIではSecureFieldが使用される",
-    "fieldIdとnextFocusIdの組み合わせでフォーカスチェーンを構成",
-    "text属性のbindingは必ずtwo-way（$data.）で生成すること",
-    "Reactではtext bindingからonXxxChange関数が自動生成される"
-  ]
-}
-```
-
-### common_attributes.json フォーマット
-
-```json
-{
-  "description": "全コンポーネント共通の属性定義（131属性）",
-  "source": "attribute_definitions.json の common セクション",
-  "categories": {
-    "sizing": {
-      "width": {
-        "type": ["number", {"enum": ["matchParent", "wrapContent"]}, "binding"],
-        "required": true,
-        "description": "幅。weightが指定されている場合は不要",
-        "platformMapping": {
-          "matchParent": {
-            "swift": ".infinity (frame maxWidth)",
-            "kotlin": "Modifier.fillMaxWidth()",
-            "react": "w-full"
-          },
-          "wrapContent": {
-            "swift": "省略（デフォルト）",
-            "kotlin": "Modifier.wrapContentWidth()",
-            "react": "w-fit"
-          }
-        }
-      },
-      "height": { "...同様..." },
-      "minWidth": { "type": ["number", "binding"] },
-      "maxWidth": { "type": ["number", "binding"] },
-      "minHeight": { "type": ["number", "binding"] },
-      "maxHeight": { "type": ["number", "binding"] },
-      "weight": { "type": ["number", "binding"], "description": "フレキシブルレイアウトのウェイト。0は無視" },
-      "aspectRatio": { "type": "number" }
-    },
-    "spacing": {
-      "padding": {
-        "type": ["number", "array"],
-        "description": "内部余白。配列の場合 [top, right, bottom, left] または [vertical, horizontal]"
-      },
-      "margin": { "...同様..." },
-      "paddingTop": { "type": "number" },
-      "paddingBottom": { "type": "number" },
-      "paddingStart": { "type": "number", "description": "RTL対応の開始側パディング" },
-      "paddingEnd": { "type": "number", "description": "RTL対応の終了側パディング" },
-      "insets": { "type": "number", "description": "edge inset" },
-      "insetHorizontal": { "type": "number" }
-    },
-    "visual": {
-      "background": { "type": ["string", "binding"], "description": "背景色" },
-      "cornerRadius": { "type": ["number", "binding"] },
-      "borderWidth": { "type": ["number", "binding"] },
-      "borderColor": { "type": ["string", "binding"] },
-      "borderStyle": { "type": {"enum": ["solid", "dashed", "dotted"]}, "default": "solid" },
-      "opacity": { "type": ["number", "binding"], "aliases": ["alpha"] },
-      "shadow": { "type": ["boolean", "string", "object"] },
-      "clipToBounds": { "type": "boolean" }
-    },
-    "visibility": {
-      "hidden": { "type": ["boolean", "binding"], "description": "非表示（スペースは保持）" },
-      "visibility": { "type": ["string", "binding"], "description": "binding時は条件付きレンダリング" },
-      "gone": { "type": ["boolean", "binding"], "description": "非表示（スペースも除去）" }
-    },
-    "interaction": {
-      "onClick": { "type": "binding", "description": "タップイベント（binding形式: @{handler}）" },
-      "onclick": { "type": "string", "description": "タップイベント（セレクタ形式: 関数名文字列）" },
-      "enabled": { "type": ["boolean", "binding"], "default": true },
-      "userInteractionEnabled": { "type": "boolean", "default": true }
-    },
-    "layout": {
-      "gravity": {
-        "type": "string",
-        "description": "配置。center, centerHorizontal, centerVertical, top, bottom, left, right"
-      },
-      "orientation": {
-        "type": {"enum": ["horizontal", "vertical"]},
-        "description": "子要素の配置方向（View/ScrollViewで使用）"
+  "mcpServers": {
+    "jui-tools": {
+      "command": "node",
+      "args": ["<install_path>/dist/index.js"],
+      "env": {
+        "JUI_PROJECT_DIR": "/path/to/project"
       }
-    },
-    "lifecycle": {
-      "onAppear": { "type": "binding", "description": "表示時コールバック" },
-      "onDisappear": { "type": "binding", "description": "非表示時コールバック" }
-    },
-    "accessibility": {
-      "accessibilityIdentifier": { "type": "string", "description": "テスト用ID。id属性から自動設定" }
     }
   }
 }
 ```
 
-### modifier_order.json フォーマット
-
-```json
-{
-  "description": "プラットフォーム別のmodifier適用順序。順序はレンダリング結果に影響するため厳守",
-  "swift": {
-    "order": [
-      "centerAlignment",
-      "edgeAlignment",
-      "padding",
-      "frameConstraints (min/max)",
-      "frameSize (width/height)",
-      "insets/insetHorizontal",
-      "background",
-      "cornerRadius",
-      "border (must be after cornerRadius)",
-      "margins",
-      "alpha/opacity",
-      "shadow",
-      "clipping",
-      "offset",
-      "visibility (hidden/opacity ternary)",
-      "safeAreaInsets",
-      "disabled",
-      "tag (for TabView)",
-      "tintColor",
-      "onClick/onTapGesture",
-      "lifecycle (onAppear/onDisappear)",
-      "confirmationDialog",
-      "accessibilityIdentifier"
-    ],
-    "criticalRules": [
-      "background MUST come after padding（背景がpadding領域を含むため）",
-      "border MUST come after cornerRadius（角丸ボーダーのため）",
-      "frame MUST come before margins（サイズ確定後に外部余白）",
-      "Image: .resizable() must come first, then .aspectRatio"
-    ]
-  },
-  "kotlin": {
-    "order": [
-      "testTag",
-      "margins",
-      "weight (caller applies)",
-      "size (width/height, matchParent/wrapContent, min/max/aspectRatio)",
-      "alpha/opacity",
-      "shadow/elevation",
-      "background (cornerRadius → clip → border → bgColor)",
-      "clickable",
-      "padding",
-      "alignment (RowScope/ColumnScope/BoxScope)"
-    ],
-    "criticalRules": [
-      "Modifier.then() chains left-to-right; order matters",
-      "margins before size（外側から内側へ）",
-      "cornerRadius must be applied as clip before background"
-    ]
-  },
-  "react": {
-    "note": "ReactはTailwind CSSクラスの結合なので順序制約は少ない",
-    "classOrder": [
-      "layout (flex, flex-col/row)",
-      "sizing (w-*, h-*)",
-      "spacing (p-*, m-*)",
-      "typography (text-*, font-*)",
-      "visual (bg-*, rounded-*, border-*, shadow-*)",
-      "opacity",
-      "overflow",
-      "cursor/interaction"
-    ],
-    "dynamicStyles": "Tailwindでマッピングできない値はinline style objectに格納"
-  }
-}
-```
-
-### binding_rules.json フォーマット
-
-```json
-{
-  "description": "JsonUIのbinding構文ルール",
-  "format": {
-    "bindingExpression": "@{propertyName}",
-    "negation": "@{!propertyName}",
-    "defaultValue": "@{propertyName ?? defaultValue}",
-    "nestedPath": "@{user.name}（Kotlin Dynamic Mode）"
-  },
-  "directions": {
-    "two-way": {
-      "description": "コンポーネントの状態変更がデータに反映される",
-      "swift": "$data.propertyName",
-      "kotlin": "mutableStateOf + updateData callback",
-      "react": "value={data.prop} + auto-generated onChange",
-      "applicableAttributes": [
-        "TextField.text",
-        "TextView.text",
-        "Switch.isOn",
-        "Toggle.isOn",
-        "CheckBox.checked",
-        "Slider.value",
-        "Segment.selectedIndex",
-        "Radio.selectedIndex",
-        "SelectBox.selectedIndex"
-      ]
-    },
-    "read-only": {
-      "description": "データの値を表示するのみ",
-      "swift": "data.propertyName",
-      "kotlin": "data[propertyName]",
-      "react": "{data.propertyName}",
-      "applicableAttributes": [
-        "Label.text",
-        "*.width / *.height（frame値）",
-        "*.enabled",
-        "*.hidden / *.visibility",
-        "*.background / *.fontColor",
-        "*.fontSize",
-        "*.opacity / *.alpha"
-      ]
-    }
-  },
-  "criticalRules": [
-    "frame値（width, height等）は必ずread-only（data.）。$data.は不可",
-    "two-way bindingは状態を持つ入力コンポーネントのみ",
-    "Reactではtwo-way binding時にonPropertyNameChange関数が自動生成される",
-    "Kotlin DynamicではupdateData(mapOf(key to value))でデータを更新",
-    "onclick（小文字）はセレクタ形式（文字列）、onClick（キャメル）はbinding形式（@{handler}）"
-  ]
-}
-```
-
-### platform_mapping.json フォーマット
-
-```json
-{
-  "description": "プラットフォーム間の属性値変換マッピング",
-  "values": {
-    "matchParent": {
-      "swift": ".infinity (frame maxWidth/maxHeight)",
-      "kotlin": "fillMaxWidth() / fillMaxHeight()",
-      "react": "w-full / h-full"
-    },
-    "wrapContent": {
-      "swift": "デフォルト（frame指定なし）",
-      "kotlin": "wrapContentWidth() / wrapContentHeight()",
-      "react": "w-fit / h-fit"
-    }
-  },
-  "contentMode": {
-    "aspectFit": { "swift": ".fit", "kotlin": "ContentScale.Fit", "react": "object-contain" },
-    "aspectFill": { "swift": ".fill", "kotlin": "ContentScale.Crop", "react": "object-cover" },
-    "scaleToFill": { "swift": ".fill (no aspectRatio)", "kotlin": "ContentScale.FillBounds", "react": "object-fill" }
-  },
-  "textAlign": {
-    "left": { "swift": ".leading", "kotlin": "TextAlign.Start", "react": "text-left" },
-    "center": { "swift": ".center", "kotlin": "TextAlign.Center", "react": "text-center" },
-    "right": { "swift": ".trailing", "kotlin": "TextAlign.End", "react": "text-right" }
-  },
-  "fontWeight": {
-    "bold": { "swift": ".bold", "kotlin": "FontWeight.Bold", "react": "font-bold" },
-    "light": { "swift": ".light", "kotlin": "FontWeight.Light", "react": "font-light" },
-    "thin": { "swift": ".thin", "kotlin": "FontWeight.Thin", "react": "font-thin" },
-    "medium": { "swift": ".medium", "kotlin": "FontWeight.Medium", "react": "font-medium" },
-    "semibold": { "swift": ".semibold", "kotlin": "FontWeight.SemiBold", "react": "font-semibold" }
-  },
-  "orientation": {
-    "horizontal": { "swift": "HStack", "kotlin": "Row", "react": "flex flex-row" },
-    "vertical": { "swift": "VStack", "kotlin": "Column", "react": "flex flex-col" },
-    "none": { "swift": "ZStack", "kotlin": "Box", "react": "relative" }
-  },
-  "gravity": {
-    "center": {
-      "swift": ".center alignment",
-      "kotlin": "Alignment.Center / Arrangement.Center",
-      "react": "items-center justify-center"
-    },
-    "centerHorizontal": {
-      "swift_vertical": "HStack alignment .center",
-      "swift_horizontal": "not applicable",
-      "kotlin_vertical": "Alignment.CenterHorizontally",
-      "react": "items-center (flex-col)"
-    },
-    "centerVertical": {
-      "swift_horizontal": "VStack alignment .center",
-      "kotlin_horizontal": "Alignment.CenterVertically",
-      "react": "items-center (flex-row)"
-    }
-  },
-  "types": {
-    "String": { "swift": "String", "kotlin": "String", "react": "string" },
-    "Int": { "swift": "Int", "kotlin": "Int", "react": "number" },
-    "Float": { "swift": "CGFloat", "kotlin": "Float", "react": "number" },
-    "Double": { "swift": "Double", "kotlin": "Double", "react": "number" },
-    "Bool": { "swift": "Bool", "kotlin": "Boolean", "react": "boolean" },
-    "Array": { "swift": "[T]", "kotlin": "List<T>", "react": "T[]" },
-    "Dictionary": { "swift": "[String: Any]", "kotlin": "Map<String, Any>", "react": "Record<string, any>" }
-  }
-}
-```
+`install.sh` writes this entry (preserving any other servers); `uninstall.sh`
+removes it.
 
 ---
 
-## MCPサーバー設計
+## Security
 
-### 技術スタック
+- Group C/D tools invoke CLIs through `child_process.execFile`, never
+  `exec`, so no shell parses arguments.
+- File-read tools validate that targets stay inside `project_dir`.
+- `figma` CLIs are excluded to avoid handling tokens in this server.
 
-- **言語**: TypeScript（MCP SDK公式サポート）
-- **フレームワーク**: `@modelcontextprotocol/sdk`
-- **データ**: JSONファイル（specs/ディレクトリ）
-- **トランスポート**: stdio（Claude Code統合用）
+---
 
-### ツール定義
-
-| ツール名 | 引数 | 戻り値 | 用途 |
-|----------|------|--------|------|
-| `lookup_component` | `name: string` | コンポーネント仕様全体 | コンポーネントの属性・binding・ルールを一括取得 |
-| `lookup_attribute` | `name: string` | 属性定義 + 所属コンポーネント | 特定属性の詳細を取得 |
-| `search_components` | `query: string` | マッチするコンポーネント/属性リスト | キーワード検索（binding対応属性一覧等） |
-| `get_modifier_order` | `platform: "swift" \| "kotlin" \| "react"` | modifier適用順序 | コード生成時の順序確認 |
-| `get_binding_rules` | なし | binding構文ルール全体 | binding実装時の参照 |
-| `get_platform_mapping` | `attribute: string, from: string, to: string` | 変換ルール | クロスプラットフォーム変換 |
-
-### プロジェクト構成
-
-```
-jsonui-mcp-server/
-├── docs/
-│   └── design.md              # この設計書
-├── specs/
-│   ├── components/            # コンポーネント別仕様JSON
-│   │   ├── label.json
-│   │   ├── text_field.json
-│   │   └── ...
-│   ├── common_attributes.json
-│   ├── modifier_order.json
-│   ├── binding_rules.json
-│   └── platform_mapping.json
-├── src/
-│   ├── index.ts               # MCPサーバーエントリポイント
-│   ├── tools/
-│   │   ├── lookup_component.ts
-│   │   ├── lookup_attribute.ts
-│   │   ├── search_components.ts
-│   │   ├── get_modifier_order.ts
-│   │   ├── get_binding_rules.ts
-│   │   └── get_platform_mapping.ts
-│   └── spec_loader.ts         # JSON仕様書ローダー
-├── install.sh                 # インストーラー
-├── uninstall.sh               # アンインストーラー
-├── package.json
-├── tsconfig.json
-└── README.md
-```
-
-### Claude Code 統合
-
-`~/.claude/settings.json` に追加:
-```json
-{
-  "mcpServers": {
-    "jsonui-spec": {
-      "command": "node",
-      "args": ["<install_path>/dist/index.js"]
-    }
-  }
-}
-```
-
-### インストーラー設計
-
-#### install.sh
-
-GitHubからclone後に実行するインストールスクリプト。
-
-**処理内容**:
-1. 依存パッケージのインストール（`npm install`）
-2. TypeScriptビルド（`npm run build`）
-3. `~/.claude/settings.json` にMCPサーバー設定を自動追加
-
-**settings.json 更新ロジック**:
-- ファイルが存在しない場合: 新規作成
-- ファイルが存在する場合: 既存のJSONを読み込み、`mcpServers.jsonui-spec` を追加/更新
-- 既存の他のMCPサーバー設定は保持
-- `args` のパスは `install.sh` の実行ディレクトリから自動解決（絶対パス）
+## Install flow
 
 ```bash
-#!/bin/bash
-set -e
-
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-SETTINGS_FILE="$HOME/.claude/settings.json"
-
-echo "=== JsonUI MCP Server Installer ==="
-
-# 1. Install dependencies
-echo "Installing dependencies..."
-cd "$SCRIPT_DIR"
-npm install
-
-# 2. Build
-echo "Building..."
-npm run build
-
-# 3. Update Claude Code settings
-echo "Configuring Claude Code..."
-mkdir -p "$HOME/.claude"
-
-if [ ! -f "$SETTINGS_FILE" ]; then
-  # Create new settings file
-  cat > "$SETTINGS_FILE" << EOF
-{
-  "mcpServers": {
-    "jsonui-spec": {
-      "command": "node",
-      "args": ["$SCRIPT_DIR/dist/index.js"]
-    }
-  }
-}
-EOF
-else
-  # Update existing settings file using node
-  node -e "
-    const fs = require('fs');
-    const settings = JSON.parse(fs.readFileSync('$SETTINGS_FILE', 'utf8'));
-    if (!settings.mcpServers) settings.mcpServers = {};
-    settings.mcpServers['jsonui-spec'] = {
-      command: 'node',
-      args: ['$SCRIPT_DIR/dist/index.js']
-    };
-    fs.writeFileSync('$SETTINGS_FILE', JSON.stringify(settings, null, 2));
-  "
-fi
-
-echo ""
-echo "Installation complete!"
-echo "  Server path: $SCRIPT_DIR/dist/index.js"
-echo "  Settings: $SETTINGS_FILE"
-echo ""
-echo "Restart Claude Code to activate the MCP server."
-```
-
-#### uninstall.sh
-
-**処理内容**:
-1. `~/.claude/settings.json` から `jsonui-spec` エントリを削除
-2. 他のMCPサーバー設定は保持
-
-```bash
-#!/bin/bash
-set -e
-
-SETTINGS_FILE="$HOME/.claude/settings.json"
-
-echo "=== JsonUI MCP Server Uninstaller ==="
-
-if [ -f "$SETTINGS_FILE" ]; then
-  node -e "
-    const fs = require('fs');
-    const settings = JSON.parse(fs.readFileSync('$SETTINGS_FILE', 'utf8'));
-    if (settings.mcpServers && settings.mcpServers['jsonui-spec']) {
-      delete settings.mcpServers['jsonui-spec'];
-      fs.writeFileSync('$SETTINGS_FILE', JSON.stringify(settings, null, 2));
-      console.log('Removed jsonui-spec from Claude Code settings.');
-    } else {
-      console.log('jsonui-spec not found in settings.');
-    }
-  "
-else
-  echo "Settings file not found: $SETTINGS_FILE"
-fi
-
-echo "Uninstall complete. Restart Claude Code to apply."
-```
-
-#### GitHub からのインストール手順
-
-```bash
-# 1. Clone
-git clone https://github.com/<org>/jsonui-mcp-server.git
-
-# 2. Install (dependencies + build + Claude Code settings)
+git clone https://github.com/Tai-Kimura/jsonui-mcp-server.git
 cd jsonui-mcp-server
-./install.sh
-
-# 3. Restart Claude Code
+./install.sh          # npm install → npm run build → postinstall fetch
 ```
 
----
-
-## 作業順序
-
-1. **仕様書作成**: `attribute_definitions.json` + コンバーター知識からコンポーネント仕様JSONを生成
-2. **共通ファイル作成**: common_attributes.json, modifier_order.json, binding_rules.json, platform_mapping.json
-3. **MCPサーバー実装**: TypeScriptでJSON読み込み → ツール提供
-4. **インストーラー実装**: install.sh / uninstall.sh
-5. **Claude Code統合テスト**: インストール → ツール呼び出し確認
-6. **エージェント更新**: スキル定義にMCPツール使用を追記（任意）
+`npm install` triggers `scripts/fetch-definitions.js` automatically. If
+the network is unavailable and no prior bundled snapshot exists, the
+script exits 0 and the MCP surfaces the misconfiguration at startup
+instead of silently running on stale data.
