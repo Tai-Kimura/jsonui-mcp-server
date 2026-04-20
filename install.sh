@@ -1,18 +1,32 @@
 #!/bin/bash
 set -e
 
-REPO_URL="git@github.com:Tai-Kimura/jsonui-mcp-server.git"
-INSTALL_DIR="$HOME/.jsonui-mcp-server"
-CLAUDE_JSON="$HOME/.claude.json"
+REPO_URL="${JSONUI_MCP_REPO:-https://github.com/Tai-Kimura/jsonui-mcp-server.git}"
+INSTALL_DIR="${JSONUI_MCP_DIR:-$HOME/.jsonui-mcp-server}"
+CLAUDE_JSON="${CLAUDE_JSON:-$HOME/.claude.json}"
 NODE_BIN="$(which node)"
 
+if [ -z "$NODE_BIN" ]; then
+  echo "Error: node not found in PATH. Install Node.js first." >&2
+  exit 1
+fi
+
 echo "=== JUI Tools MCP Server Installer ==="
+echo "  Repo:    $REPO_URL"
+echo "  Install: $INSTALL_DIR"
+echo "  Node:    $NODE_BIN"
 
 # 1. Clone or update the repository
-if [ -d "$INSTALL_DIR" ]; then
+if [ -d "$INSTALL_DIR/.git" ]; then
   echo "Updating existing installation..."
   cd "$INSTALL_DIR"
-  git pull origin main
+  git fetch origin
+  git reset --hard origin/main
+elif [ -d "$INSTALL_DIR" ]; then
+  echo "Re-installing (previous directory had no .git)..."
+  rm -rf "$INSTALL_DIR"
+  git clone "$REPO_URL" "$INSTALL_DIR"
+  cd "$INSTALL_DIR"
 else
   echo "Cloning repository..."
   git clone "$REPO_URL" "$INSTALL_DIR"
