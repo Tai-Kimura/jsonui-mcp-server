@@ -1,7 +1,7 @@
 /**
  * Derived / static content that the MCP server exposes alongside attribute definitions.
  *
- * Ported from scripts/generate_specs.py. These values do not depend on
+ * These values do not depend on
  * attribute_definitions.json — they encode platform conventions (modifier order,
  * binding syntax, cross-platform value mapping). Kept in TS so the MCP can serve
  * them at startup without any build step.
