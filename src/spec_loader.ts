@@ -20,7 +20,6 @@ export interface ComponentMetadata {
     kotlin_dynamic: boolean;
     react: boolean;
   };
-  twoWayBindings: string[];
   platformSpecific: Record<string, Record<string, string>>;
   rules: string[];
 }
@@ -68,7 +67,6 @@ const DEFAULT_METADATA: ComponentMetadata = {
   description: "",
   aliases: [],
   platforms: ALL_PLATFORMS,
-  twoWayBindings: [],
   platformSpecific: {},
   rules: [],
 };
@@ -292,9 +290,6 @@ export class SpecLoader {
         ...ALL_PLATFORMS,
         ...(raw.platforms ?? {}),
       },
-      twoWayBindings: Array.isArray(raw.twoWayBindings)
-        ? raw.twoWayBindings
-        : [],
       platformSpecific:
         typeof raw.platformSpecific === "object" && raw.platformSpecific
           ? raw.platformSpecific
@@ -317,7 +312,6 @@ export class SpecLoader {
     attrs: Record<string, any>
   ): ComponentSpec {
     const meta = this.getMetadata(name);
-    const twoWay = new Set(meta.twoWayBindings);
 
     const attributes: Record<string, any> = {};
     const bindingBehavior: Record<string, any> = {};
@@ -332,8 +326,9 @@ export class SpecLoader {
       else if (attrType === "binding") hasBinding = true;
 
       if (hasBinding) {
+        const declared = (attrDef as any)?.binding_direction;
         bindingBehavior[attrName] = {
-          direction: twoWay.has(attrName) ? "two-way" : "read-only",
+          direction: declared === "two-way" ? "two-way" : "read-only",
         };
       }
     }

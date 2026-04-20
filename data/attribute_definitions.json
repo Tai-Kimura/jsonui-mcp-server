@@ -1,5 +1,5 @@
 {
-  "_comment": "Unified attribute definitions for JsonUI (Swift/Kotlin/React). Binding format: @{propertyName}",
+  "_comment": "Unified attribute definitions for JsonUI (Swift/Kotlin/React). Binding format: @{propertyName}. When `type` includes \"binding\", an optional `binding_direction` field declares how the MCP should label the binding: \"two-way\" means the component writes back to the binding (e.g. TextField.text); omit the field (or set \"read-only\") for values that only flow view ← model.",
   "common": {
     "_comment": "Common attributes shared across all components",
     "id": {
@@ -1354,7 +1354,8 @@
         "string",
         "binding"
       ],
-      "description": "Text content (binding for two-way)"
+      "description": "Text content (binding for two-way)",
+      "binding_direction": "two-way"
     },
     "hint": {
       "type": "string",
@@ -1692,7 +1693,8 @@
         "string",
         "binding"
       ],
-      "description": "Text content (binding for two-way)"
+      "description": "Text content (binding for two-way)",
+      "binding_direction": "two-way"
     },
     "hint": {
       "type": "string",
@@ -1936,7 +1938,8 @@
         "string",
         "binding"
       ],
-      "description": "Text content (binding for two-way)"
+      "description": "Text content (binding for two-way)",
+      "binding_direction": "two-way"
     },
     "hint": {
       "type": "string",
@@ -2279,7 +2282,8 @@
         "binding"
       ],
       "min": 0,
-      "description": "Initial selected index for normal picker (two-way binding)"
+      "description": "Initial selected index for normal picker (two-way binding)",
+      "binding_direction": "two-way"
     },
     "selectedItem": {
       "type": [
@@ -2523,7 +2527,10 @@
     },
     "colorScheme": {
       "type": "string",
-      "enum": ["light", "dark"],
+      "enum": [
+        "light",
+        "dark"
+      ],
       "description": "Color scheme for native date picker icon visibility (set 'dark' for dark backgrounds)",
       "platform": "react"
     },
@@ -2553,25 +2560,29 @@
         "boolean",
         "binding"
       ],
-      "description": "Switch state (binding for two-way)"
+      "description": "Switch state (binding for two-way)",
+      "binding_direction": "two-way"
     },
     "value": {
       "type": [
         "boolean",
         "binding"
       ],
-      "description": "Switch state alias (binding for two-way)"
+      "description": "Switch state alias (binding for two-way)",
+      "binding_direction": "two-way"
     },
     "checked": {
       "type": [
         "boolean",
         "binding"
       ],
-      "description": "Switch state alias (binding for two-way)"
+      "description": "Switch state alias (binding for two-way)",
+      "binding_direction": "two-way"
     },
     "bind": {
       "type": "binding",
-      "description": "Two-way binding @{variable}"
+      "description": "Two-way binding @{variable}",
+      "binding_direction": "two-way"
     },
     "enabled": {
       "type": [
@@ -2650,25 +2661,29 @@
         "boolean",
         "binding"
       ],
-      "description": "Toggle state (binding for two-way)"
+      "description": "Toggle state (binding for two-way)",
+      "binding_direction": "two-way"
     },
     "value": {
       "type": [
         "boolean",
         "binding"
       ],
-      "description": "Toggle state alias (binding for two-way)"
+      "description": "Toggle state alias (binding for two-way)",
+      "binding_direction": "two-way"
     },
     "checked": {
       "type": [
         "boolean",
         "binding"
       ],
-      "description": "Toggle state alias (binding for two-way)"
+      "description": "Toggle state alias (binding for two-way)",
+      "binding_direction": "two-way"
     },
     "bind": {
       "type": "binding",
-      "description": "Two-way binding @{variable}"
+      "description": "Two-way binding @{variable}",
+      "binding_direction": "two-way"
     },
     "enabled": {
       "type": [
@@ -2750,7 +2765,8 @@
         "number",
         "binding"
       ],
-      "description": "Initially selected index (binding for two-way)"
+      "description": "Initially selected index (binding for two-way)",
+      "binding_direction": "two-way"
     },
     "tintColor": {
       "type": "string",
@@ -2797,7 +2813,8 @@
         "number",
         "binding"
       ],
-      "description": "Current value (binding for two-way)"
+      "description": "Current value (binding for two-way)",
+      "binding_direction": "two-way"
     },
     "minValue": {
       "type": [
@@ -3469,18 +3486,21 @@
         "boolean",
         "binding"
       ],
-      "description": "Checked state (binding for two-way)"
+      "description": "Checked state (binding for two-way)",
+      "binding_direction": "two-way"
     },
     "checked": {
       "type": [
         "boolean",
         "binding"
       ],
-      "description": "Checked state alias (binding for two-way)"
+      "description": "Checked state alias (binding for two-way)",
+      "binding_direction": "two-way"
     },
     "bind": {
       "type": "binding",
-      "description": "Two-way binding @{variable}"
+      "description": "Two-way binding @{variable}",
+      "binding_direction": "two-way"
     },
     "icon": {
       "type": "string",
@@ -3550,18 +3570,21 @@
         "boolean",
         "binding"
       ],
-      "description": "Check state (binding for two-way)"
+      "description": "Check state (binding for two-way)",
+      "binding_direction": "two-way"
     },
     "isOn": {
       "type": [
         "boolean",
         "binding"
       ],
-      "description": "Checked state (binding for two-way)"
+      "description": "Checked state (binding for two-way)",
+      "binding_direction": "two-way"
     },
     "bind": {
       "type": "binding",
-      "description": "Two-way binding @{variable}"
+      "description": "Two-way binding @{variable}",
+      "binding_direction": "two-way"
     },
     "label": {
       "type": [
@@ -3814,7 +3837,8 @@
         "number",
         "binding"
       ],
-      "description": "Currently selected tab index (binding for two-way)"
+      "description": "Currently selected tab index (binding for two-way)",
+      "binding_direction": "two-way"
     },
     "tabs": {
       "type": "array",
