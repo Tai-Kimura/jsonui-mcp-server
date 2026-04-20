@@ -4,16 +4,26 @@ import { join, resolve } from "path";
 import { fileURLToPath } from "url";
 
 import {
-  COMPONENT_METADATA,
-  ComponentMetadata,
-  getMetadata,
-} from "./data/component_metadata.js";
-import {
   BINDING_RULES,
   MODIFIER_ORDER,
   PLATFORM_MAPPING,
   categorizeCommonAttributes,
 } from "./data/derived.js";
+
+export interface ComponentMetadata {
+  description: string;
+  aliases: string[];
+  platforms: {
+    swift_generated: boolean;
+    swift_dynamic: boolean;
+    kotlin_generated: boolean;
+    kotlin_dynamic: boolean;
+    react: boolean;
+  };
+  twoWayBindings: string[];
+  platformSpecific: Record<string, Record<string, string>>;
+  rules: string[];
+}
 
 export interface ComponentSpec {
   name: string;
@@ -26,29 +36,51 @@ export interface ComponentSpec {
   rules: string[];
 }
 
-export interface DataSourceInfo {
-  /** Which fallback layer provided the data (env / cwd / home / bundled). */
-  layer: "env" | "cwd" | "home" | "bundled";
-  /** Absolute path to attribute_definitions.json actually loaded. */
+export type FallbackLayer = "env" | "cwd" | "home" | "bundled";
+
+export interface FileInfo {
+  /** Which fallback layer provided the file. */
+  layer: FallbackLayer;
+  /** Absolute path actually loaded. */
   path: string;
-  /** ISO 8601 mtime of attribute_definitions.json. */
+  /** ISO 8601 mtime. */
   lastModified: string;
-  /** Components parsed from the file. */
-  componentCount: number;
-  /** Common-section attribute count. */
-  commonAttributeCount: number;
   /** Freshness bucket. "fresh" <= 30d, "aging" <= 90d, "stale" > 90d. */
   freshness: "fresh" | "aging" | "stale";
 }
 
+export interface DataSourceInfo {
+  attributeDefinitions: FileInfo;
+  componentMetadata: FileInfo;
+  componentCount: number;
+  commonAttributeCount: number;
+}
+
+const ALL_PLATFORMS: ComponentMetadata["platforms"] = {
+  swift_generated: true,
+  swift_dynamic: true,
+  kotlin_generated: true,
+  kotlin_dynamic: true,
+  react: true,
+};
+
+const DEFAULT_METADATA: ComponentMetadata = {
+  description: "",
+  aliases: [],
+  platforms: ALL_PLATFORMS,
+  twoWayBindings: [],
+  platformSpecific: {},
+  rules: [],
+};
+
 /**
- * Resolution order for locating `attribute_definitions.json`:
+ * Resolution order for each jsonui-cli data file:
  *
  *   1. `$JSONUI_CLI_PATH` env var (custom install / monorepo)
  *   2. `./.jsonui-cli/` in process.cwd() (project-local)
  *   3. `~/.jsonui-cli/` (default location of the jsonui-cli bootstrap installer)
- *   4. `<mcp-server>/data/attribute_definitions.json` (bundled snapshot, populated
- *      by `scripts/fetch-definitions.js` at npm install time)
+ *   4. `<mcp-server>/data/<file>` (bundled snapshot, populated by
+ *      `scripts/fetch-definitions.js` at npm install time)
  *
  * A missing higher-priority layer falls through to the next. If all four fail,
  * the loader throws — that's a hard misconfiguration.
@@ -58,13 +90,14 @@ export class SpecLoader {
   private commonAttributesRaw: Record<string, any> = {};
   private commonAttributes: any = null;
   private aliasMap: Map<string, string> = new Map();
+  private metadata: Record<string, ComponentMetadata> = {};
   private dataSource!: DataSourceInfo;
 
   constructor(private mcpRootDir: string) {
     this.load();
   }
 
-  // ----- public API (preserved from the pre-Phase-A loader) --------------
+  // ----- public API ------------------------------------------------------
 
   getComponent(name: string): ComponentSpec | null {
     const key = name.toLowerCase();
@@ -79,7 +112,6 @@ export class SpecLoader {
   }
 
   getAttribute(name: string): any {
-    // Search common attributes first
     if (this.commonAttributes?.categories) {
       for (const [category, attrs] of Object.entries(
         this.commonAttributes.categories
@@ -97,7 +129,6 @@ export class SpecLoader {
       }
     }
 
-    // Search component-specific attributes
     const results: any[] = [];
     for (const comp of this.components.values()) {
       if (comp.attributes[name]) {
@@ -195,7 +226,6 @@ export class SpecLoader {
     return Array.from(this.components.values()).map((c) => c.name);
   }
 
-  /** Returns info about which file / layer the component data came from. */
   getDataSource(): DataSourceInfo {
     return this.dataSource;
   }
@@ -203,8 +233,29 @@ export class SpecLoader {
   // ----- load pipeline ---------------------------------------------------
 
   private load(): void {
-    const { path, layer } = this.resolveAttrDefPath();
-    const raw = JSON.parse(readFileSync(path, "utf-8")) as Record<string, any>;
+    const attrResolution = this.resolveFile(
+      "shared/core/attribute_definitions.json",
+      "data/attribute_definitions.json"
+    );
+    const metaResolution = this.resolveFile(
+      "shared/core/component_metadata.json",
+      "data/component_metadata.json"
+    );
+
+    const raw = JSON.parse(readFileSync(attrResolution.path, "utf-8")) as Record<
+      string,
+      any
+    >;
+    const metaRaw = JSON.parse(
+      readFileSync(metaResolution.path, "utf-8")
+    ) as Record<string, any>;
+
+    this.metadata = {};
+    for (const [name, meta] of Object.entries(metaRaw)) {
+      if (name.startsWith("_")) continue;
+      if (typeof meta !== "object" || meta === null) continue;
+      this.metadata[name] = this.normalizeMetadata(meta);
+    }
 
     this.commonAttributesRaw = raw.common || {};
     this.commonAttributes = categorizeCommonAttributes(this.commonAttributesRaw);
@@ -223,28 +274,49 @@ export class SpecLoader {
       componentCount++;
     }
 
-    const mtime = statSync(path).mtime;
-    const ageDays = (Date.now() - mtime.getTime()) / (1000 * 60 * 60 * 24);
-    const freshness: DataSourceInfo["freshness"] =
-      ageDays <= 30 ? "fresh" : ageDays <= 90 ? "aging" : "stale";
-
     this.dataSource = {
-      layer,
-      path,
-      lastModified: mtime.toISOString(),
+      attributeDefinitions: attrResolution,
+      componentMetadata: metaResolution,
       componentCount,
       commonAttributeCount: Object.keys(this.commonAttributesRaw).filter(
         (k) => !k.startsWith("_")
       ).length,
-      freshness,
     };
+  }
+
+  private normalizeMetadata(raw: Record<string, any>): ComponentMetadata {
+    return {
+      description: raw.description ?? "",
+      aliases: Array.isArray(raw.aliases) ? raw.aliases : [],
+      platforms: {
+        ...ALL_PLATFORMS,
+        ...(raw.platforms ?? {}),
+      },
+      twoWayBindings: Array.isArray(raw.twoWayBindings)
+        ? raw.twoWayBindings
+        : [],
+      platformSpecific:
+        typeof raw.platformSpecific === "object" && raw.platformSpecific
+          ? raw.platformSpecific
+          : {},
+      rules: Array.isArray(raw.rules) ? raw.rules : [],
+    };
+  }
+
+  private getMetadata(componentName: string): ComponentMetadata {
+    return (
+      this.metadata[componentName] ?? {
+        ...DEFAULT_METADATA,
+        description: `${componentName} component`,
+      }
+    );
   }
 
   private buildComponentSpec(
     name: string,
     attrs: Record<string, any>
   ): ComponentSpec {
-    const meta: ComponentMetadata = getMetadata(name);
+    const meta = this.getMetadata(name);
     const twoWay = new Set(meta.twoWayBindings);
 
     const attributes: Record<string, any> = {};
@@ -278,41 +350,51 @@ export class SpecLoader {
     };
   }
 
-  private resolveAttrDefPath(): { path: string; layer: DataSourceInfo["layer"] } {
-    const candidates: Array<{ path: string; layer: DataSourceInfo["layer"] }> = [];
+  /**
+   * Resolve a jsonui-cli file through the 4-layer fallback and return FileInfo.
+   * @param cliRelPath  Path inside a jsonui-cli checkout (e.g. "shared/core/attribute_definitions.json")
+   * @param bundledRelPath  Path inside this MCP's root (e.g. "data/attribute_definitions.json")
+   */
+  private resolveFile(cliRelPath: string, bundledRelPath: string): FileInfo {
+    const candidates: Array<{ path: string; layer: FallbackLayer }> = [];
 
     const env = process.env.JSONUI_CLI_PATH;
     if (env) {
-      candidates.push({
-        path: join(resolve(env), "shared/core/attribute_definitions.json"),
-        layer: "env",
-      });
+      candidates.push({ path: join(resolve(env), cliRelPath), layer: "env" });
     }
-
     candidates.push({
-      path: join(process.cwd(), ".jsonui-cli/shared/core/attribute_definitions.json"),
+      path: join(process.cwd(), ".jsonui-cli", cliRelPath),
       layer: "cwd",
     });
-
     candidates.push({
-      path: join(homedir(), ".jsonui-cli/shared/core/attribute_definitions.json"),
+      path: join(homedir(), ".jsonui-cli", cliRelPath),
       layer: "home",
     });
-
     candidates.push({
-      path: join(this.mcpRootDir, "data/attribute_definitions.json"),
+      path: join(this.mcpRootDir, bundledRelPath),
       layer: "bundled",
     });
 
     for (const candidate of candidates) {
-      if (existsSync(candidate.path)) return candidate;
+      if (existsSync(candidate.path)) {
+        const mtime = statSync(candidate.path).mtime;
+        const ageDays = (Date.now() - mtime.getTime()) / (1000 * 60 * 60 * 24);
+        const freshness: FileInfo["freshness"] =
+          ageDays <= 30 ? "fresh" : ageDays <= 90 ? "aging" : "stale";
+        return {
+          layer: candidate.layer,
+          path: candidate.path,
+          lastModified: mtime.toISOString(),
+          freshness,
+        };
+      }
     }
 
     const tried = candidates.map((c) => `  [${c.layer}] ${c.path}`).join("\n");
     throw new Error(
-      "attribute_definitions.json not found. Tried:\n" +
+      `jsonui-cli file not found: ${cliRelPath}. Tried:\n` +
         tried +
-        "\n\nInstall jsonui-cli (the bootstrap places the file at ~/.jsonui-cli/...)\n" +
+        "\n\nInstall jsonui-cli (the bootstrap places files under ~/.jsonui-cli/),\n" +
         "or set JSONUI_CLI_PATH to point at a jsonui-cli checkout,\n" +
         "or reinstall jsonui-mcp-server so the postinstall script can fetch a bundled snapshot."
     );
@@ -322,9 +404,5 @@ export class SpecLoader {
 // Helper to derive the MCP server root from an import.meta.url (e.g. in index.ts).
 export function mcpRootFromImportMetaUrl(url: string): string {
   const dir = fileURLToPath(new URL(".", url));
-  // dist/ sits one level below the project root.
   return resolve(dir, "..");
 }
-
-// Re-export so callers can type against the same shape without a deep import.
-export { COMPONENT_METADATA };

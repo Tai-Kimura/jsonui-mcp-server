@@ -60,7 +60,13 @@ const mcpRoot = mcpRootFromImportMetaUrl(import.meta.url);
 const loader = new SpecLoader(mcpRoot);
 const source = loader.getDataSource();
 log(
-  `Spec source: [${source.layer}] ${source.path} (${source.componentCount} components, ${source.freshness})`
+  `attribute_definitions: [${source.attributeDefinitions.layer}] ${source.attributeDefinitions.path} (${source.attributeDefinitions.freshness})`
+);
+log(
+  `component_metadata:    [${source.componentMetadata.layer}] ${source.componentMetadata.path} (${source.componentMetadata.freshness})`
+);
+log(
+  `Loaded ${source.componentCount} components, ${source.commonAttributeCount} common attributes`
 );
 
 // Initialize server config for Groups B/C/D
