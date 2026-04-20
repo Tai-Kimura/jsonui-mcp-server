@@ -2,8 +2,7 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { join } from "path";
-import { SpecLoader } from "./spec_loader.js";
+import { SpecLoader, mcpRootFromImportMetaUrl } from "./spec_loader.js";
 import { ServerConfig } from "./config.js";
 
 // --- Group A: Component Spec Lookup ---
@@ -13,6 +12,7 @@ import { register as registerSearchComponents } from "./tools/spec/search_compon
 import { register as registerGetModifierOrder } from "./tools/spec/get_modifier_order.js";
 import { register as registerGetBindingRules } from "./tools/spec/get_binding_rules.js";
 import { register as registerGetPlatformMapping } from "./tools/spec/get_platform_mapping.js";
+import { register as registerGetDataSource } from "./tools/spec/get_data_source.js";
 
 // --- Group B: Project Context ---
 import { register as registerGetProjectConfig } from "./tools/context/get_project_config.js";
@@ -54,19 +54,26 @@ const server = new McpServer({
 });
 
 // Initialize spec loader for Group A
-const specsDir = join(import.meta.dirname, "..", "specs");
-const loader = new SpecLoader(specsDir);
+// Resolves attribute_definitions.json via 4-layer fallback:
+// JSONUI_CLI_PATH env > ./.jsonui-cli/ > ~/.jsonui-cli/ > bundled snapshot in data/.
+const mcpRoot = mcpRootFromImportMetaUrl(import.meta.url);
+const loader = new SpecLoader(mcpRoot);
+const source = loader.getDataSource();
+log(
+  `Spec source: [${source.layer}] ${source.path} (${source.componentCount} components, ${source.freshness})`
+);
 
 // Initialize server config for Groups B/C/D
 const config = new ServerConfig();
 
-// Register Group A: Component Spec Lookup (6 tools)
+// Register Group A: Component Spec Lookup (7 tools)
 registerLookupComponent(server, loader);
 registerLookupAttribute(server, loader);
 registerSearchComponents(server, loader);
 registerGetModifierOrder(server, loader);
 registerGetBindingRules(server, loader);
 registerGetPlatformMapping(server, loader);
+registerGetDataSource(server, loader);
 
 // Register Group B: Project Context (6 tools)
 registerGetProjectConfig(server, config);
@@ -96,7 +103,7 @@ registerDocGenerateHtml(server, config);
 registerDocRulesInit(server, config);
 registerDocRulesShow(server, config);
 
-log(`Registered 28 tools (6 spec + 6 context + 7 jui + 9 doc)`);
+log(`Registered 29 tools (7 spec + 6 context + 7 jui + 9 doc)`);
 
 async function main() {
   const transport = new StdioServerTransport();
