@@ -260,7 +260,8 @@
       "items binding connects to data source array",
       "Sections support different cell types per section",
       "cellIdProperty extracts unique keys from item data",
-      "scrollTo binding enables programmatic scrolling"
+      "scrollTo binding enables programmatic scrolling",
+      "lazy (default true) controls virtualization: true uses LazyVStack/LazyColumn/LazyVerticalGrid with internal scroll; false renders eagerly in a plain VStack/Column with NO scroll container (use when nested in an already-scrollable parent). Sticky headers and paging require lazy: true."
     ]
   },
   "Switch": {

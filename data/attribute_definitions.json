@@ -3198,6 +3198,11 @@
       "type": "array",
       "description": "Footer class definitions"
     },
+    "lazy": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether to use a lazy (virtualized) container. true (default): LazyVStack/LazyColumn/LazyVerticalGrid etc. with internal scrolling. false: render all items eagerly inside a plain VStack/Column (SwiftUI) or Column (Compose) or div (React) with NO scroll container — use when the Collection is nested inside an already-scrollable parent. Sticky headers and paging require lazy: true."
+    },
     "columns": {
       "type": "number",
       "min": 1,
