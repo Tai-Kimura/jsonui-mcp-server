@@ -13,6 +13,11 @@ export function register(server: McpServer, config: ServerConfig) {
       all: z.boolean().optional().describe("Generate from all component specs"),
       attributes: z.string().optional().describe("Attributes in key:type format (e.g., 'prop1:String,prop2:Int')"),
       container: z.boolean().optional().describe("Mark as container component"),
+      skip_existing: z.boolean().optional().describe(
+        "Leave existing converter files untouched (no overwrite prompt). " +
+        "`jui build` enables this automatically; pass it here for idempotent " +
+        "explicit scaffold runs."
+      ),
       project_dir: z.string().optional().describe("Project directory (overrides JUI_PROJECT_DIR env)"),
     },
     async (params) => {
@@ -24,6 +29,7 @@ export function register(server: McpServer, config: ServerConfig) {
         if (params.all) { args.push("--all"); }
         if (params.attributes) { args.push("--attributes", params.attributes); }
         if (params.container) { args.push("--container"); }
+        if (params.skip_existing) { args.push("--skip-existing"); }
 
         const result = await runCli("jui", args, { cwd: projectDir });
         return { content: [{ type: "text", text: formatResult(result) }] };
