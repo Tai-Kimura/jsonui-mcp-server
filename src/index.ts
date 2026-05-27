@@ -32,6 +32,11 @@ import { register as registerJuiVerify } from "./tools/jui/jui_verify.js";
 import { register as registerJuiMigrateLayouts } from "./tools/jui/jui_migrate_layouts.js";
 import { register as registerJuiSyncTool } from "./tools/jui/jui_sync_tool.js";
 
+// --- Group E: API Model Discovery ---
+import { register as registerListApiSpecs } from "./tools/api/list_api_specs.js";
+import { register as registerListApiModels } from "./tools/api/list_api_models.js";
+import { register as registerPreviewApiModelSync } from "./tools/api/preview_api_model_sync.js";
+
 // --- Group D: jsonui-doc CLI ---
 import { register as registerDocInitSpec } from "./tools/doc/doc_init_spec.js";
 import { register as registerDocInitComponent } from "./tools/doc/doc_init_component.js";
@@ -111,7 +116,12 @@ registerDocGenerateHtml(server, config);
 registerDocRulesInit(server, config);
 registerDocRulesShow(server, config);
 
-log(`Registered 30 tools (7 spec + 6 context + 8 jui + 9 doc)`);
+// Register Group E: API Model Discovery (3 tools)
+registerListApiSpecs(server, config);
+registerListApiModels(server, config);
+registerPreviewApiModelSync(server, config);
+
+log(`Registered 33 tools (7 spec + 6 context + 8 jui + 9 doc + 3 api)`);
 
 async function main() {
   const transport = new StdioServerTransport();
