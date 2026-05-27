@@ -8,14 +8,21 @@ import { runCli } from "../../cli_runner.js";
  *
  * Lists swagger / OpenAPI files under the project's `api_directory` with
  * lightweight parsed metadata (title, version, schema_count, enum_count,
- * endpoint_count) plus flags for v1-halt constructs (`has_one_of`,
- * `has_multi_file_ref`). Used by agents to decide whether the swagger is
- * ready for `jui build` or needs cleanup first.
+ * endpoint_count) plus advisory flags for polymorphism / multi-file ref
+ * usage (`has_one_of`, `has_multi_file_ref`).
+ *
+ * Note: `has_one_of: true` is **not** equivalent to "will halt". Field-level
+ * `oneOf` paired with `discriminator` + explicit `mapping` (variants `$ref`
+ * top-level schemas + sibling discriminator property present) is supported
+ * and emits Swift enum / Kotlin sealed class / TS discriminated union code.
+ * Other shapes (anyOf, schema-level oneOf, oneOf without discriminator,
+ * discriminator alone) still halt. Agents should verify each `oneOf` site
+ * rather than blanket-flagging the file as broken.
  */
 export function register(server: McpServer, config: ServerConfig) {
   server.tool(
     "list_api_specs",
-    "List swagger / OpenAPI files under api_directory with parsed metadata (title, version, schema/enum/endpoint counts, halt-construct flags)",
+    "List swagger / OpenAPI files under api_directory with parsed metadata (title, version, schema/enum/endpoint counts, advisory polymorphism flags — see has_one_of caveat in tool doc)",
     {
       project_dir: z.string().optional().describe("Project directory (overrides JUI_PROJECT_DIR env)"),
     },
