@@ -2,6 +2,7 @@
  * ServerConfig — project dir resolution, jui.config.json reading,
  * directory field resolution, and path-traversal defense.
  */
+import { mkdirSync, symlinkSync, writeFileSync } from "fs";
 import { join, resolve } from "path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -148,6 +149,55 @@ describe("validatePathInProject", () => {
     expect(() =>
       config.validatePathInProject(join(other, "secret.json"), dir)
     ).toThrowError(/Path traversal detected/);
+  });
+
+  it("rejects sibling directories that share the project dir as a name prefix", () => {
+    // "/base/proj-evil/…".startsWith("/base/proj") is true — a naive prefix
+    // check lets siblings through. Must compare on path-segment boundaries.
+    const base = makeTempDir("base");
+    const dir = join(base, "proj");
+    const evil = join(base, "proj-evil");
+    mkdirSync(dir);
+    mkdirSync(evil);
+    writeFileSync(join(evil, "secret.json"), "{}");
+    expect(() =>
+      config.validatePathInProject(join(evil, "secret.json"), dir)
+    ).toThrowError(/Path traversal detected/);
+  });
+
+  it("rejects a symlink inside the project that points outside", () => {
+    const base = makeTempDir("base");
+    const dir = join(base, "proj");
+    const outside = join(base, "outside");
+    mkdirSync(dir);
+    mkdirSync(outside);
+    writeFileSync(join(outside, "secret.json"), "SECRET");
+    symlinkSync(outside, join(dir, "link"));
+    expect(() =>
+      config.validatePathInProject("link/secret.json", dir)
+    ).toThrowError(/Path traversal detected/);
+  });
+
+  it("rejects a non-existent leaf under an outward-pointing symlink", () => {
+    const base = makeTempDir("base");
+    const dir = join(base, "proj");
+    const outside = join(base, "outside");
+    mkdirSync(dir);
+    mkdirSync(outside);
+    symlinkSync(outside, join(dir, "link"));
+    expect(() =>
+      config.validatePathInProject("link/ghost.json", dir)
+    ).toThrowError(/Path traversal detected/);
+  });
+
+  it("accepts a symlink that stays inside the project", () => {
+    const base = makeTempDir("base");
+    const dir = join(base, "proj");
+    mkdirSync(join(dir, "real"), { recursive: true });
+    writeFileSync(join(dir, "real", "file.json"), "{}");
+    symlinkSync(join(dir, "real"), join(dir, "alias"));
+    const validated = config.validatePathInProject("alias/file.json", dir);
+    expect(validated.endsWith(join("real", "file.json"))).toBe(true);
   });
 
   it("allows a path that stays inside after .. segments resolve", () => {

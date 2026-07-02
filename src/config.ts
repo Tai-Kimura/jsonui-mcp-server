@@ -1,5 +1,23 @@
-import { readFileSync, existsSync } from "fs";
-import { join, resolve, isAbsolute } from "path";
+import { readFileSync, existsSync, realpathSync } from "fs";
+import { basename, dirname, join, resolve, isAbsolute, sep } from "path";
+
+/**
+ * Resolve symlinks on the longest existing prefix of an already lexically
+ * resolved path. Non-existent trailing segments are kept as-is so validation
+ * can run before existence checks without throwing; a dangling or missing
+ * path can't leak data (the read fails afterwards).
+ */
+function realpathLongestExistingPrefix(path: string): string {
+  let existing = path;
+  const missingSuffix: string[] = [];
+  while (!existsSync(existing)) {
+    const parent = dirname(existing);
+    if (parent === existing) return path; // no existing prefix at all
+    missingSuffix.unshift(basename(existing));
+    existing = parent;
+  }
+  return join(realpathSync(existing), ...missingSuffix);
+}
 
 export interface ProjectConfig {
   project_name: string;
@@ -53,9 +71,16 @@ export class ServerConfig {
 
   validatePathInProject(filePath: string, projectDir: string): string {
     const resolved = isAbsolute(filePath) ? filePath : join(projectDir, filePath);
-    const normalizedProject = resolve(projectDir);
-    const normalizedPath = resolve(resolved);
-    if (!normalizedPath.startsWith(normalizedProject)) {
+    // Realpath both sides so a symlink inside the project cannot smuggle the
+    // path outside it (lexical resolve() does not follow symlinks).
+    const normalizedProject = realpathLongestExistingPrefix(resolve(projectDir));
+    const normalizedPath = realpathLongestExistingPrefix(resolve(resolved));
+    // Compare on path-segment boundaries: a bare startsWith() would accept
+    // sibling dirs like "<project>-evil".
+    const isInside =
+      normalizedPath === normalizedProject ||
+      normalizedPath.startsWith(normalizedProject + sep);
+    if (!isInside) {
       throw new Error(`Path traversal detected: ${filePath} is outside project directory`);
     }
     return normalizedPath;

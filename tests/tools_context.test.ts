@@ -2,6 +2,7 @@
  * Group B tools (project context) — exercised against a tmp-dir fixture
  * project (jui.config.json + specs + layouts). No real project is touched.
  */
+import { symlinkSync, writeFileSync } from "fs";
 import { join } from "path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -223,5 +224,17 @@ describe("read_layout_file", () => {
       project_dir: projectDir,
     });
     expect(text).toContain("File not found");
+  });
+
+  it("blocks reading through a symlink that escapes the project", async () => {
+    const outside = makeTempDir("outside");
+    writeFileSync(join(outside, "secret.json"), '{"leaked":true}');
+    symlinkSync(outside, join(projectDir, "layouts", "external"));
+    const text = await harness.call("read_layout_file", {
+      file: "external/secret.json",
+      project_dir: projectDir,
+    });
+    expect(text).toMatch(/^Error: Path traversal detected/);
+    expect(text).not.toContain("leaked");
   });
 });
