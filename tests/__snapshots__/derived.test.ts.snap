@@ -1,0 +1,278 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`derived constants (pinned) > BINDING_RULES snapshot 1`] = `
+{
+  "criticalRules": [
+    "Frame values (width, height, etc.) MUST be read-only (data.). $data. is NOT allowed",
+    "Two-way binding is only for stateful input components",
+    "React auto-generates onPropertyNameChange for two-way bindings",
+    "Kotlin Dynamic uses updateData(mapOf(key to value)) for data updates",
+    "onclick (lowercase) = selector format (string), onClick (camelCase) = binding format (@{handler})",
+  ],
+  "description": "JsonUI binding syntax rules",
+  "directions": {
+    "read-only": {
+      "applicableAttributes": [
+        "Label.text",
+        "*.width / *.height (frame values)",
+        "*.enabled",
+        "*.hidden / *.visibility",
+        "*.background / *.fontColor",
+        "*.fontSize",
+        "*.opacity / *.alpha",
+      ],
+      "description": "Display data values only (no write-back)",
+      "kotlin": "data[propertyName]",
+      "react": "{data.propertyName}",
+      "swift": "data.propertyName",
+    },
+    "two-way": {
+      "applicableAttributes": [
+        "TextField.text",
+        "TextView.text",
+        "Switch.isOn",
+        "Toggle.isOn",
+        "CheckBox.checked",
+        "Slider.value",
+        "Segment.selectedIndex",
+        "Radio.selectedIndex",
+        "SelectBox.selectedIndex",
+        "TabView.selectedIndex",
+      ],
+      "description": "Component state changes reflect back to data model",
+      "kotlin": "mutableStateOf + updateData(mapOf(key to value))",
+      "react": "value={data.prop} + auto-generated onChange handler",
+      "swift": "$data.propertyName",
+    },
+  },
+  "format": {
+    "bindingExpression": "@{propertyName}",
+    "defaultValue": "@{propertyName ?? defaultValue}",
+    "negation": "@{!propertyName}",
+    "nestedPath": "@{user.name} (Kotlin Dynamic Mode)",
+  },
+}
+`;
+
+exports[`derived constants (pinned) > MODIFIER_ORDER snapshot 1`] = `
+{
+  "description": "Platform-specific modifier application order. Order affects rendering.",
+  "kotlin": {
+    "criticalRules": [
+      "Modifier.then() chains left-to-right; order matters",
+      "margins before size (outside to inside)",
+      "cornerRadius must be applied as clip before background",
+    ],
+    "order": [
+      "testTag",
+      "margins",
+      "weight (caller applies)",
+      "size (width/height, matchParent/wrapContent, min/max/aspectRatio)",
+      "alpha/opacity",
+      "shadow/elevation",
+      "background (cornerRadius -> clip -> border -> bgColor)",
+      "clickable",
+      "padding",
+      "alignment (RowScope/ColumnScope/BoxScope)",
+    ],
+  },
+  "react": {
+    "classOrder": [
+      "layout (flex, flex-col/row)",
+      "sizing (w-*, h-*)",
+      "spacing (p-*, m-*)",
+      "typography (text-*, font-*)",
+      "visual (bg-*, rounded-*, border-*, shadow-*)",
+      "opacity",
+      "overflow",
+      "cursor/interaction",
+    ],
+    "dynamicStyles": "Values not mappable to Tailwind use inline style objects",
+    "note": "React uses Tailwind CSS classes; ordering is less strict",
+  },
+  "swift": {
+    "criticalRules": [
+      "background MUST come after padding (background includes padding area)",
+      "border MUST come after cornerRadius (for rounded border)",
+      "frame MUST come before margins (size before external spacing)",
+      "Image: .resizable() must come first, then .aspectRatio",
+      "Label: .leading alignment added to frame for textAlign to work",
+    ],
+    "order": [
+      "centerAlignment",
+      "edgeAlignment",
+      "padding",
+      "frameConstraints (min/max)",
+      "frameSize (width/height)",
+      "insets/insetHorizontal",
+      "background",
+      "cornerRadius",
+      "border",
+      "margins",
+      "alpha/opacity",
+      "shadow",
+      "clipping",
+      "offset",
+      "visibility (hidden/opacity ternary)",
+      "safeAreaInsets",
+      "disabled",
+      "tag (for TabView)",
+      "tintColor",
+      "onClick/onTapGesture",
+      "lifecycle (onAppear/onDisappear)",
+      "confirmationDialog",
+      "accessibilityIdentifier",
+    ],
+  },
+}
+`;
+
+exports[`derived constants (pinned) > PLATFORM_MAPPING snapshot 1`] = `
+{
+  "contentMode": {
+    "aspectFill": {
+      "kotlin": "ContentScale.Crop",
+      "react": "object-cover",
+      "swift": ".fill",
+    },
+    "aspectFit": {
+      "kotlin": "ContentScale.Fit",
+      "react": "object-contain",
+      "swift": ".fit",
+    },
+    "scaleToFill": {
+      "kotlin": "ContentScale.FillBounds",
+      "react": "object-fill",
+      "swift": ".fill (no aspectRatio)",
+    },
+  },
+  "description": "Cross-platform attribute value conversion mapping",
+  "fontWeight": {
+    "bold": {
+      "kotlin": "FontWeight.Bold",
+      "react": "font-bold",
+      "swift": ".bold",
+    },
+    "light": {
+      "kotlin": "FontWeight.Light",
+      "react": "font-light",
+      "swift": ".light",
+    },
+    "medium": {
+      "kotlin": "FontWeight.Medium",
+      "react": "font-medium",
+      "swift": ".medium",
+    },
+    "semibold": {
+      "kotlin": "FontWeight.SemiBold",
+      "react": "font-semibold",
+      "swift": ".semibold",
+    },
+    "thin": {
+      "kotlin": "FontWeight.Thin",
+      "react": "font-thin",
+      "swift": ".thin",
+    },
+  },
+  "gravity": {
+    "center": {
+      "kotlin": "Alignment.Center",
+      "react": "items-center justify-center",
+      "swift": ".center",
+    },
+    "centerHorizontal": {
+      "kotlin_vertical": "Alignment.CenterHorizontally",
+      "react": "items-center (flex-col)",
+      "swift_vertical": ".center HStack alignment",
+    },
+    "centerVertical": {
+      "kotlin_horizontal": "Alignment.CenterVertically",
+      "react": "items-center (flex-row)",
+      "swift_horizontal": ".center VStack alignment",
+    },
+  },
+  "orientation": {
+    "horizontal": {
+      "kotlin": "Row",
+      "react": "flex flex-row",
+      "swift": "HStack",
+    },
+    "none": {
+      "kotlin": "Box",
+      "react": "relative",
+      "swift": "ZStack",
+    },
+    "vertical": {
+      "kotlin": "Column",
+      "react": "flex flex-col",
+      "swift": "VStack",
+    },
+  },
+  "textAlign": {
+    "center": {
+      "kotlin": "TextAlign.Center",
+      "react": "text-center",
+      "swift": ".center",
+    },
+    "left": {
+      "kotlin": "TextAlign.Start",
+      "react": "text-left",
+      "swift": ".leading",
+    },
+    "right": {
+      "kotlin": "TextAlign.End",
+      "react": "text-right",
+      "swift": ".trailing",
+    },
+  },
+  "types": {
+    "Array": {
+      "kotlin": "List<T>",
+      "react": "T[]",
+      "swift": "[T]",
+    },
+    "Bool": {
+      "kotlin": "Boolean",
+      "react": "boolean",
+      "swift": "Bool",
+    },
+    "Dictionary": {
+      "kotlin": "Map<String, Any>",
+      "react": "Record<string, any>",
+      "swift": "[String: Any]",
+    },
+    "Double": {
+      "kotlin": "Double",
+      "react": "number",
+      "swift": "Double",
+    },
+    "Float": {
+      "kotlin": "Float",
+      "react": "number",
+      "swift": "CGFloat",
+    },
+    "Int": {
+      "kotlin": "Int",
+      "react": "number",
+      "swift": "Int",
+    },
+    "String": {
+      "kotlin": "String",
+      "react": "string",
+      "swift": "String",
+    },
+  },
+  "values": {
+    "matchParent": {
+      "kotlin": "fillMaxWidth() / fillMaxHeight()",
+      "react": "w-full / h-full",
+      "swift": ".infinity (frame maxWidth/maxHeight)",
+    },
+    "wrapContent": {
+      "kotlin": "wrapContentWidth() / wrapContentHeight()",
+      "react": "w-fit / h-fit",
+      "swift": "Default (no frame specified)",
+    },
+  },
+}
+`;

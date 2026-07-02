@@ -96,6 +96,25 @@ bash ~/.jsonui-mcp-server/uninstall.sh
 | `doc_rules_init` | カスタムバリデーションルール作成 | `jsonui-doc rules init` |
 | `doc_rules_show` | 有効なバリデーションルール表示 | `jsonui-doc rules show` |
 
+## Testing
+
+単体テストは [vitest](https://vitest.dev/)（ESM ネイティブで本リポジトリのモジュール構成とそのまま噛み合うため採用）。
+
+```bash
+npm ci --ignore-scripts   # postinstall の snapshot fetch をスキップ（CI と同じ手順）
+npm test                  # 全テスト実行
+npm run test:watch        # watch モード
+```
+
+テストは完全に自己完結:
+
+- ネットワーク・実 `jui` / `jsonui-doc` CLI・実プロジェクトには一切依存しない（`child_process` はモック、プロジェクトは tmp dir の fixture）
+- `~/.jsonui-cli/` / `$JSONUI_CLI_PATH` / `$JUI_PROJECT_DIR` はテスト内で差し替え（`tests/setup.ts`）
+- bundled snapshot（`data/*.json`）の妥当性テストはコミット済みの実データに対して走る。CI が `npm ci --ignore-scripts` を使うのはこのため（postinstall がリモート最新で `data/` を上書きするとコミット対象のデータを検証できなくなる）
+- `scripts/fetch-definitions.js` のネットワーク挙動はテスト対象外
+
+CI は `.github/workflows/test.yml`（Node 20 / 22 matrix、main への push と PR で実行）。
+
 ## Prerequisites
 
 - Node.js 18+
