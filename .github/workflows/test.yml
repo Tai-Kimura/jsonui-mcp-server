@@ -1,0 +1,35 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      # --ignore-scripts keeps CI hermetic: the postinstall hook
+      # (scripts/fetch-definitions.js) would otherwise overwrite the committed
+      # data/ snapshot with whatever is currently on the jsonui-cli main
+      # branch, making the snapshot-validity tests validate remote data
+      # instead of this commit. Tests never touch the network either way.
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Type-check and build
+        run: npm run build
+
+      - name: Run unit tests
+        run: npm test
