@@ -46,9 +46,9 @@ bash ~/.jsonui-mcp-server/install.sh
 bash ~/.jsonui-mcp-server/uninstall.sh
 ```
 
-## Available Tools (28)
+## Available Tools (33)
 
-### Group A: コンポーネント仕様参照 (6)
+### Group A: コンポーネント仕様参照 (7)
 
 | Tool | Description |
 |------|-------------|
@@ -58,6 +58,7 @@ bash ~/.jsonui-mcp-server/uninstall.sh
 | `get_modifier_order` | プラットフォーム別 modifier 適用順序 |
 | `get_binding_rules` | binding 構文ルール（two-way / read-only） |
 | `get_platform_mapping` | プラットフォーム間の値変換マッピング |
+| `get_data_source` | データ由来（layer / path / mtime / 鮮度）の確認 |
 
 ### Group B: プロジェクトコンテキスト (6)
 
@@ -70,7 +71,7 @@ bash ~/.jsonui-mcp-server/uninstall.sh
 | `read_spec_file` | spec ファイルの内容を返す |
 | `read_layout_file` | Layout JSON の内容を返す |
 
-### Group C: jui CLI (7)
+### Group C: jui CLI (8)
 
 | Tool | Description | CLI |
 |------|-------------|-----|
@@ -81,6 +82,7 @@ bash ~/.jsonui-mcp-server/uninstall.sh
 | `jui_build` | 全プラットフォームビルド | `jui build` |
 | `jui_verify` | Layout JSON の差分検証 | `jui verify` |
 | `jui_migrate_layouts` | レイアウト移行 | `jui migrate-layouts` |
+| `jui_sync_tool` | ホームインストールのツールをプロジェクトローカルへ同期（extensions/ 保護） | `jui sync_tool` |
 
 ### Group D: jsonui-doc CLI (9)
 
@@ -95,6 +97,14 @@ bash ~/.jsonui-mcp-server/uninstall.sh
 | `doc_generate_html` | テストファイルから HTML ドキュメントサイト生成 | `jsonui-doc generate html` |
 | `doc_rules_init` | カスタムバリデーションルール作成 | `jsonui-doc rules init` |
 | `doc_rules_show` | 有効なバリデーションルール表示 | `jsonui-doc rules show` |
+
+### Group E: API モデル連携 (3)
+
+| Tool | Description | CLI |
+|------|-------------|-----|
+| `list_api_specs` | API/swagger spec 一覧（halt 条件の事前検出付き） | `jui ls api-specs --json` |
+| `list_api_models` | 生成済み DTO/Domain 一覧（orphan 検出付き） | `jui ls api-models --json` |
+| `preview_api_model_sync` | swagger→DTO/Domain 同期の dry-run プレビュー（書き込みなし） | `jui g api --dry-run --json` |
 
 ## Testing
 

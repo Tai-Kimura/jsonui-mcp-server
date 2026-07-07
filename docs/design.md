@@ -3,7 +3,7 @@
 ## Purpose
 
 An MCP server that lets an AI agent drive JsonUI projects without memorising
-CLI syntax or re-reading source files. It exposes four groups of tools:
+CLI syntax or re-reading source files. It exposes five groups of tools:
 
 1. **Spec lookup** — answers "what is this component / attribute, and how
    does it bind?" from the canonical jsonui-cli data files.
@@ -13,9 +13,12 @@ CLI syntax or re-reading source files. It exposes four groups of tools:
    / `generate converter` / `build` / `verify` / `migrate-layouts`.
 4. **`jsonui-doc` CLI wrappers** — `init` / `validate` / `generate` /
    `rules` for specs, components, and HTML output.
+5. **API model discovery** — read-only wrappers over `jui ls api-specs` /
+   `jui ls api-models` / `jui g api --dry-run` for the swagger→DTO/Domain
+   pipeline.
 
 The server is published as `jui-tools` (version 2.x), currently exposing
-30 tools.
+33 tools.
 
 ---
 
@@ -75,7 +78,7 @@ These are served directly by the `get_modifier_order`,
 
 ---
 
-## Tool inventory (30)
+## Tool inventory (33)
 
 ### Group A — Spec lookup (7)
 
@@ -121,13 +124,23 @@ bootstrapping a freshly scaffolded platform.
 `figma fetch/images` and `generate mermaid/adapter` are intentionally
 excluded (token management / low priority).
 
+### Group E — API model discovery (3)
+
+`list_api_specs`, `list_api_models`, `preview_api_model_sync`.
+
+All three shell out to `jui` with `--json` output (`jui ls api-specs`,
+`jui ls api-models`, `jui g api --dry-run --json`). `list_api_specs` also
+surfaces the swagger halt conditions before a build is attempted;
+`preview_api_model_sync` is a pure dry-run — it reports kept/filtered
+schemas and the would-be file list without writing anything.
+
 ---
 
 ## Source layout
 
 ```
 src/
-  index.ts                 # registers all 29 tools
+  index.ts                 # registers all 33 tools
   config.ts                # ServerConfig: JUI_PROJECT_DIR, jui.config.json
   cli_runner.ts            # execFile wrapper (no shell), timeout defaults
   spec_loader.ts           # 4-layer fallback + merge pipeline, public API
@@ -138,6 +151,7 @@ src/
     context/ (6 files)     # Group B
     jui/ (8 files)         # Group C
     doc/ (9 files)         # Group D
+    api/ (3 files)         # Group E
 data/
   attribute_definitions.json  # bundled snapshot (4th-layer fallback)
   component_metadata.json     # bundled snapshot (4th-layer fallback)
