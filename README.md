@@ -46,7 +46,7 @@ bash ~/.jsonui-mcp-server/install.sh
 bash ~/.jsonui-mcp-server/uninstall.sh
 ```
 
-## Available Tools (33)
+## Available Tools (39)
 
 ### Group A: コンポーネント仕様参照 (7)
 
@@ -105,6 +105,19 @@ bash ~/.jsonui-mcp-server/uninstall.sh
 | `list_api_specs` | API/swagger spec 一覧（halt 条件の事前検出付き） | `jui ls api-specs --json` |
 | `list_api_models` | 生成済み DTO/Domain 一覧（orphan 検出付き） | `jui ls api-models --json` |
 | `preview_api_model_sync` | swagger→DTO/Domain 同期の dry-run プレビュー（書き込みなし） | `jui g api --dry-run --json` |
+
+### Group F: jsonui-test CLI (6)
+
+| Tool | Description | CLI |
+|------|-------------|-----|
+| `test_validate` | テストファイル（screen/flow + description）のバリデーション | `jsonui-test validate` |
+| `test_generate_screen` | screen テストテンプレート生成 | `jsonui-test generate test screen` |
+| `test_generate_flow` | flow テストテンプレート生成 | `jsonui-test generate test flow` |
+| `test_generate_description` | テストケースの description JSON 生成（screen/flow） | `jsonui-test generate description` |
+| `test_report` | results JSON → JUnit XML / HTML レポート変換 | `jsonui-test report` |
+| `test_mock_generate` | OpenAPI からモック scaffold（`check=true` で drift レポートのみ・書き込みなし） | `jsonui-test mock generate [--check]` |
+
+> `jsonui-test mock serve`（常駐 HTTP + run-target 実行）は RCE 面のため **MCP 非公開**（CLI 直叩き限定）。
 
 ## Testing
 
