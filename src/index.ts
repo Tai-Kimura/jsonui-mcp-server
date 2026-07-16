@@ -55,6 +55,8 @@ import { register as registerTestGenerateFlow } from "./tools/test/test_generate
 import { register as registerTestGenerateDescription } from "./tools/test/test_generate_description.js";
 import { register as registerTestReport } from "./tools/test/test_report.js";
 import { register as registerTestMockGenerate } from "./tools/test/test_mock_generate.js";
+import { register as registerTestArtifactsPull } from "./tools/test/test_artifacts_pull.js";
+import { register as registerTestArtifactsStatus } from "./tools/test/test_artifacts_status.js";
 
 function log(message: string) {
   console.error(`[jui-tools] ${new Date().toISOString()} ${message}`);
@@ -129,7 +131,7 @@ registerListApiSpecs(server, config);
 registerListApiModels(server, config);
 registerPreviewApiModelSync(server, config);
 
-// Register Group F: jsonui-test CLI (6 tools)
+// Register Group F: jsonui-test CLI (8 tools)
 // mock serve is intentionally NOT exposed (long-running local HTTP server that
 // executes run-targets — kept to direct CLI use only). test_mock_generate
 // covers both scaffold (default) and drift-check (check=true) modes.
@@ -139,8 +141,10 @@ registerTestGenerateFlow(server, config);
 registerTestGenerateDescription(server, config);
 registerTestReport(server, config);
 registerTestMockGenerate(server, config);
+registerTestArtifactsPull(server, config);
+registerTestArtifactsStatus(server, config);
 
-log(`Registered 39 tools (7 spec + 6 context + 8 jui + 9 doc + 3 api + 6 test)`);
+log(`Registered 41 tools (7 spec + 6 context + 8 jui + 9 doc + 3 api + 8 test)`);
 
 async function main() {
   const transport = new StdioServerTransport();

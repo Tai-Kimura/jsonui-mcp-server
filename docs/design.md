@@ -18,7 +18,7 @@ CLI syntax or re-reading source files. It exposes five groups of tools:
    pipeline.
 
 The server is published as `jui-tools` (version 2.x), currently exposing
-33 tools.
+41 tools.
 
 ---
 
@@ -140,7 +140,7 @@ schemas and the would-be file list without writing anything.
 
 ```
 src/
-  index.ts                 # registers all 33 tools
+  index.ts                 # registers all 41 tools
   config.ts                # ServerConfig: JUI_PROJECT_DIR, jui.config.json
   cli_runner.ts            # execFile wrapper (no shell), timeout defaults
   spec_loader.ts           # 4-layer fallback + merge pipeline, public API

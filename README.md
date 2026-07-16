@@ -46,7 +46,7 @@ bash ~/.jsonui-mcp-server/install.sh
 bash ~/.jsonui-mcp-server/uninstall.sh
 ```
 
-## Available Tools (39)
+## Available Tools (41)
 
 ### Group A: コンポーネント仕様参照 (7)
 
@@ -106,7 +106,7 @@ bash ~/.jsonui-mcp-server/uninstall.sh
 | `list_api_models` | 生成済み DTO/Domain 一覧（orphan 検出付き） | `jui ls api-models --json` |
 | `preview_api_model_sync` | swagger→DTO/Domain 同期の dry-run プレビュー（書き込みなし） | `jui g api --dry-run --json` |
 
-### Group F: jsonui-test CLI (6)
+### Group F: jsonui-test CLI (8)
 
 | Tool | Description | CLI |
 |------|-------------|-----|
@@ -116,6 +116,8 @@ bash ~/.jsonui-mcp-server/uninstall.sh
 | `test_generate_description` | テストケースの description JSON 生成（screen/flow） | `jsonui-test generate description` |
 | `test_report` | results JSON → JUnit XML / HTML レポート変換 | `jsonui-test report` |
 | `test_mock_generate` | OpenAPI からモック scaffold（`check=true` で drift レポートのみ・書き込みなし） | `jsonui-test mock generate [--check]` |
+| `test_artifacts_pull` | 最新実行のテスト成果物（スクリーンショット/録画）を iOS xcresult / Android 実機から artifacts ディレクトリへ取り込み | `jsonui-test artifacts pull --json` |
+| `test_artifacts_status` | test-artifacts 設定の解決結果（出力先、iOS xcresult 探索、Android appId）と取り込み済みファイル一覧 | `jsonui-test artifacts status --json` |
 
 > `jsonui-test mock serve`（常駐 HTTP + run-target 実行）は RCE 面のため **MCP 非公開**（CLI 直叩き限定）。
 
