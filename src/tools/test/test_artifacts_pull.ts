@@ -6,10 +6,10 @@ import { runCli, formatResult } from "../../cli_runner.js";
 export function register(server: McpServer, config: ServerConfig) {
   server.tool(
     "test_artifacts_pull",
-    "Pull test artifacts (screenshots/recordings) from the latest run (iOS xcresult / Android device) into the project's configured artifacts directory, returning generated file paths",
+    "Pull test artifacts (screenshots/recordings) from the latest run (iOS xcresult / Android device / web Playwright output) into the project's configured artifacts directory, returning generated file paths",
     {
       project_dir: z.string().optional().describe("Project directory (overrides JUI_PROJECT_DIR env)"),
-      platform: z.enum(["ios", "android", "all"]).optional().describe("Restrict pulling to one platform (default: all configured)"),
+      platform: z.enum(["ios", "android", "web", "all"]).optional().describe("Restrict pulling to one platform (default: all configured)"),
       xcresult: z.string().optional().describe("Explicit .xcresult bundle path (iOS)"),
       serial: z.string().optional().describe("adb device serial (Android)"),
       clean: z.boolean().optional().describe("Remove artifacts from the device after pulling (Android)"),

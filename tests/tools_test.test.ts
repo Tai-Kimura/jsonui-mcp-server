@@ -103,6 +103,21 @@ describe("Group F registration", () => {
 });
 
 describe("test_artifacts_pull", () => {
+  it("accepts platform web and maps it to --platform web", async () => {
+    nextResponse = { stdout: '{"outputDir":"/p","files":[],"skipped":[]}' };
+    await harness.call("test_artifacts_pull", {
+      project_dir: projectDir,
+      platform: "web",
+    });
+    expect(recorded[0].args).toEqual([
+      "artifacts",
+      "pull",
+      "--json",
+      "--platform",
+      "web",
+    ]);
+  });
+
   it("builds the full argv, runs in the project dir with a 180s timeout, and passes JSON stdout through verbatim", async () => {
     const payload =
       '{"outputDir":"/p/tests/artifacts","files":["/p/a.png"],"skipped":[]}';
