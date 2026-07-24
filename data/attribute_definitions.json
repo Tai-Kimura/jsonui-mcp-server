@@ -3459,7 +3459,12 @@
     },
     "keyboardDismissMode": {
       "type": "string",
-      "description": "Keyboard dismiss mode"
+      "enum": [
+        "none",
+        "onDrag",
+        "interactive"
+      ],
+      "description": "How scrolling dismisses the soft keyboard. Default 'none': scrolling never dismisses (keyboard stays). 'interactive': dragging down over the keyboard dismisses it interactively. 'onDrag': any scroll dismisses immediately. Value names follow UIKit UIScrollView.keyboardDismissMode; SwiftUI mode maps to scrollDismissesKeyboard(.never/.interactively/.immediately). iOS-effective; other platforms currently ignore it."
     },
     "scrollsToTop": {
       "type": "boolean",
@@ -3496,13 +3501,23 @@
       "description": "Footer class definitions"
     },
     "lazy": {
-      "type": ["string", "binding"],
-      "enum": ["lazy", "eager", "none"],
+      "type": [
+        "string",
+        "binding"
+      ],
+      "enum": [
+        "lazy",
+        "eager",
+        "none"
+      ],
       "default": "lazy",
       "description": "Outer container shape for the Collection (single-column section path uses CollectionStackView/CollectionStack). Accepts: 'lazy' (default) -> ScrollView+LazyVStack/LazyHStack on iOS, LazyColumn/LazyRow on Android, with virtualized cell rendering. 'eager' -> ScrollView+VStack/HStack on iOS, Column(verticalScroll)/Row(horizontalScroll) on Android — no virtualization, smooth scrolling for heavy cells (markdown / images / attributed text) that suffer from LazyVStack re-evaluation. 'none' -> VStack/HStack only, no scroll container, parent must already be scrollable. Bindings (@{prop}) are resolved at runtime via the wrapper's mode parameter so toggles preserve view identity. Sticky headers and paging require 'lazy'."
     },
     "columns": {
-      "type": ["number", "binding"],
+      "type": [
+        "number",
+        "binding"
+      ],
       "min": 1,
       "description": "Number of columns. Literal int -> static GridCells.Fixed(N) / Array(repeating: ..., count: N). Binding @{prop} -> runtime-resolved data.prop; the Collection always renders on the multi-column grid path (LazyVerticalGrid / LazyHorizontalGrid on Android, LazyVGrid / LazyHGrid on iOS) even when the binding resolves to 1, so the grid layout stays stable across runtime column changes."
     },
@@ -3838,6 +3853,17 @@
         "swift",
         "kotlin"
       ]
+    },
+    "selectedValue": {
+      "type": [
+        "string",
+        "binding"
+      ],
+      "description": "Selected value of the radio group (binding for two-way)"
+    },
+    "onValueChange": {
+      "type": "binding",
+      "description": "Value change handler - binding only (@{functionName})"
     }
   },
   "CheckBox": {
@@ -4409,15 +4435,16 @@
         "object",
         "binding"
       ],
-      "description": "Init params handed to the embedded screen's ViewModel (flat dict, no nesting in v1). Keys must be camelCase. Values may be literals or @{varName} bindings against the parent VM. VMs that implement applyInitParams(_:) receive these; others ignore them."
+      "description": "Init params handed to the embedded screen's ViewModel. Keys must be camelCase at every level. Values form a tree: intermediate nodes must be literal objects; leaves may be scalar literals or @{varName} bindings against the parent VM (bindings are leaf-only — an @{} at an object position is a validation error; arrays are not supported). A callback-typed parent VM property passed as a leaf binding is the canonical escape hatch for navigation out of an isolated embed. VMs that implement applyInitParams(_:) receive these; others ignore them."
     },
     "navigationMode": {
       "type": "string",
       "enum": [
-        "delegate"
+        "delegate",
+        "isolated"
       ],
       "default": "delegate",
-      "description": "v1 supports 'delegate' only: embedded screen shares the parent's NavController/Router. push() bubbles to the parent; pop/dismiss/navigateBack are bounded at the embed (do not close the embed itself). 'isolated' (private nav stack) is deferred to v1.5."
+      "description": "'delegate' (default): embedded screen shares the parent's NavController/Router. push() bubbles to the parent; pop/dismiss/navigateBack are bounded at the embed (do not close the embed itself). 'isolated': the embed owns a private navigation stack (nested NavigationStack/NavHost/memory stack); push stays inside the embed, pop stops at the embed stack's root, OS gestures/browser back are platform-delegated, and present-type transitions (sheet/dialog/dismiss) are forbidden in the embedded screen's spec. Requires SwiftJsonUI >= 10.5.0 / KotlinJsonUI >= 2.12.0 / EmbedContainer.tsx template v2."
     },
     "events": {
       "type": "object",
