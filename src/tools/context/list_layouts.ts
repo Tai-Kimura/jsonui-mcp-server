@@ -36,7 +36,43 @@ export function register(server: McpServer, config: ServerConfig) {
         };
 
         const files = collectJsonFiles(layoutsDir);
-        return { content: [{ type: "text", text: JSON.stringify(files, null, 2) }] };
+
+        // Responsive variant files (home@regular.json) are attached to
+        // their base screen instead of listed as standalone layouts —
+        // they replace the base's whole tree per size-class tier and
+        // never have their own spec/VM/Data.
+        const isVariant = (relPath: string): boolean => {
+          const basename = relPath.split("/").pop() ?? relPath;
+          return basename.includes("@");
+        };
+        const baseOf = (relPath: string): string => {
+          const idx = relPath.lastIndexOf("@");
+          return idx > 0 ? `${relPath.slice(0, idx)}.json` : relPath;
+        };
+
+        const bases = files.filter((f) => !isVariant(f));
+        const variantsByBase = new Map<string, string[]>();
+        for (const f of files) {
+          if (!isVariant(f)) continue;
+          const base = baseOf(f.replace(/\.json$/, ""));
+          const list = variantsByBase.get(base) ?? [];
+          list.push(f);
+          variantsByBase.set(base, list);
+        }
+
+        const listing = bases.map((f) => {
+          const variants = variantsByBase.get(f);
+          return variants ? { layout: f, variants: variants.sort() } : f;
+        });
+        // Orphan variants (base missing) still surface — flagged so the
+        // caller can report them instead of silently dropping files.
+        for (const [base, variants] of variantsByBase) {
+          if (!bases.includes(base)) {
+            listing.push({ layout: base, missingBase: true, variants: variants.sort() } as any);
+          }
+        }
+
+        return { content: [{ type: "text", text: JSON.stringify(listing, null, 2) }] };
       } catch (e: any) {
         return { content: [{ type: "text", text: `Error: ${e.message}` }] };
       }
