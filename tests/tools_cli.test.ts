@@ -494,6 +494,50 @@ describe("doc_generate_html", () => {
       "Example Test Docs",
     ]);
   });
+
+  it("maps apps, docs_dirs, figma_dir, layouts_dir, and with_checks to CLI flags", async () => {
+    await harness.call("doc_generate_html", {
+      input_dir: "tests",
+      output_dir: "docs/html",
+      title: "Whole Site",
+      apps: ["user:docs/user", "admin:docs/admin"],
+      docs_dirs: ["docs/backend", "docs/requirements"],
+      figma_dir: "docs/figma",
+      layouts_dir: "Layouts",
+      with_checks: true,
+      project_dir: projectDir,
+    });
+    expect(recorded[0].args).toEqual([
+      "generate",
+      "html",
+      "tests",
+      "-o",
+      "docs/html",
+      "-t",
+      "Whole Site",
+      "--app",
+      "user:docs/user",
+      "--app",
+      "admin:docs/admin",
+      "-d",
+      "docs/backend",
+      "-d",
+      "docs/requirements",
+      "-fig",
+      "docs/figma",
+      "--layouts-dir",
+      "Layouts",
+      "--with-checks",
+    ]);
+  });
+
+  it("omits all optional multi-app flags when not provided", async () => {
+    await harness.call("doc_generate_html", {
+      input_dir: "tests",
+      project_dir: projectDir,
+    });
+    expect(recorded[0].args).toEqual(["generate", "html", "tests"]);
+  });
 });
 
 describe("doc_init_spec", () => {
