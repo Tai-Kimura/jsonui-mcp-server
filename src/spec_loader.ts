@@ -86,6 +86,7 @@ const DEFAULT_METADATA: ComponentMetadata = {
 export class SpecLoader {
   private components: Map<string, ComponentSpec> = new Map();
   private commonAttributesRaw: Record<string, any> = {};
+  private bindingSemantics: Record<string, any> | null = null;
   private commonAttributes: any = null;
   private aliasMap: Map<string, string> = new Map();
   private metadata: Record<string, ComponentMetadata> = {};
@@ -212,7 +213,17 @@ export class SpecLoader {
   }
 
   getBindingRules(): any {
-    return BINDING_RULES;
+    // BINDING_RULES carries the author-facing syntax guidance; the
+    // canonical resolution SEMANTICS (dot paths, `??` defaults,
+    // unresolved-key behavior, negation, coercion — SSoT:
+    // shared/core/binding_semantics.json) is attached when available so
+    // the MCP never re-states semantics by hand again.
+    if (!this.bindingSemantics) return BINDING_RULES;
+    return {
+      ...BINDING_RULES,
+      semanticsVersion: this.bindingSemantics.version,
+      semantics: this.bindingSemantics,
+    };
   }
 
   getPlatformMapping(category?: string): any {
@@ -247,6 +258,20 @@ export class SpecLoader {
     const metaRaw = JSON.parse(
       readFileSync(metaResolution.path, "utf-8")
     ) as Record<string, any>;
+
+    // Canonical binding-resolution semantics (renderer SSoT track 15).
+    // Optional so older jsonui-cli checkouts without the file still load.
+    try {
+      const semanticsResolution = this.resolveFile(
+        "shared/core/binding_semantics.json",
+        "data/binding_semantics.json"
+      );
+      this.bindingSemantics = JSON.parse(
+        readFileSync(semanticsResolution.path, "utf-8")
+      ) as Record<string, any>;
+    } catch {
+      this.bindingSemantics = null;
+    }
 
     this.metadata = {};
     for (const [name, meta] of Object.entries(metaRaw)) {

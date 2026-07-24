@@ -175,9 +175,11 @@ export const BINDING_RULES = {
   description: "JsonUI binding syntax rules",
   format: {
     bindingExpression: "@{propertyName}",
-    negation: "@{!propertyName}",
-    defaultValue: "@{propertyName ?? defaultValue}",
-    nestedPath: "@{user.name} (Kotlin Dynamic Mode)",
+    negation: "@{!propertyName} (boolean value attributes only — validator error elsewhere)",
+    defaultValue:
+      "@{propertyName ?? default} (one ?? max; string default in single or double quotes, or true/false/number; null = unresolved)",
+    nestedPath:
+      "@{user.name} / @{items[0].title} (dot path + bracket index — canonical on all platforms; see semantics)",
   },
   directions: {
     "two-way": {
@@ -215,6 +217,7 @@ export const BINDING_RULES = {
     },
   },
   criticalRules: [
+    "Two-way binding expressions must be a single flat identifier — no dots, brackets, ??, or ! (binding-two-way-complex)",
     "Frame values (width, height, etc.) MUST be read-only (data.). $data. is NOT allowed",
     "Two-way binding is only for stateful input components",
     "React auto-generates onPropertyNameChange for two-way bindings",
