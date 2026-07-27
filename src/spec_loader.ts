@@ -51,6 +51,12 @@ export interface FileInfo {
 export interface DataSourceInfo {
   attributeDefinitions: FileInfo;
   componentMetadata: FileInfo;
+  /// Present only when the optional canon file resolved. Reported for the
+  /// same reason as the two above: a caller who cannot see WHICH file the
+  /// running server read has no way to tell a stale snapshot from a server
+  /// that simply has not been restarted.
+  screenIdentity: FileInfo | null;
+  bindingSemantics: FileInfo | null;
   componentCount: number;
   commonAttributeCount: number;
 }
@@ -92,6 +98,9 @@ export class SpecLoader {
   private aliasMap: Map<string, string> = new Map();
   private metadata: Record<string, ComponentMetadata> = {};
   private dataSource!: DataSourceInfo;
+  /** When this process read the files. Data is cached in memory from then
+   *  on, so a file edited later is not what the server is serving. */
+  private loadedAt: string = new Date().toISOString();
 
   constructor(private mcpRootDir: string) {
     this.load();
@@ -217,6 +226,11 @@ export class SpecLoader {
    * The canonical screen-identity asset, or null when this checkout predates
    * it. Served verbatim: it is a declaration, not something to restate.
    */
+  /** ISO 8601 timestamp of when this process loaded its data files. */
+  getLoadedAt(): string {
+    return this.loadedAt;
+  }
+
   getScreenIdentity(): any {
     return this.screenIdentity;
   }
@@ -268,6 +282,9 @@ export class SpecLoader {
       readFileSync(metaResolution.path, "utf-8")
     ) as Record<string, any>;
 
+    let bindingResolution: FileInfo | null = null;
+    let screenIdentityResolution: FileInfo | null = null;
+
     // Canonical binding-resolution semantics (renderer SSoT track 15).
     // Optional so older jsonui-cli checkouts without the file still load.
     try {
@@ -278,6 +295,7 @@ export class SpecLoader {
       this.bindingSemantics = JSON.parse(
         readFileSync(semanticsResolution.path, "utf-8")
       ) as Record<string, any>;
+      bindingResolution = semanticsResolution;
     } catch {
       this.bindingSemantics = null;
     }
@@ -292,6 +310,7 @@ export class SpecLoader {
       this.screenIdentity = JSON.parse(
         readFileSync(screenResolution.path, "utf-8")
       ) as Record<string, any>;
+      screenIdentityResolution = screenResolution;
     } catch {
       this.screenIdentity = null;
     }
@@ -323,6 +342,8 @@ export class SpecLoader {
     this.dataSource = {
       attributeDefinitions: attrResolution,
       componentMetadata: metaResolution,
+      screenIdentity: screenIdentityResolution,
+      bindingSemantics: bindingResolution,
       componentCount,
       commonAttributeCount: Object.keys(this.commonAttributesRaw).filter(
         (k) => !k.startsWith("_")

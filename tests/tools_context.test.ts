@@ -143,7 +143,32 @@ describe("list_layouts", () => {
     const files = JSON.parse(
       await harness.call("list_layouts", { project_dir: projectDir })
     );
-    expect(files.sort()).toEqual(["Styles/common.json", "login.json"]);
+    const paths = files
+      .map((f: any) => (typeof f === "string" ? f : f.layout))
+      .sort();
+    expect(paths).toEqual(["Styles/common.json", "login.json"]);
+  });
+
+  it("attaches the screen classification, and only to real layouts", async () => {
+    const files = JSON.parse(
+      await harness.call("list_layouts", { project_dir: projectDir })
+    );
+    const byPath = new Map<string, any>(
+      files.map((f: any) => [typeof f === "string" ? f : f.layout, f])
+    );
+
+    // A real layout carries its screen id and how the role was decided.
+    expect(byPath.get("login.json")).toMatchObject({
+      layout: "login.json",
+      screen: "login",
+      role: "screen",
+      roleReason: "default",
+    });
+
+    // Styles/ is not a layout tree (canon: screenId.nonLayoutSubtrees), so
+    // it must NOT come back classified — a style file classified as a screen
+    // is how phantom screens got markers.
+    expect(byPath.get("Styles/common.json")).toBe("Styles/common.json");
   });
 });
 
