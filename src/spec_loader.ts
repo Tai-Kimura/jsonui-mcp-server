@@ -231,6 +231,35 @@ export class SpecLoader {
     return this.loadedAt;
   }
 
+  /**
+   * Paths whose mtime has moved since this process read them.
+   *
+   * Compares against the mtime recorded AT LOAD, not against a wall-clock
+   * timestamp: "was this file edited after I read it" is a question about
+   * the file, and comparing a file mtime to Date.now() is a race whenever
+   * the two land in the same millisecond.
+   */
+  getChangedSinceLoad(): string[] {
+    const tracked = [
+      this.dataSource.attributeDefinitions,
+      this.dataSource.componentMetadata,
+      this.dataSource.screenIdentity,
+      this.dataSource.bindingSemantics,
+    ].filter((f): f is FileInfo => f != null);
+
+    const changed: string[] = [];
+    for (const file of tracked) {
+      try {
+        const now = statSync(file.path).mtime.toISOString();
+        if (now !== file.lastModified) changed.push(file.path);
+      } catch {
+        // Disappeared since load — also a reason to restart.
+        changed.push(file.path);
+      }
+    }
+    return changed;
+  }
+
   getScreenIdentity(): any {
     return this.screenIdentity;
   }

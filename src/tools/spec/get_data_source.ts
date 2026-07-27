@@ -19,9 +19,7 @@ export function register(server: McpServer, loader: SpecLoader) {
       // file edited after this timestamp is NOT what the server is serving,
       // however current the file on disk looks.
       const loadedAt = loader.getLoadedAt();
-      const changedSinceLoad = files
-        .filter((f) => new Date(f.lastModified) > new Date(loadedAt))
-        .map((f) => f.path);
+      const changedSinceLoad = loader.getChangedSinceLoad();
       return {
         content: [
           {
