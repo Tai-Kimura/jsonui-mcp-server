@@ -47,6 +47,22 @@ const FILES = [
     local: "component_metadata.json",
     envOverride: process.env.JSONUI_COMPONENT_METADATA_URL,
   },
+  // Canonical binding-resolution semantics. This was bundled in data/ but
+  // missing from FILES, so the snapshot only ever refreshed by hand and
+  // silently went stale — the same trap the screen-identity asset would
+  // otherwise fall into.
+  {
+    remote: "shared/core/binding_semantics.json",
+    local: "binding_semantics.json",
+    envOverride: process.env.JSONUI_BINDING_SEMANTICS_URL,
+  },
+  // Canonical screen identity: what a screen is, how it is identified, how
+  // its presence is asserted.
+  {
+    remote: "shared/core/screen_identity.json",
+    local: "screen_identity.json",
+    envOverride: process.env.JSONUI_SCREEN_IDENTITY_URL,
+  },
 ];
 
 async function fetchOne(spec) {

@@ -11,6 +11,7 @@ import { register as registerLookupAttribute } from "./tools/spec/lookup_attribu
 import { register as registerSearchComponents } from "./tools/spec/search_components.js";
 import { register as registerGetModifierOrder } from "./tools/spec/get_modifier_order.js";
 import { register as registerGetBindingRules } from "./tools/spec/get_binding_rules.js";
+import { register as registerGetScreenIdentity } from "./tools/spec/get_screen_identity.js";
 import { register as registerGetPlatformMapping } from "./tools/spec/get_platform_mapping.js";
 import { register as registerGetDataSource } from "./tools/spec/get_data_source.js";
 
@@ -94,6 +95,7 @@ registerLookupAttribute(server, loader);
 registerSearchComponents(server, loader);
 registerGetModifierOrder(server, loader);
 registerGetBindingRules(server, loader);
+registerGetScreenIdentity(server, loader);
 registerGetPlatformMapping(server, loader);
 registerGetDataSource(server, loader);
 

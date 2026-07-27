@@ -87,6 +87,7 @@ export class SpecLoader {
   private components: Map<string, ComponentSpec> = new Map();
   private commonAttributesRaw: Record<string, any> = {};
   private bindingSemantics: Record<string, any> | null = null;
+  private screenIdentity: Record<string, any> | null = null;
   private commonAttributes: any = null;
   private aliasMap: Map<string, string> = new Map();
   private metadata: Record<string, ComponentMetadata> = {};
@@ -212,6 +213,14 @@ export class SpecLoader {
     return MODIFIER_ORDER;
   }
 
+  /**
+   * The canonical screen-identity asset, or null when this checkout predates
+   * it. Served verbatim: it is a declaration, not something to restate.
+   */
+  getScreenIdentity(): any {
+    return this.screenIdentity;
+  }
+
   getBindingRules(): any {
     // BINDING_RULES carries the author-facing syntax guidance; the
     // canonical resolution SEMANTICS (dot paths, `??` defaults,
@@ -271,6 +280,20 @@ export class SpecLoader {
       ) as Record<string, any>;
     } catch {
       this.bindingSemantics = null;
+    }
+
+    // Canonical screen identity (screen-identity track). Optional so older
+    // jsonui-cli checkouts without the file still load.
+    try {
+      const screenResolution = this.resolveFile(
+        "shared/core/screen_identity.json",
+        "data/screen_identity.json"
+      );
+      this.screenIdentity = JSON.parse(
+        readFileSync(screenResolution.path, "utf-8")
+      ) as Record<string, any>;
+    } catch {
+      this.screenIdentity = null;
     }
 
     this.metadata = {};

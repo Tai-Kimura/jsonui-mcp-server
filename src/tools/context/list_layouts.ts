@@ -3,6 +3,39 @@ import { z } from "zod";
 import { readdirSync, existsSync } from "fs";
 import { join } from "path";
 import { ServerConfig } from "../../config.js";
+import { runCli } from "../../cli_runner.js";
+
+/**
+ * Screen classification for the listed layouts, obtained from `jui screens
+ * --json` rather than reimplemented here.
+ *
+ * Classification depends on how OTHER layouts reference this one, and the
+ * rules live in shared/core/screen_identity.json with one Python reader and
+ * one Ruby reader already held to each other by a cross-language test. A
+ * third reader in TypeScript would be a third thing to keep in sync, so this
+ * asks the CLI. When the CLI is unavailable or predates `jui screens`, the
+ * listing simply comes back without classification instead of guessing.
+ */
+async function classifyScreens(
+  projectDir: string
+): Promise<Map<string, { role: string; reason: string; marker: string | null }> | null> {
+  const result = await runCli("jui", ["screens", "--json"], { cwd: projectDir, timeout: 30_000 });
+  if (!result.stdout.trim()) return null;
+  try {
+    const payload = JSON.parse(result.stdout);
+    const byId = new Map<string, { role: string; reason: string; marker: string | null }>();
+    for (const entry of payload.entries ?? []) {
+      byId.set(entry.screen, {
+        role: entry.role,
+        reason: entry.reason,
+        marker: entry.marker ?? null,
+      });
+    }
+    return byId;
+  } catch {
+    return null;
+  }
+}
 
 export function register(server: McpServer, config: ServerConfig) {
   server.tool(
@@ -60,9 +93,26 @@ export function register(server: McpServer, config: ServerConfig) {
           variantsByBase.set(base, list);
         }
 
+        // Screen id = layout basename (variant-normalized); the role tells
+        // callers which layouts may legitimately appear as a test's `screen`
+        // and which are cells/partials that render inside a host.
+        const classification = await classifyScreens(projectDir);
+        const screenIdOf = (relPath: string): string => {
+          const basename = relPath.split("/").pop() ?? relPath;
+          return basename.replace(/\.json$/, "").split("@")[0];
+        };
+
         const listing = bases.map((f) => {
           const variants = variantsByBase.get(f);
-          return variants ? { layout: f, variants: variants.sort() } : f;
+          const info = classification?.get(screenIdOf(f));
+          if (!info && !variants) return f;
+          return {
+            layout: f,
+            ...(variants ? { variants: variants.sort() } : {}),
+            ...(info
+              ? { screen: screenIdOf(f), role: info.role, roleReason: info.reason }
+              : {}),
+          };
         });
         // Orphan variants (base missing) still surface — flagged so the
         // caller can report them instead of silently dropping files.
