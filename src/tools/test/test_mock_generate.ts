@@ -6,7 +6,7 @@ import { runCli, formatResult } from "../../cli_runner.js";
 export function register(server: McpServer, config: ServerConfig) {
   server.tool(
     "test_mock_generate",
-    "Manage API mock files against an OpenAPI/Swagger spec via the jsonui-test CLI. Writes ONLY into <mockDir>/generated/, which it wipes and rewrites on each run — anything outside that directory is hand-written and never touched. Mocks are matched to operations by their source method+path, not by filename, so a project's own naming keeps working. check=true reports drift (response bodies are compared against the schema: types, required, enum) without writing. Findings under generated/ are warnings, findings outside it are errors, and a scenario that merely omits OPTIONAL fields is a note that does not fail — omitting an optional field is a valid instance, and failing on it buries the real violations (set strict=true to demand full coverage). Do NOT fill optional fields in to silence a note: a mechanical merge puts null into non-nullable slots and manufactures violations. update_default=true rewrites each existing mock's default body + source route from the swagger while leaving every other scenario byte for byte. The 'mock serve' subcommand is intentionally NOT exposed over MCP (it is a long-running local HTTP server that executes run-targets).",
+    "Manage API mock files against an OpenAPI/Swagger spec via the jsonui-test CLI. Writes ONLY into <mockDir>/generated/, which it wipes and rewrites on each run — anything outside that directory is hand-written and never touched. Mocks are matched to operations by their source method+path, not by filename, so a project's own naming keeps working. check=true reports drift (response bodies are compared against the schema: types, required, enum) without writing. Findings under generated/ are warnings, findings outside it are errors, and a scenario that merely omits OPTIONAL fields is a note that does not fail — omitting an optional field is a valid instance, and failing on it buries the real violations (set strict=true to demand full coverage). Do NOT fill optional fields in to silence a note: a mechanical merge puts null into non-nullable slots and manufactures violations. update_default=true REPAIRS each existing mock's default scenario: it adds the required fields the contract has and the body lacks, refreshes the source route, and changes nothing else — no existing value is overwritten, nothing is removed, other scenarios are untouched. The default scenario is where a project keeps the data its tests assert on (scaffolding creates default and nothing else), so never replace a body wholesale to satisfy the check. Violations a merge cannot decide — wrong type, undeclared field — are reported for a person. dry_run=true previews. The 'mock serve' subcommand is intentionally NOT exposed over MCP (it is a long-running local HTTP server that executes run-targets).",
     {
       swagger: z
         .array(z.string())
@@ -28,7 +28,12 @@ export function register(server: McpServer, config: ServerConfig) {
         .boolean()
         .optional()
         .default(false)
-        .describe("Rewrite each existing mock's default body + source route from the swagger, keeping every other scenario untouched (adds --update-default). Use this to clear body drift the check reported in hand-written mocks."),
+        .describe("Repair each existing mock's default scenario by ADDING missing required fields (adds --update-default). Never overwrites a value or removes a field."),
+      dry_run: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe("With update_default, report what would be added without writing (adds --dry-run)."),
       project_dir: z.string().optional().describe("Project directory (overrides JUI_PROJECT_DIR env)"),
     },
     async (params) => {
@@ -41,6 +46,7 @@ export function register(server: McpServer, config: ServerConfig) {
         if (params.check) { args.push("--check"); }
         if (params.strict) { args.push("--strict"); }
         if (params.update_default) { args.push("--update-default"); }
+        if (params.dry_run) { args.push("--dry-run"); }
 
         const result = await runCli("jsonui-test", args, { cwd: projectDir });
         return { content: [{ type: "text", text: formatResult(result) }] };
