@@ -6,7 +6,7 @@ import { runCli, formatResult } from "../../cli_runner.js";
 export function register(server: McpServer, config: ServerConfig) {
   server.tool(
     "test_validate",
-    "Validate JsonUI test files (screen/flow tests + descriptions) against the schema via the jsonui-test CLI. When the project config declares mock.swagger + mock.mockDir this ALSO regenerates <mockDir>/generated/ if it is missing or older than the swagger, and fails on mock contract drift — so a non-zero result here is not necessarily about the test files. A mock that merely omits optional fields does not fail this gate (set mock.checkOptionalFields=true in the project config to demand full coverage). Pass no_mock_check to validate the test files alone.",
+    "Validate JsonUI test files (screen/flow tests + descriptions) against the schema via the jsonui-test CLI. When the project config declares mock.swagger + mock.mockDir this ALSO regenerates <mockDir>/generated/ if it is missing or older than the swagger, and fails on mock contract drift — so a non-zero result here is not necessarily about the test files. A mock that merely omits optional fields does not fail this gate (set mock.checkOptionalFields=true in the project config to demand full coverage). Only the endpoints the project declares it consumes are checked (api.schemas.include_paths / exclude_paths, the same keys the DTO codegen filters on), so a shared swagger's other realms are not reported as missing mocks. Pass no_mock_check to validate the test files alone.",
     {
       files: z
         .array(z.string())
