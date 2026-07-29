@@ -6,7 +6,7 @@ import { runCli, formatResult } from "../../cli_runner.js";
 export function register(server: McpServer, config: ServerConfig) {
   server.tool(
     "test_mock_generate",
-    "Scaffold API mock files from OpenAPI/Swagger via the jsonui-test CLI. With check=true, report drift vs the swagger without writing (does not scaffold). The 'mock serve' subcommand is intentionally NOT exposed over MCP (it is a long-running local HTTP server that executes run-targets).",
+    "Manage API mock files against an OpenAPI/Swagger spec via the jsonui-test CLI. Writes ONLY into <mockDir>/generated/, which it wipes and rewrites on each run — anything outside that directory is hand-written and never touched. Mocks are matched to operations by their source method+path, not by filename, so a project's own naming keeps working. check=true reports drift (response bodies are compared against the schema: types, required, enum) without writing; findings under generated/ are warnings, findings outside it are errors. update_default=true rewrites each existing mock's default body + source route from the swagger while leaving every other scenario byte for byte. The 'mock serve' subcommand is intentionally NOT exposed over MCP (it is a long-running local HTTP server that executes run-targets).",
     {
       swagger: z
         .array(z.string())
@@ -18,7 +18,12 @@ export function register(server: McpServer, config: ServerConfig) {
         .boolean()
         .optional()
         .default(false)
-        .describe("When true, report drift vs swagger and do NOT write (adds --check). Default false = write/scaffold."),
+        .describe("When true, report drift vs swagger and do NOT write (adds --check). Default false = regenerate <mockDir>/generated/."),
+      update_default: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe("Rewrite each existing mock's default body + source route from the swagger, keeping every other scenario untouched (adds --update-default). Use this to clear body drift the check reported in hand-written mocks."),
       project_dir: z.string().optional().describe("Project directory (overrides JUI_PROJECT_DIR env)"),
     },
     async (params) => {
@@ -29,6 +34,7 @@ export function register(server: McpServer, config: ServerConfig) {
         if (params.out) { args.push("--out", params.out); }
         if (params.config_file) { args.push("--config", params.config_file); }
         if (params.check) { args.push("--check"); }
+        if (params.update_default) { args.push("--update-default"); }
 
         const result = await runCli("jsonui-test", args, { cwd: projectDir });
         return { content: [{ type: "text", text: formatResult(result) }] };
