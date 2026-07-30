@@ -1151,9 +1151,8 @@
         "boolean",
         "binding"
       ],
-      "description": "Selected state (binding supported)",
-      "platform": "swift",
-      "mode": "uikit"
+      "description": "Selected state (binding supported). Decides which attribute set is in force: while true the label renders with 'highlightAttributes' (or 'highlightColor'), otherwise with its base font and colour.",
+      "platform": "swift"
     },
     "textAlign": {
       "type": [
@@ -2851,7 +2850,10 @@
     },
     "onValueChange": {
       "type": "binding",
-      "description": "Value change handler - binding only (@{functionName})"
+      "description": "Value change handler - binding only (@{functionName})",
+      "aliases": [
+        "onToggle"
+      ]
     },
     "labelAttributes": {
       "type": "object",
@@ -2970,7 +2972,10 @@
     },
     "onValueChange": {
       "type": "binding",
-      "description": "Value change handler - binding only (@{functionName})"
+      "description": "Value change handler - binding only (@{functionName})",
+      "aliases": [
+        "onToggle"
+      ]
     },
     "labelAttributes": {
       "type": "object",
@@ -3796,6 +3801,9 @@
       "platform": [
         "swift",
         "kotlin"
+      ],
+      "aliases": [
+        "selected_icon"
       ]
     },
     "selected_icon": {
@@ -3941,6 +3949,9 @@
       "platform": [
         "swift",
         "kotlin"
+      ],
+      "aliases": [
+        "onSrc"
       ]
     },
     "onSrc": {
@@ -4212,6 +4223,14 @@
         "ExtraLight"
       ],
       "description": "Blur effect style"
+    },
+    "blurRadius": {
+      "type": "number",
+      "description": "Blur radius in px/dp. Android and Web only: both blur by radius, while UIKit/SwiftUI express the appearance as effectStyle (UIVisualEffectView has styles, not radii). Overrides the radius effectStyle resolves to.",
+      "platform": [
+        "kotlin",
+        "react"
+      ]
     }
   },
   "IconLabel": {
@@ -4288,11 +4307,13 @@
     },
     "allowsBackForwardNavigationGestures": {
       "type": "boolean",
-      "description": "Enable swipe navigation"
+      "description": "Enable swipe navigation",
+      "platform": "swift"
     },
     "allowsLinkPreview": {
       "type": "boolean",
-      "description": "Enable link preview"
+      "description": "Enable link preview",
+      "platform": "swift"
     },
     "sandbox": {
       "type": "string",
