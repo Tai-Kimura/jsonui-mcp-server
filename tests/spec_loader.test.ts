@@ -18,6 +18,7 @@ import {
   writeJson,
   FIXTURE_ATTRIBUTE_DEFINITIONS,
   FIXTURE_COMPONENT_METADATA,
+  FIXTURE_COVERAGE,
 } from "./helpers.js";
 
 const originalCwd = process.cwd();
@@ -345,6 +346,11 @@ describe("SpecLoader spec model", () => {
     expect(loader.getAttribute("noSuchAttr")).toBeNull();
   });
 
+  it("getAttribute carries no implementationGaps without a coverage ledger", () => {
+    expect(loader.getAttribute("fontSize").implementationGaps).toBeUndefined();
+    expect(loader.getDataSource().coverage).toBeNull();
+  });
+
   it("searchComponents scores name > alias > description > attribute > rule and sorts desc", () => {
     const results = loader.searchComponents("text");
     expect(results.length).toBeGreaterThanOrEqual(2);
@@ -395,5 +401,60 @@ describe("fixture sanity", () => {
     const dir = makeTempDir("sanity");
     expect(dir.includes(`${sep}jui-mcp-test-`)).toBe(true);
     writeJson(join(dir, "x.json"), { ok: true });
+  });
+});
+
+// Coverage ledger (conformance/coverage.json): implementation-gap records
+// attached to lookup results. The ledger tracks (component, attribute,
+// platform) pairs that ARE declared but whose codegen does not consume the
+// attribute — lookup_attribute is where an agent authoring a layout would
+// otherwise trust the declaration blindly.
+describe("SpecLoader coverage ledger", () => {
+  let loader: SpecLoader;
+
+  beforeEach(() => {
+    const cliRoot = makeTempDir("cli-with-coverage");
+    makeCliDataset(cliRoot, { coverage: FIXTURE_COVERAGE });
+    process.env.JSONUI_CLI_PATH = cliRoot;
+    loader = new SpecLoader(makeTempDir("mcp-root"));
+  });
+
+  it("records the resolved ledger file in the data source", () => {
+    const coverage = loader.getDataSource().coverage;
+    expect(coverage).not.toBeNull();
+    expect(coverage!.path.endsWith(join("conformance", "coverage.json"))).toBe(
+      true
+    );
+  });
+
+  it("attaches implementationGaps to a component-scoped attribute", () => {
+    const attr = loader.getAttribute("fontSize");
+    expect(attr.component).toBe("Label");
+    expect(attr.implementationGaps).toEqual([
+      {
+        platform: "web",
+        reason: "unimplemented",
+        note: "test gap — web codegen does not read it",
+      },
+    ]);
+  });
+
+  it("attaches implementationGaps to a common attribute", () => {
+    const attr = loader.getAttribute("onClick");
+    expect(attr.scope).toBe("common");
+    expect(attr.implementationGaps).toEqual([
+      {
+        platform: "android",
+        reason: "legacy",
+        note: "test gap — alias normalized before conversion",
+      },
+    ]);
+  });
+
+  it("leaves un-gapped attributes untouched", () => {
+    const attr = loader.getAttribute("text");
+    for (const m of attr.matches) {
+      expect(m.implementationGaps).toBeUndefined();
+    }
   });
 });

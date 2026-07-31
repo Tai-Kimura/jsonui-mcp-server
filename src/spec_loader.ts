@@ -57,6 +57,10 @@ export interface DataSourceInfo {
   /// that simply has not been restarted.
   screenIdentity: FileInfo | null;
   bindingSemantics: FileInfo | null;
+  /// conformance/coverage.json — declared-but-unimplemented (component,
+  /// attribute, platform) pairs with their recorded reasons. Optional: absent
+  /// on older jsonui-cli checkouts.
+  coverage: FileInfo | null;
   componentCount: number;
   commonAttributeCount: number;
 }
@@ -93,6 +97,11 @@ export class SpecLoader {
   private components: Map<string, ComponentSpec> = new Map();
   private commonAttributesRaw: Record<string, any> = {};
   private bindingSemantics: Record<string, any> | null = null;
+  /// `${component}.${attribute}` -> [{platform, reason, note}] from the
+  /// coverage ledger. The ledger tracks pairs that ARE declared (platform
+  /// field includes them) but that the platform's codegen does not consume —
+  /// the note explains why (backlog, alias normalization, runtime-only, ...).
+  private coverageGaps: Map<string, any[]> | null = null;
   private screenIdentity: Record<string, any> | null = null;
   private commonAttributes: any = null;
   private aliasMap: Map<string, string> = new Map();
@@ -127,13 +136,13 @@ export class SpecLoader {
       )) {
         const attrMap = attrs as Record<string, any>;
         if (attrMap[name]) {
-          return {
+          return this.withImplementationGaps(`common.${name}`, {
             name,
             category,
             scope: "common",
             definition: attrMap[name],
             components: "all",
-          };
+          });
         }
       }
     }
@@ -141,19 +150,34 @@ export class SpecLoader {
     const results: any[] = [];
     for (const comp of this.components.values()) {
       if (comp.attributes[name]) {
-        results.push({
-          name,
-          scope: "component",
-          component: comp.name,
-          definition: comp.attributes[name],
-          bindingBehavior: comp.bindingBehavior?.[name],
-        });
+        results.push(
+          this.withImplementationGaps(`${comp.name}.${name}`, {
+            name,
+            scope: "component",
+            component: comp.name,
+            definition: comp.attributes[name],
+            bindingBehavior: comp.bindingBehavior?.[name],
+          })
+        );
       }
     }
 
     if (results.length === 1) return results[0];
     if (results.length > 1) return { name, matches: results };
     return null;
+  }
+
+  /// Attach the coverage ledger's record for this (component, attribute) when
+  /// one exists: platforms that DECLARE the attribute but whose codegen does
+  /// not consume it, each with the recorded reason. Complements the
+  /// definition's own `platform` (declared surface) and `platform_reasons`
+  /// (why a platform is excluded from the declaration).
+  private withImplementationGaps(key: string, result: Record<string, any>) {
+    const gaps = this.coverageGaps?.get(key);
+    if (gaps && gaps.length > 0) {
+      return { ...result, implementationGaps: gaps };
+    }
+    return result;
   }
 
   searchComponents(query: string): any[] {
@@ -344,6 +368,36 @@ export class SpecLoader {
       this.screenIdentity = null;
     }
 
+    // Conformance coverage ledger: declared-but-unimplemented pairs with
+    // recorded reasons. Optional for the same backward-compat reason.
+    let coverageResolution: FileInfo | null = null;
+    try {
+      const coverage = this.resolveFile(
+        "conformance/coverage.json",
+        "data/coverage.json"
+      );
+      const doc = JSON.parse(readFileSync(coverage.path, "utf-8")) as {
+        entries?: Array<Record<string, any>>;
+      };
+      const gaps = new Map<string, any[]>();
+      for (const entry of doc.entries ?? []) {
+        const key = `${entry.component}.${entry.attribute}`;
+        const list = gaps.get(key) ?? [];
+        for (const platform of entry.platforms ?? []) {
+          list.push({
+            platform,
+            reason: entry.reason ?? "",
+            note: entry.note ?? "",
+          });
+        }
+        gaps.set(key, list);
+      }
+      this.coverageGaps = gaps;
+      coverageResolution = coverage;
+    } catch {
+      this.coverageGaps = null;
+    }
+
     this.metadata = {};
     for (const [name, meta] of Object.entries(metaRaw)) {
       if (name.startsWith("_")) continue;
@@ -373,6 +427,7 @@ export class SpecLoader {
       componentMetadata: metaResolution,
       screenIdentity: screenIdentityResolution,
       bindingSemantics: bindingResolution,
+      coverage: coverageResolution,
       componentCount,
       commonAttributeCount: Object.keys(this.commonAttributesRaw).filter(
         (k) => !k.startsWith("_")

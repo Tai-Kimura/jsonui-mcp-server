@@ -98,7 +98,30 @@ export interface CliDatasetOptions {
   omitAttributeDefinitions?: boolean;
   /** Skip writing component_metadata.json (to test per-file fallback). */
   omitComponentMetadata?: boolean;
+  /** Optional conformance/coverage.json fixture (implementation-gap ledger). */
+  coverage?: Record<string, unknown>;
 }
+
+/** Coverage-ledger fixture: one gap on Label.fontSize [web] + one on common.onClick [android]. */
+export const FIXTURE_COVERAGE = {
+  schemaVersion: 1,
+  entries: [
+    {
+      component: "Label",
+      attribute: "fontSize",
+      platforms: ["web"],
+      reason: "unimplemented",
+      note: "test gap — web codegen does not read it",
+    },
+    {
+      component: "common",
+      attribute: "onClick",
+      platforms: ["android"],
+      reason: "legacy",
+      note: "test gap — alias normalized before conversion",
+    },
+  ],
+};
 
 /** Write a fixture jsonui-cli checkout layout: <root>/shared/core/*.json */
 export function makeCliDataset(root: string, opts: CliDatasetOptions = {}): void {
@@ -114,6 +137,9 @@ export function makeCliDataset(root: string, opts: CliDatasetOptions = {}): void
       join(core, "component_metadata.json"),
       opts.componentMetadata ?? FIXTURE_COMPONENT_METADATA
     );
+  }
+  if (opts.coverage) {
+    writeJson(join(root, "conformance", "coverage.json"), opts.coverage);
   }
 }
 
