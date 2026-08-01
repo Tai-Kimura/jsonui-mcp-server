@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Post-install hook: fetch the latest data files from the jsonui-cli main
- * branch and write them into `data/`. These populate the 4th-layer fallback
+ * Post-install hook: fetch the data files from the pinned jsonui-cli release
+ * tag and write them into `data/`. These populate the 4th-layer fallback
  * in spec_loader.ts (the bundled snapshot).
  *
  * The list of files lives in ./fetch-manifest.js (side-effect-free, so the
@@ -33,14 +33,21 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = resolve(__dirname, "..");
 const DATA_DIR = join(PROJECT_ROOT, "data");
 
-// TODO(after P5 / 06-cli-release-gate): once jsonui-cli starts cutting release
-// tags, pin this to the tag matching the published snapshot instead of `main`,
-// so an install never bundles definitions newer than the CLI a user gets.
-// Do not switch before the first tag exists — the URL would 404. Until then
-// JSONUI_CLI_RAW_BASE already allows manual pinning.
+// The jsonui-cli release tag this snapshot is pinned to. Pinning (instead of
+// `main`) means an install never bundles definitions newer than the CLI a
+// user gets — the snapshot only moves when the pin moves.
+//
+// Bump procedure (the pin update IS the review point, same idea as the
+// JSONUI_CLI_REF SHA pin in JsonUIDocument's deploy.yml):
+//   1. jsonui-cli: land the shared/core / conformance change and cut the tag
+//   2. update JSONUI_CLI_TAG here
+//   3. `npm run fetch-definitions` and commit the data/ diff together with
+//      this pin in one commit
+// JSONUI_CLI_RAW_BASE still overrides the whole base URL for manual testing.
+const JSONUI_CLI_TAG = "v1.1.0";
 const BASE_URL =
   process.env.JSONUI_CLI_RAW_BASE ||
-  "https://raw.githubusercontent.com/Tai-Kimura/jsonui-cli/main";
+  `https://raw.githubusercontent.com/Tai-Kimura/jsonui-cli/${JSONUI_CLI_TAG}`;
 
 async function fetchOne(spec) {
   const target = join(DATA_DIR, spec.local);
