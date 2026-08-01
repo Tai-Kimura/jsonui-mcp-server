@@ -457,4 +457,21 @@ describe("SpecLoader coverage ledger", () => {
       expect(m.implementationGaps).toBeUndefined();
     }
   });
+
+  // The ledger is served from the same in-memory cache as everything else,
+  // so an on-disk refresh MUST surface in getChangedSinceLoad — a tracked
+  // list that omits a file is the "silently stale" trap in a second costume.
+  it("counts the ledger among the files tracked by getChangedSinceLoad", () => {
+    expect(loader.getChangedSinceLoad()).toEqual([]);
+
+    const ledgerPath = loader.getDataSource().coverage!.path;
+    const attrPath = loader.getDataSource().attributeDefinitions.path;
+    const later = new Date(Date.now() + 5000);
+    utimesSync(ledgerPath, later, later);
+    utimesSync(attrPath, later, later);
+
+    const changed = loader.getChangedSinceLoad();
+    expect(changed).toContain(ledgerPath);
+    expect(changed).toContain(attrPath);
+  });
 });

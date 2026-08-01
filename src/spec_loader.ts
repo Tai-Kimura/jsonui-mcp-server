@@ -269,6 +269,7 @@ export class SpecLoader {
       this.dataSource.componentMetadata,
       this.dataSource.screenIdentity,
       this.dataSource.bindingSemantics,
+      this.dataSource.coverage,
     ].filter((f): f is FileInfo => f != null);
 
     const changed: string[] = [];
