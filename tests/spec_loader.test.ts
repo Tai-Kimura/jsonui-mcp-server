@@ -258,6 +258,17 @@ describe("SpecLoader spec model", () => {
     expect(loader.getComponent("Nope")).toBeNull();
   });
 
+  it("resolves an `_alias_of` pointer section to the canonical component", () => {
+    // Flip is a B1-shape component alias of Button in the fixture, and is
+    // deliberately absent from every metadata `aliases` array (the
+    // Toggle -> Switch case): resolution must come from `_alias_of` alone,
+    // and no empty-attributes 'Flip' component may be registered.
+    expect(loader.getComponent("Flip")?.name).toBe("Button");
+    expect(loader.getComponent("flip")?.attributes).toHaveProperty("enabled");
+    expect(loader.listComponents()).not.toContain("Flip");
+    expect(loader.getDataSource().componentCount).toBe(3);
+  });
+
   it("expands aliases from component metadata (case-insensitive)", () => {
     expect(loader.getComponent("Text")?.name).toBe("Label");
     expect(loader.getComponent("input")?.name).toBe("TextField");

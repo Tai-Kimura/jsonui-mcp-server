@@ -62,7 +62,8 @@ describe("bundled data/ snapshot", () => {
       "Collection",
       "SelectBox",
       "Switch",
-      "Toggle",
+      // Toggle is a component alias of Switch (`_alias_of`) — resolved,
+      // not listed; see "resolves the canonical component aliases" below.
       "Segment",
       "Slider",
       "Progress",
@@ -91,6 +92,9 @@ describe("bundled data/ snapshot", () => {
     expect(loader.getComponent("EditText")?.name).toBe("TextField");
     expect(loader.getComponent("Input")?.name).toBe("TextField");
     expect(loader.getComponent("Check")?.name).toBe("CheckBox");
+    // Not in any metadata `aliases` array — resolved from the section's
+    // `_alias_of` pointer alone (B1).
+    expect(loader.getComponent("Toggle")?.name).toBe("Switch");
   });
 
   it("derives two-way binding for TextField.text and read-only for Label.text", () => {

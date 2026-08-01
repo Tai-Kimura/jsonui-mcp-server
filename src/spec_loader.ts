@@ -414,6 +414,17 @@ export class SpecLoader {
       if (compName.startsWith("_") || compName === "common") continue;
       if (typeof compAttrs !== "object" || compAttrs === null) continue;
 
+      // Component alias (`_alias_of` pointer section, jsonui-cli B1): the
+      // section carries no attribute copies — register the spelling as an
+      // alias of the canonical component instead of building an empty
+      // ComponentSpec (Toggle -> Switch is NOT covered by the metadata
+      // aliases array, so this is the only route for it).
+      const aliasOf = (compAttrs as Record<string, unknown>)["_alias_of"];
+      if (typeof aliasOf === "string" && aliasOf.length > 0) {
+        this.aliasMap.set(compName.toLowerCase(), aliasOf.toLowerCase());
+        continue;
+      }
+
       const spec = this.buildComponentSpec(compName, compAttrs);
       const key = compName.toLowerCase();
       this.components.set(key, spec);

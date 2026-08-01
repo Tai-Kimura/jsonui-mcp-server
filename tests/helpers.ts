@@ -72,6 +72,14 @@ export const FIXTURE_ATTRIBUTE_DEFINITIONS = {
     onclick: { type: "string", description: "Selector-format tap handler" },
     enabled: { type: ["boolean", "binding"], description: "Enabled state" },
   },
+  // Component alias in the B1 pointer shape. Deliberately NOT listed in any
+  // metadata `aliases` array (the Toggle -> Switch case): the loader must
+  // resolve it from `_alias_of` alone instead of registering an
+  // empty-attributes component.
+  Flip: {
+    _alias_of: "Button",
+    _comment: "component alias fixture",
+  },
 };
 
 export const FIXTURE_COMPONENT_METADATA = {
