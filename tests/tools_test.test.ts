@@ -102,6 +102,54 @@ describe("Group F registration", () => {
   });
 });
 
+describe("test_validate", () => {
+  it("builds the base argv and runs in the project dir", async () => {
+    nextResponse = { stdout: "All valid" };
+    await harness.call("test_validate", {
+      project_dir: projectDir,
+      files: ["tests/screens"],
+    });
+    expect(recorded).toEqual([
+      expect.objectContaining({
+        command: "jsonui-test",
+        args: ["validate", "tests/screens"],
+        options: expect.objectContaining({ cwd: projectDir }),
+      }),
+    ]);
+  });
+
+  it("maps every optional flag, including no_install", async () => {
+    nextResponse = { stdout: "All valid" };
+    await harness.call("test_validate", {
+      project_dir: projectDir,
+      files: ["tests/screens", "login.test.json"],
+      verbose: true,
+      quiet: true,
+      no_mock_check: true,
+      no_install: true,
+    });
+    expect(recorded[0].args).toEqual([
+      "validate",
+      "tests/screens",
+      "login.test.json",
+      "--verbose",
+      "--quiet",
+      "--no-mock-check",
+      "--no-install",
+    ]);
+  });
+
+  it("omits --no-install when no_install is false or absent (CLI-default behavior)", async () => {
+    nextResponse = { stdout: "All valid" };
+    await harness.call("test_validate", {
+      project_dir: projectDir,
+      files: ["tests"],
+      no_install: false,
+    });
+    expect(recorded[0].args).toEqual(["validate", "tests"]);
+  });
+});
+
 describe("test_artifacts_pull", () => {
   it("accepts platform web and maps it to --platform web", async () => {
     nextResponse = { stdout: '{"outputDir":"/p","files":[],"skipped":[]}' };

@@ -111,7 +111,7 @@ bash ~/.jsonui-mcp-server/uninstall.sh
 
 | Tool | Description | CLI |
 |------|-------------|-----|
-| `test_validate` | テストファイル（screen/flow + description）のバリデーション | `jsonui-test validate` |
+| `test_validate` | テストファイル（screen/flow + description）のバリデーション。既定では CLI 同様に flatten-install 副作用あり（`no_install=true` で検証のみ） | `jsonui-test validate [--no-install]` |
 | `test_generate_screen` | screen テストテンプレート生成 | `jsonui-test generate test screen` |
 | `test_generate_flow` | flow テストテンプレート生成 | `jsonui-test generate test flow` |
 | `test_generate_description` | テストケースの description JSON 生成（screen/flow） | `jsonui-test generate description` |
