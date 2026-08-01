@@ -46,9 +46,9 @@ bash ~/.jsonui-mcp-server/install.sh
 bash ~/.jsonui-mcp-server/uninstall.sh
 ```
 
-## Available Tools (41)
+## Available Tools (42)
 
-### Group A: コンポーネント仕様参照 (7)
+### Group A: コンポーネント仕様参照 (8)
 
 | Tool | Description |
 |------|-------------|
@@ -58,6 +58,7 @@ bash ~/.jsonui-mcp-server/uninstall.sh
 | `get_modifier_order` | プラットフォーム別 modifier 適用順序 |
 | `get_binding_rules` | binding 構文ルール（two-way / read-only） |
 | `get_platform_mapping` | プラットフォーム間の値変換マッピング |
+| `get_screen_identity` | スクリーン正準定義（screen とは何か・id 導出・表示判定述語） |
 | `get_data_source` | データ由来（layer / path / mtime / 鮮度）の確認 |
 
 ### Group B: プロジェクトコンテキスト (6)
