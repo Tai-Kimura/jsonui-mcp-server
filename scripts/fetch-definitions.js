@@ -4,9 +4,8 @@
  * branch and write them into `data/`. These populate the 4th-layer fallback
  * in spec_loader.ts (the bundled snapshot).
  *
- * Files fetched:
- *   - shared/core/attribute_definitions.json
- *   - shared/core/component_metadata.json
+ * The list of files lives in ./fetch-manifest.js (side-effect-free, so the
+ * test suite can assert its completeness without triggering a fetch).
  *
  * Users who install jsonui-cli separately will prefer that checkout via the
  * higher-priority fallback layers; users who don't have jsonui-cli installed
@@ -23,6 +22,8 @@ import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { dirname, join, resolve } from "path";
 import { fileURLToPath } from "url";
 
+import { FILES } from "./fetch-manifest.js";
+
 // raw.githubusercontent.com's IPv6 edge sometimes serves stale 404 responses
 // for newly-pushed files for ~5 min while the IPv4 edge is already fresh.
 // Prefer IPv4 to avoid spurious postinstall failures on fresh installs.
@@ -32,46 +33,14 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = resolve(__dirname, "..");
 const DATA_DIR = join(PROJECT_ROOT, "data");
 
+// TODO(after P5 / 06-cli-release-gate): once jsonui-cli starts cutting release
+// tags, pin this to the tag matching the published snapshot instead of `main`,
+// so an install never bundles definitions newer than the CLI a user gets.
+// Do not switch before the first tag exists — the URL would 404. Until then
+// JSONUI_CLI_RAW_BASE already allows manual pinning.
 const BASE_URL =
   process.env.JSONUI_CLI_RAW_BASE ||
   "https://raw.githubusercontent.com/Tai-Kimura/jsonui-cli/main";
-
-const FILES = [
-  {
-    remote: "shared/core/attribute_definitions.json",
-    local: "attribute_definitions.json",
-    envOverride: process.env.JSONUI_ATTR_DEFINITIONS_URL,
-  },
-  {
-    remote: "shared/core/component_metadata.json",
-    local: "component_metadata.json",
-    envOverride: process.env.JSONUI_COMPONENT_METADATA_URL,
-  },
-  // Canonical binding-resolution semantics. This was bundled in data/ but
-  // missing from FILES, so the snapshot only ever refreshed by hand and
-  // silently went stale — the same trap the screen-identity asset would
-  // otherwise fall into.
-  {
-    remote: "shared/core/binding_semantics.json",
-    local: "binding_semantics.json",
-    envOverride: process.env.JSONUI_BINDING_SEMANTICS_URL,
-  },
-  // Canonical screen identity: what a screen is, how it is identified, how
-  // its presence is asserted.
-  {
-    remote: "shared/core/screen_identity.json",
-    local: "screen_identity.json",
-    envOverride: process.env.JSONUI_SCREEN_IDENTITY_URL,
-  },
-  // Conformance coverage ledger (declared-but-unimplemented gaps). The loader
-  // reads data/coverage.json as its fallback, so it must refresh with the rest
-  // — binding_semantics.json already fell into this exact stale-snapshot trap.
-  {
-    remote: "conformance/coverage.json",
-    local: "coverage.json",
-    envOverride: process.env.JSONUI_COVERAGE_URL,
-  },
-];
 
 async function fetchOne(spec) {
   const target = join(DATA_DIR, spec.local);
