@@ -63,6 +63,14 @@ const FILES = [
     local: "screen_identity.json",
     envOverride: process.env.JSONUI_SCREEN_IDENTITY_URL,
   },
+  // Conformance coverage ledger (declared-but-unimplemented gaps). The loader
+  // reads data/coverage.json as its fallback, so it must refresh with the rest
+  // — binding_semantics.json already fell into this exact stale-snapshot trap.
+  {
+    remote: "conformance/coverage.json",
+    local: "coverage.json",
+    envOverride: process.env.JSONUI_COVERAGE_URL,
+  },
 ];
 
 async function fetchOne(spec) {
