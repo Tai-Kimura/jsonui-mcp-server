@@ -44,7 +44,7 @@ const DATA_DIR = join(PROJECT_ROOT, "data");
 //   3. `npm run fetch-definitions` and commit the data/ diff together with
 //      this pin in one commit
 // JSONUI_CLI_RAW_BASE still overrides the whole base URL for manual testing.
-const JSONUI_CLI_TAG = "v1.2.0";
+const JSONUI_CLI_TAG = "v1.2.1";
 const BASE_URL =
   process.env.JSONUI_CLI_RAW_BASE ||
   `https://raw.githubusercontent.com/Tai-Kimura/jsonui-cli/${JSONUI_CLI_TAG}`;
