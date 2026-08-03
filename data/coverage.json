@@ -24,9 +24,7 @@
       "component": "Radio",
       "attribute": "selected_icon",
       "platforms": [
-        "ios",
-        "android",
-        "web"
+        "android"
       ],
       "reason": "legacy",
       "note": "alias — normalized to its canonical spelling before conversion"
