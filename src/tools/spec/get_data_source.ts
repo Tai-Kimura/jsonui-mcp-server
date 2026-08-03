@@ -13,6 +13,7 @@ export function register(server: McpServer, loader: SpecLoader) {
         info.componentMetadata,
         info.screenIdentity,
         info.bindingSemantics,
+        info.attributeSemantics,
       ].filter((f): f is NonNullable<typeof f> => f != null);
       const stale = files.some((f) => f.freshness === "stale");
       // The data is read once at construction and cached in memory, so a
@@ -30,6 +31,7 @@ export function register(server: McpServer, loader: SpecLoader) {
                 componentMetadata: info.componentMetadata,
                 screenIdentity: info.screenIdentity,
                 bindingSemantics: info.bindingSemantics,
+                attributeSemantics: info.attributeSemantics,
                 componentCount: info.componentCount,
                 commonAttributeCount: info.commonAttributeCount,
                 loadedAt,

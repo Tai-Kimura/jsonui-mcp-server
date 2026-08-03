@@ -57,6 +57,10 @@ export interface DataSourceInfo {
   /// that simply has not been restarted.
   screenIdentity: FileInfo | null;
   bindingSemantics: FileInfo | null;
+  /// shared/core/attribute_semantics.json — adjudicated attribute-semantics
+  /// contract (cross-effect rulings, plan 33). Optional: absent on older
+  /// jsonui-cli checkouts.
+  attributeSemantics: FileInfo | null;
   /// conformance/coverage.json — declared-but-unimplemented (component,
   /// attribute, platform) pairs with their recorded reasons. Optional: absent
   /// on older jsonui-cli checkouts.
@@ -97,6 +101,7 @@ export class SpecLoader {
   private components: Map<string, ComponentSpec> = new Map();
   private commonAttributesRaw: Record<string, any> = {};
   private bindingSemantics: Record<string, any> | null = null;
+  private attributeSemantics: Record<string, any> | null = null;
   /// `${component}.${attribute}` -> [{platform, reason, note}] from the
   /// coverage ledger. The ledger tracks pairs that ARE declared (platform
   /// field includes them) but that the platform's codegen does not consume —
@@ -269,6 +274,7 @@ export class SpecLoader {
       this.dataSource.componentMetadata,
       this.dataSource.screenIdentity,
       this.dataSource.bindingSemantics,
+      this.dataSource.attributeSemantics,
       this.dataSource.coverage,
     ].filter((f): f is FileInfo => f != null);
 
@@ -352,6 +358,22 @@ export class SpecLoader {
       bindingResolution = semanticsResolution;
     } catch {
       this.bindingSemantics = null;
+    }
+
+    // Adjudicated attribute-semantics contract (cross-effect, plan 33).
+    // Optional for the same backward-compat reason.
+    let attributeSemanticsResolution: FileInfo | null = null;
+    try {
+      const attrSemResolution = this.resolveFile(
+        "shared/core/attribute_semantics.json",
+        "data/attribute_semantics.json"
+      );
+      this.attributeSemantics = JSON.parse(
+        readFileSync(attrSemResolution.path, "utf-8")
+      ) as Record<string, any>;
+      attributeSemanticsResolution = attrSemResolution;
+    } catch {
+      this.attributeSemantics = null;
     }
 
     // Canonical screen identity (screen-identity track). Optional so older
@@ -439,6 +461,7 @@ export class SpecLoader {
       componentMetadata: metaResolution,
       screenIdentity: screenIdentityResolution,
       bindingSemantics: bindingResolution,
+      attributeSemantics: attributeSemanticsResolution,
       coverage: coverageResolution,
       componentCount,
       commonAttributeCount: Object.keys(this.commonAttributesRaw).filter(
