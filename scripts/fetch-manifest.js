@@ -26,6 +26,13 @@ export const FILES = [
     local: "component_metadata.json",
     envOverride: process.env.JSONUI_COMPONENT_METADATA_URL,
   },
+  // Canonical attribute-semantics contract (cross-effect rulings, plan 33).
+  // Same trap as binding_semantics below: bundled in data/ but hand-mirrored
+  // until the completeness guard caught it (third edition).
+  {
+    remote: "shared/core/attribute_semantics.json",
+    local: "attribute_semantics.json",
+  },
   // Canonical binding-resolution semantics. This was bundled in data/ but
   // missing from FILES, so the snapshot only ever refreshed by hand and
   // silently went stale — the same trap the screen-identity asset would
