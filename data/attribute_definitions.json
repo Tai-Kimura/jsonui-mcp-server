@@ -101,8 +101,7 @@
         "binding"
       ],
       "description": "Width weight for flexible layouts (binding supported)",
-      "platform": "swift",
-      "mode": "uikit"
+      "platform": "swift"
     },
     "heightWeight": {
       "type": [
@@ -110,8 +109,10 @@
         "binding"
       ],
       "description": "Height weight for flexible layouts (binding supported)",
-      "platform": "swift",
-      "mode": "uikit"
+      "platform": [
+        "swift",
+        "kotlin"
+      ]
     },
     "maxWidthWeight": {
       "type": [
@@ -231,7 +232,7 @@
         "string",
         "binding"
       ],
-      "description": "Border color - hex string or color name from colors.json (binding supported)"
+      "description": "Border color - hex string or color name from colors.json (binding supported). There is deliberately NO default: a border is drawn only when borderWidth AND borderColor are both declared, and neither half summons one on its own (2026-08-03 user ruling, recorded in attribute_semantics.json#semantics.border and gated by `jui conformance gate --cross-effect` against the five `observable` entries there). Declaring a default here would make borderWidth alone draw, which is the direction d2c8628 took once and the ruling superseded."
     },
     "borderStyle": {
       "type": "string",
@@ -243,15 +244,6 @@
       "default": "solid",
       "description": "Border line style - solid (default), dashed, or dotted"
     },
-    "alpha": {
-      "type": [
-        "number",
-        "binding"
-      ],
-      "min": 0,
-      "max": 1,
-      "description": "Opacity (0-1) - can be data binding"
-    },
     "opacity": {
       "type": [
         "number",
@@ -259,7 +251,7 @@
       ],
       "min": 0,
       "max": 1,
-      "description": "Opacity (0-1), alias for alpha - can be data binding",
+      "description": "Opacity (0-1) - can be data binding. `alpha` is an accepted alias spelling.",
       "aliases": [
         "alpha"
       ]
@@ -734,7 +726,7 @@
     },
     "variables": {
       "type": "object",
-      "description": "Variables for include",
+      "description": "Variables for include The SwiftUI codegen DOES read this (base_view_converter.rb), but only to echo it back as a `// variables: ...` comment — nothing reaches the rendered view, so `mode: uikit` stands. Recorded because the 2026-08-05 mode audit flags the read and the next auditor would otherwise re-derive it: the read is real, the effect is not.",
       "platform": "swift",
       "mode": "uikit"
     },
@@ -778,7 +770,7 @@
     },
     "binding_id": {
       "type": "string",
-      "description": "Binding ID",
+      "description": "Binding ID The SwiftUI codegen DOES read this (base_view_converter.rb), but only to echo it back as a `// binding_id: ...` comment — nothing reaches the rendered view, so `mode: uikit` stands. Recorded because the 2026-08-05 mode audit flags the read and the next auditor would otherwise re-derive it: the read is real, the effect is not.",
       "platform": "swift",
       "mode": "uikit"
     },
@@ -836,24 +828,46 @@
     },
     "events": {
       "type": "object",
-      "description": "Complex event handlers",
-      "platform": "swift",
-      "mode": "uikit"
+      "description": "Complex event handlers"
     },
     "effectStyle": {
-      "type": "string",
-      "description": "Visual effect style",
-      "platform": "swift",
-      "mode": "uikit"
-    },
+        "type": "string",
+        "enum": [
+          "Light",
+          "Dark",
+          "ExtraLight",
+          "Regular",
+          "Prominent",
+          "UltraThin",
+          "Thin",
+          "Thick",
+          "Chrome",
+          "systemMaterial",
+          "systemUltraThinMaterial",
+          "systemThinMaterial",
+          "systemThickMaterial",
+          "systemChromeMaterial"
+        ],
+        "valueAliases": {
+          "systemMaterial": "Regular",
+          "systemUltraThinMaterial": "UltraThin",
+          "systemThinMaterial": "Thin",
+          "systemThickMaterial": "Thick",
+          "systemChromeMaterial": "Chrome"
+        },
+        "default": "Regular",
+        "description": "Visual effect (blur) style. Measured across the three converters 2026-08-05: the UIKit trio Light/Dark/ExtraLight is what all three map (sjui blur_converter.rb:71, kjui blurview_component.rb:38, rjui blur_converter.rb:98), and web additionally maps the SwiftUI material names. Every converter downcases before matching, so the casing here is presentational. `Regular` is the fallback all three already use for an unrecognised or absent value, hence the declared default. Enumerated because it was declared as a bare string while Blur.effectStyle — the same concept on the component that owns it — carried the enum: the split let the common spelling reach the render stage unvalidated, which is what the codegen-effect gate reported once the mode audit put these fixtures back in scope."
+      },
     "tag": {
       "type": [
         "number",
         "binding"
       ],
       "description": "View tag for identification (binding supported)",
-      "platform": "swift",
-      "mode": "uikit"
+      "platform": [
+        "swift",
+        "react"
+      ]
     },
     "userInteractionEnabled": {
       "type": [
@@ -904,8 +918,7 @@
     "touchDisabledState": {
       "type": "string",
       "description": "Touch disable mode",
-      "platform": "swift",
-      "mode": "uikit"
+      "platform": "swift"
     },
     "touchEnabledViewIds": {
       "type": "array",
@@ -919,7 +932,7 @@
     },
     "bindingScript": {
       "type": "string",
-      "description": "Custom Swift binding code",
+      "description": "Custom Swift binding code The SwiftUI codegen DOES read this (base_view_converter.rb), but only to echo it back as a `// bindingScript: ...` comment — nothing reaches the rendered view, so `mode: uikit` stands. Recorded because the 2026-08-05 mode audit flags the read and the next auditor would otherwise re-derive it: the read is real, the effect is not.",
       "platform": "swift",
       "mode": "uikit"
     },
@@ -1221,9 +1234,7 @@
         "array",
         "string"
       ],
-      "description": "Edge insets as array or pipe-separated string",
-      "deprecated": "kotlin",
-      "deprecation_note": "Compose Text has no edgeInset; use padding* instead."
+      "description": "Edge insets as array or pipe-separated string. Applied on every platform including Compose, where it maps to .padding() (kjui text_component.rb / DynamicTextComponent.kt) - the former \"Compose Text has no edgeInset\" deprecation was contradicted by that implementation and was retracted 2026-08-05."
     },
     "underline": {
       "type": [
@@ -1442,7 +1453,7 @@
     },
     "hintAttributes": {
       "type": "object",
-      "description": "Hint text styling attributes",
+      "description": "Hint text styling attributes. The nested keys win over the flat spellings (hintColor / hintFont / hintFontSize): a bag scoped to the hint is the more specific statement. That is the ordinary cascade rule and what all four readers do (rjui label_converter, kjui text_component, sjui Label and SelectBox) - it was unwritten until 2026-08-05, when the one converter that had it backwards was found by contradicting its own comment.",
       "properties": {
         "font": {
           "type": "string",
@@ -1492,27 +1503,23 @@
         "string",
         "binding"
       ],
-      "description": "Placeholder color - hex string or color name from colors.json (binding supported)",
-      "deprecated": "swiftui",
-      "deprecation_note": "SwiftUI TextField placeholder cannot be color-styled."
+      "description": "Placeholder color - hex string or color name from colors.json (binding supported). `placeholderColor` is an accepted alias spelling.",
+      "aliases": [
+        "placeholderColor"
+      ]
     },
     "hintFont": {
       "type": "string",
-      "description": "Placeholder font",
-      "deprecated": "swiftui",
-      "deprecation_note": "SwiftUI TextField placeholder cannot be custom-font-styled."
+      "description": "Placeholder font"
     },
     "hintFontSize": {
       "type": "number",
-      "description": "Placeholder font size",
-      "deprecated": "swiftui",
-      "deprecation_note": "SwiftUI TextField placeholder cannot be custom-size-styled."
+      "description": "Placeholder font size"
     },
     "hintAttributes": {
       "type": "object",
-      "description": "Hint text attributes (font, color, etc.)",
-      "platform": "swift",
-      "mode": "uikit"
+      "description": "Hint text attributes (font, fontSize, fontColor). The nested keys win over the flat spellings (hintColor / hintFont / hintFontSize): a bag scoped to the hint is the more specific statement. That is the ordinary cascade rule and what all four readers do (rjui label_converter, kjui text_component, sjui Label and SelectBox) - it was unwritten until 2026-08-05, when the one converter that had it backwards was found by contradicting its own comment.",
+      "platform": "swift"
     },
     "font": {
       "type": [
@@ -1577,7 +1584,22 @@
     },
     "inputType": {
       "type": "string",
-      "description": "Input type for Android (Android-only; `input` is the cross-platform attribute)",
+      "enum": [
+        "text",
+        "number",
+        "numberDecimal",
+        "phone",
+        "email",
+        "password",
+        "multiline",
+        "textEmailAddress",
+        "textPassword"
+      ],
+      "valueAliases": {
+        "textEmailAddress": "email",
+        "textPassword": "password"
+      },
+      "description": "Input type for Android (Android-only; `input` is the cross-platform attribute). Both the JsonUI spellings and the raw android:inputType names the frozen XML mapper passed through are accepted; the latter normalize to the former.",
       "platform": "kotlin"
     },
     "returnKeyType": {
@@ -1602,7 +1624,31 @@
         "string",
         "binding"
       ],
-      "description": "Content type for autofill (binding supported)"
+      "enum": [
+        "username",
+        "password",
+        "newPassword",
+        "oneTimeCode",
+        "email",
+        "emailAddress",
+        "name",
+        "givenName",
+        "familyName",
+        "telephoneNumber",
+        "tel",
+        "phone",
+        "streetAddress",
+        "postalCode",
+        "country",
+        "creditCardNumber",
+        "URL"
+      ],
+      "valueAliases": {
+        "emailAddress": "email",
+        "tel": "telephoneNumber",
+        "phone": "telephoneNumber"
+      },
+      "description": "Content type for autofill (binding supported). The enum is the set of tokens at least one platform actually maps: iOS to .textContentType, web to the autoComplete attribute, Android to the keyboard type. `email` (not emailAddress) and `telephoneNumber` (not tel) are the canonical spellings — the web converter only matches those two, so the alternates are normalized before conversion. Tokens no platform maps are deliberately absent: declaring UIKit's full UITextContentType list would enumerate values that cannot reach any output."
     },
     "secure": {
       "type": [
@@ -1663,21 +1709,21 @@
     },
     "accessoryBackground": {
       "type": "string",
-      "description": "Input accessory background - hex string or color name from colors.json",
+      "description": "Input accessory toolbar background - hex string or color name from colors.json. UIKit only: read by SJUITextField's accessory toolbar; SwiftUI has no input-accessory surface.",
       "platform": "swift",
-      "mode": "swiftui"
+      "mode": "uikit"
     },
     "accessoryTextColor": {
       "type": "string",
-      "description": "Input accessory text color - hex string or color name from colors.json",
+      "description": "Input accessory toolbar text color - hex string or color name from colors.json. UIKit only (see accessoryBackground).",
       "platform": "swift",
-      "mode": "swiftui"
+      "mode": "uikit"
     },
     "doneText": {
       "type": "string",
-      "description": "Done button text",
+      "description": "Text of the input accessory toolbar's Done button. UIKit only (see accessoryBackground).",
       "platform": "swift",
-      "mode": "swiftui"
+      "mode": "uikit"
     },
     "tintColor": {
       "type": "string",
@@ -1691,9 +1737,7 @@
           "type": "string",
           "description": "Caret color - hex string or color name from colors.json"
         }
-      },
-      "deprecated": "swiftui",
-      "deprecation_note": "SwiftUI cannot style the caret (iOS 17 has partial .tint API)."
+      }
     },
     "onTextChange": {
       "type": "string",
@@ -1701,24 +1745,36 @@
     },
     "autocapitalizationType": {
       "type": "string",
-      "description": "Auto-capitalization type"
+      "enum": [
+        "none",
+        "words",
+        "sentences",
+        "allCharacters",
+        "characters"
+      ],
+      "valueAliases": {
+        "characters": "allCharacters"
+      },
+      "description": "Auto-capitalization type. UIKit's vocabulary, honoured on every platform (.textInputAutocapitalization / KeyboardCapitalization / the HTML autocapitalize attribute). `characters` is an accepted alias spelling of allCharacters."
     },
     "autocorrectionType": {
       "type": "string",
-      "description": "Auto-correction type"
-    },
-    "spellCheckingType": {
-      "type": "string",
-      "description": "Spell checking type",
-      "platform": "swift",
-      "deprecated": "swift",
-      "deprecation_note": "Compose does not expose spell-checking control."
-    },
-    "keyboardAppearance": {
-      "type": "string",
-      "description": "Keyboard appearance: dark, light",
-      "deprecated": "kotlin",
-      "deprecation_note": "Compose keyboard appearance is system-controlled."
+      "enum": [
+        "default",
+        "yes",
+        "no",
+        "on",
+        "off",
+        "true",
+        "false"
+      ],
+      "valueAliases": {
+        "on": "yes",
+        "true": "yes",
+        "off": "no",
+        "false": "no"
+      },
+      "description": "Auto-correction type. UIKit's vocabulary; `on`/`true` and `off`/`false` are accepted alias spellings of yes/no. `default` means \"leave it to the platform\" — web deliberately emits nothing for it."
     },
     "clearButtonMode": {
       "type": "string",
@@ -1846,12 +1902,6 @@
       "description": "Hide other elements while the field is focused.",
       "platform": "swift",
       "mode": "swiftui"
-    },
-    "placeholderColor": {
-      "type": "string",
-      "description": "Deprecated on swift.",
-      "deprecated": "swift",
-      "deprecation_note": "SwiftUI TextField placeholder cannot be color-styled."
     }
   },
   "TextView": {
@@ -1892,7 +1942,7 @@
     },
     "hintAttributes": {
       "type": "object",
-      "description": "Hint styling attributes"
+      "description": "Hint styling attributes. The nested keys win over the flat spellings (hintColor / hintFont / hintFontSize): a bag scoped to the hint is the more specific statement. That is the ordinary cascade rule and what all four readers do (rjui label_converter, kjui text_component, sjui Label and SelectBox) - it was unwritten until 2026-08-05, when the one converter that had it backwards was found by contradicting its own comment."
     },
     "hideOnFocused": {
       "type": "boolean",
@@ -1985,7 +2035,15 @@
     },
     "lineBreakMode": {
       "type": "string",
-      "description": "Line break mode"
+      "enum": [
+        "Char",
+        "Clip",
+        "Word",
+        "Head",
+        "Middle",
+        "Tail"
+      ],
+      "description": "Truncation mode. Same vocabulary as Label.lineBreakMode — the two were the same concept declared twice, once enumerated and once as a bare string."
     },
     "dataDetectorTypes": {
       "type": "string",
@@ -2001,7 +2059,41 @@
     },
     "keyboardType": {
       "type": "string",
-      "description": "Keyboard type"
+      "enum": [
+        "default",
+        "asciiCapable",
+        "alphabet",
+        "number",
+        "numberPad",
+        "decimal",
+        "decimalPad",
+        "phone",
+        "phonePad",
+        "email",
+        "emailAddress",
+        "URL",
+        "webURL",
+        "webSearch",
+        "search",
+        "namePhonePad",
+        "twitter",
+        "text",
+        "numeric",
+        "numbersAndPunctuation"
+      ],
+      "valueAliases": {
+        "alphabet": "asciiCapable",
+        "numberPad": "number",
+        "decimalPad": "decimal",
+        "phonePad": "phone",
+        "numeric": "phone",
+        "numbersAndPunctuation": "number",
+        "emailAddress": "email",
+        "webURL": "URL",
+        "search": "webSearch",
+        "text": "default"
+      },
+      "description": "Soft-keyboard type. The canonical token of each pair is the one all three converters accept: `number` rather than UIKit's numberPad (Compose only matches `number` and would fall back to a plain text keyboard), likewise decimal/phone/email. `namePhonePad` and `twitter` reach iOS only; the other platforms fall back to their default keyboard."
     },
     "onTextChange": {
       "type": "string",
@@ -2097,10 +2189,11 @@
       "platform": "react"
     },
     "edgeInset": {
-      "type": "string",
-      "description": "Deprecated on kotlin.",
-      "deprecated": "kotlin",
-      "deprecation_note": "Compose Text has no edgeInset; use padding* instead."
+      "type": [
+        "number",
+        "array"
+      ],
+      "description": "The UIKit spelling of containerInset (content inset). Same accepted shapes: a single number, or an array of 1/2/4 numbers. Was declared deprecated on kotlin (\"Compose Text has no edgeInset\"); retracted 2026-08-05 because Label.edgeInset maps to .padding() on Compose in both the codegen and the dynamic renderer. Unimplemented on the Compose TextView path, not impossible."
     }
   },
   "EditText": {
@@ -2150,10 +2243,6 @@
       "aliases": [
         "hilightColor"
       ]
-    },
-    "hilightColor": {
-      "type": "string",
-      "description": "Highlight color - hex string or color name from colors.json (typo alias)"
     },
     "tapBackground": {
       "type": "string",
@@ -2259,7 +2348,10 @@
         "Left",
         "Right"
       ],
-      "description": "Content mode (binding supported)"
+      "valueAliases": {
+        "ScaleToFill": "fill"
+      },
+      "description": "Content mode (binding supported). ScaleToFill is a declared synonym of fill (the stretch — see attribute_semantics.json#semantics.image); the normalizer folds it, fixtures are generated for the canonical spelling only."
     },
     "renderingMode": {
       "type": "string",
@@ -2443,14 +2535,6 @@
       ],
       "description": "Hint text color - hex string or color name from colors.json (binding supported)"
     },
-    "text": {
-      "type": [
-        "string",
-        "binding"
-      ],
-      "description": "Display text (binding supported)",
-      "platform": "swift"
-    },
     "items": {
       "type": [
         "array",
@@ -2481,8 +2565,10 @@
         "binding"
       ],
       "description": "Selected item value (two-way binding)",
-      "platform": "swift",
-      "mode": "uikit"
+      "platform": [
+        "swift",
+        "kotlin"
+      ]
     },
     "selectedDate": {
       "type": [
@@ -2500,7 +2586,10 @@
         "dateAndTime",
         "countDown"
       ],
-      "description": "Date picker mode"
+      "valueAliases": {
+        "datetime": "dateAndTime"
+      },
+      "description": "Date picker mode. datetime is a declared synonym of dateAndTime and the normalizer folds it: sjui and rjui accept both spellings (selectbox_converter.rb case arms; rjui downcases), but KotlinJsonUI's DateSelectBox matches \"dateAndTime\" literally and datetime would silently fall to the date-only branch — so the UIKit spelling is canonical, same reasoning as gradientDirection's capitalised canon."
     },
     "datePickerStyle": {
       "type": "string",
@@ -2807,10 +2896,6 @@
       "platform": "swift",
       "mode": "uikit"
     },
-    "onToggle": {
-      "type": "binding",
-      "description": "Toggle handler function - binding only (@{functionName}). Alias of onValueChange."
-    },
     "onValueChange": {
       "type": "binding",
       "description": "Value change handler - binding only (@{functionName})",
@@ -2854,9 +2939,7 @@
     },
     "trackTintColor": {
       "type": "string",
-      "description": "Deprecated on swift.",
-      "deprecated": "swift",
-      "deprecation_note": "SwiftUI Toggle uses unified tint only."
+      "description": "Colour of the switch track - hex string or color name from colors.json. Deprecation retracted with the Slider pair; a SwiftUI Toggle is not limited to a unified tint any more than Progress is."
     }
   },
   "Toggle": {
@@ -2925,37 +3008,23 @@
       "description": "Current value (binding for two-way)",
       "binding_direction": "two-way"
     },
-    "minValue": {
-      "type": [
-        "number",
-        "binding"
-      ],
-      "description": "Minimum value (binding supported)"
-    },
     "minimum": {
       "type": [
         "number",
         "binding"
       ],
-      "description": "Minimum value (alias for minValue) (binding supported)",
+      "description": "Minimum value (binding supported). `minValue` / `minimumValue` are accepted alias spellings.",
       "aliases": [
         "minimumValue",
         "minValue"
       ]
-    },
-    "maxValue": {
-      "type": [
-        "number",
-        "binding"
-      ],
-      "description": "Maximum value (binding supported)"
     },
     "maximum": {
       "type": [
         "number",
         "binding"
       ],
-      "description": "Maximum value (alias for maxValue) (binding supported)",
+      "description": "Maximum value (binding supported). `maxValue` / `maximumValue` are accepted alias spellings.",
       "aliases": [
         "maximumValue",
         "maxValue"
@@ -2991,15 +3060,11 @@
     },
     "progressTintColor": {
       "type": "string",
-      "description": "Deprecated on swift.",
-      "deprecated": "swift",
-      "deprecation_note": "SwiftUI Slider uses unified tint only."
+      "description": "Colour of the filled portion of the track - hex string or color name from colors.json. Was declared deprecated on swift (\"SwiftUI Slider uses unified tint only\"); retracted 2026-08-05 because Progress, also SwiftUI, maps the same attribute to .tint(). Unimplemented on the Slider path, not impossible."
     },
     "trackTintColor": {
       "type": "string",
-      "description": "Deprecated on swift.",
-      "deprecated": "swift",
-      "deprecation_note": "SwiftUI Slider uses unified tint only."
+      "description": "Colour of the unfilled track - hex string or color name from colors.json. Deprecation retracted with progressTintColor: SwiftUI Progress reaches the same result through .background()."
     }
   },
   "Progress": {
@@ -3133,15 +3198,29 @@
     "gradient": {
       "type": "array",
       "description": "Gradient colors",
-      "platform": "swift",
-      "mode": "uikit"
+      "platform": "swift"
     },
     "gradientDirection": {
-      "type": "string",
-      "description": "Gradient direction",
-      "platform": "swift",
-      "mode": "uikit"
-    },
+        "type": "string",
+        "enum": [
+          "Vertical",
+          "Horizontal",
+          "Oblique",
+          "LeftToRight",
+          "TopToBottom",
+          "Diagonal",
+          "RightToLeft",
+          "BottomToTop"
+        ],
+        "valueAliases": {
+          "LeftToRight": "Horizontal",
+          "TopToBottom": "Vertical",
+          "Diagonal": "Oblique"
+        },
+        "default": "Vertical",
+        "description": "Gradient direction. Canon copied from GradientView.gradientDirection, which declared the enum for the same concept while this spelling stayed a bare string. Vertical is the fallback on all three. CASE MATTERS on ios: sjui matches 'Horizontal'/'Oblique' literally (modifier_helper.rb:16) without downcasing, while Compose and web downcase — so the capitalised spellings are canonical and the aliases normalise to them before any converter sees the value. RightToLeft and BottomToTop are declared without an alias on purpose: they are reversed directions web implements (gradient_view_converter.rb:88,90) and the other two have no equivalent, so folding them into Horizontal/Vertical would silently reverse the gradient rather than preserve it.",
+        "platform": "swift"
+      },
     "locations": {
       "type": "array",
       "description": "Gradient color stop locations",
@@ -3150,7 +3229,7 @@
     },
     "safeAreaInsetPositions": {
       "type": "array",
-      "description": "Safe area inset positions (SafeAreaView only)",
+      "description": "Which edges reserve the safe area. Declared here as well as on SafeAreaView on purpose: SafeAreaView is its own definition section and does not inherit View's, and every platform honours the attribute on a PLAIN view too (sjui base_view_converter.rb#apply_safe_area_insets_to_bag runs for every component; rjui view_converter.rb#safe_area_edges emits env(safe-area-inset-*) padding). The two declarations are the same concept reaching two routing paths, not a duplicate.",
       "items": {
         "type": "string",
         "enum": [
@@ -3212,15 +3291,11 @@
     "_comment": "Sparse by design, not an alias: only the Kotlin dynamic runtime dispatches CircleView (DynamicCircleViewComponent, CircleShape clip) - P18 audit 2026-08-01. Everything it renders beyond child/children comes from common. component_metadata.json carries the per-platform truth.",
     "child": {
       "type": "array",
-      "description": "Child component(s)",
-      "platform": "swift",
-      "mode": "uikit"
+      "description": "Child component(s)"
     },
     "children": {
       "type": "array",
-      "description": "Child components (alias for child)",
-      "platform": "swift",
-      "mode": "uikit"
+      "description": "Child components (alias for child)"
     }
   },
   "ScrollView": {
@@ -3575,7 +3650,7 @@
     },
     "scrollTo": {
       "type": "binding",
-      "description": "PassthroughSubject<Int, Never> for programmatic scrolling to cell index"
+      "description": "Binding that requests a programmatic scroll. The declared DATA CLASS is a plain value — `String` when cellIdProperty is set (scroll to that cell id), `Int` otherwise (scroll to that index). It is deliberately NOT `PassthroughSubject<Int, Never>`, which this description used to prescribe: PassthroughSubject is a Combine type, and naming a Swift transport in the cross-platform SSoT is what made consumers write it into their data section, where kjui's map_to_kotlin_type passes unknown classes through verbatim and the Kotlin build dies on it. How the request is delivered is each platform's own business — iOS wraps the value in a publisher so a repeated send re-scrolls, Compose reads the String directly, web keys a useEffect on it. STATUS 2026-08-05, after B landed the derivation (jsonui-cli 8c41e3e): the CODEGEN side of all three platforms now takes the plain value — sjui emits `.onChange(of: data.<prop>)` with no publisher and no throttle, Compose keys a LaunchedEffect on it, web a useEffect. The remaining gap is the SwiftUI DYNAMIC renderer: CollectionConverter.swift:127 still resolves the binding as `data[propName] as? PassthroughSubject<Int, Never>` and gets nil for a plain value, so the scroll silently never fires there (it does not crash, it does nothing). Consequence for fixtures: a Collection.scrollTo fixture is now declarable and no longer kills the Kotlin build, and Collection.scrollAnchor is measurable on the codegen path — but ios codegen and ios dynamic will disagree until the dynamic resolver accepts the value, so expect a parity finding there rather than a render failure. Owner of the remainder: the SwiftJsonUI dynamic lane. Note also that the vendored CollectionAttributes.swift still carries the old publisher wording in its doc comment; it is generated from this description and will pick the correction up at the next re-vendor."
     },
     "scrollAnchor": {
       "type": "string",
@@ -3584,7 +3659,8 @@
         "center",
         "bottom"
       ],
-      "description": "Anchor point for scroll target (default: bottom)"
+      "default": "bottom",
+      "description": "Anchor point for the scrollTo target. Measured 2026-08-05: ios (sjui collection_converter.rb:1138), web (rjui build_command.rb:768) and the Compose GRID path (kjui collection_component.rb:313) all fall back to bottom, so bottom is the declared default. The Compose LIST path emits no anchor offset unless the attribute is explicitly declared, which lands the target at top - that is a divergence in that one path, not a second default."
     },
     "defaultScrollAnchor": {
       "type": "string",
@@ -3620,16 +3696,15 @@
       "description": "Enable/disable scrolling (binding supported)"
     },
     "onItemAppear": {
-      "type": "callback",
-      "description": "Called with the cell index (Int) when a cell appears on screen. Use for pagination by checking index against total count in ViewModel."
+      "type": [
+        "string",
+        "binding"
+      ],
+      "description": "Called with the cell index (Int) when a cell appears on screen. Use for pagination by checking index against total count in ViewModel. Declared `binding` because that is what a layout actually carries: the author writes `@{handlerName}`, a STRING, and every reader matches it as one (kjui collection_component.rb:364 `json_data['onItemAppear'].match(/@\\{([^}]+)\\}/)`, and the binding validators infer `((Int) -> Unit)?` from that spelling). It was `type: \"callback\"` — the only callback-typed attribute in the whole SSoT — and attr-codegen skips that type as \"function-valued, not extractable from JSON\". True of a function; not true of the `@{...}` string a JSON layout can hold, so the attribute had no row in any generated table and no platform could read it typed (2026-08-05, plan 49-E, raised by A)."
     },
     "currentPage": {
       "type": "binding",
       "description": "Current page index for paging collections (binding supported)"
-    },
-    "onPageChanged": {
-      "type": "callback",
-      "description": "Called with the new page index (Int) when the user swipes to a different page"
     },
     "containerInset": {
       "type": "array",
@@ -3694,16 +3769,12 @@
         "selected_icon"
       ]
     },
-    "selected_icon": {
-      "type": "string",
-      "description": "Selected icon name (underscore alias)"
-    },
     "checked": {
       "type": [
         "boolean",
         "binding"
       ],
-      "description": "Initial checked state (can be binding)"
+      "description": "Seeds the group's INITIAL selection — it is not the live state, and it is not two-way. The state a radio group carries is `selectedValue`; `checked` only says which option starts selected when nothing else has said. Precedence, and all three platforms implement it in this order: a BOUND `selectedValue` wins outright (the group's own two-way state), then a LITERAL `selectedValue` (a group-level statement naming the starting option), then this option's `checked`. So a radio group that binds selectedValue ignores `checked` entirely, which is what stops a seed from freezing a group that the user can no longer change. The bound form of `checked` seeds the glyph rather than the state, since a property initialiser cannot read the data map: it selects only while the group has made no choice yet (sjui radio_converter.rb:88-103, and the same rule in RadioConverter.swift). CONTRAST with CheckBox.checked and Switch.checked, which look identical and are not: those ARE the control's state and carry binding_direction two-way. A radio has no state of its own — the group does. Declared 2026-08-05 (plan 49-E) from the implementations; the previous description said only \"Initial checked state\", which was true and told nobody what happens when both are declared."
     },
     "value": {
       "type": "any",
@@ -3918,6 +3989,18 @@
     "_comment": "Component alias of CheckBox. Resolved by the L1 normalizer type rewrite and by every validator/codegen consumer - do not add attribute copies here."
   },
   "Indicator": {
+    "animating": {
+      "type": [
+        "boolean",
+        "binding"
+      ],
+      "default": true,
+      "description": "Whether the indicator is spinning. Defaults to true: an Indicator with nothing declared animates. `false` stops it, and hidesWhenStopped then decides whether the stopped indicator keeps its space or collapses out of the layout \u2014 which is why hidesWhenStopped is only ever read on this branch (sjui indicator_converter.rb:23, kjui indicator_component.rb:13).",
+      "platform": [
+        "swift",
+        "kotlin"
+      ]
+    },
     "indicatorStyle": {
       "type": "string",
       "enum": [
@@ -4066,8 +4149,8 @@
       "platform": "swift"
     },
     "sandbox": {
-      "type": "string",
-      "description": "Iframe sandbox attribute",
+      "type": "boolean",
+      "description": "Iframe sandboxing kill-switch. `false` emits no sandbox attribute at all; otherwise the permission list is built from the other Web attributes (javaScriptEnabled, javaScriptCanOpenWindowsAutomatically, allowPopupsToEscapeSandbox, allowModals, ...) rather than from a value written here.",
       "platform": "react"
     },
     "allow": {
@@ -4087,7 +4170,10 @@
     },
     "safeAreaInsetPositions": {
       "type": "array",
-      "description": "Safe area edges",
+      "description": "Safe area edges. `edges` is an accepted alias spelling: the Compose SafeAreaView builder reads it (kjui compose_builder.rb:722 `json_data['edges'] || json_data['safeAreaInsetPositions']`) while no declaration named it, so iOS and web silently ignored a layout that used it. Declaring the alias normalizes it to the canonical spelling and makes it reach all three platforms.",
+      "aliases": [
+        "edges"
+      ],
       "items": {
         "type": "string",
         "enum": [
@@ -4190,10 +4276,6 @@
       "type": "boolean",
       "default": true,
       "description": "Whether to show tab labels (default: true)"
-    },
-    "onTabChange": {
-      "type": "binding",
-      "description": "Tab change handler - binding only (@{functionName})"
     },
     "onValueChange": {
       "type": [
