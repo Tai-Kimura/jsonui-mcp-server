@@ -181,7 +181,7 @@
         "string",
         "binding"
       ],
-      "description": "Background color - hex string (#RRGGBB or #RRGGBBAA) or color name from colors.json (can be data binding)"
+      "description": "Background color - hex string (#RRGGBB or #RRGGBBAA) or color name from colors.json (can be data binding). `backgroundColor` folds here: the genuine layout reads of that spelling all chain with `background` (kjui blurview_component.rb:42 `background || backgroundColor`, kjui segment_component.rb:55 `backgroundColor || background`, rjui blur_converter.rb:58 and circle_view_converter.rb:55). Note the two kjui sites read the pair in OPPOSITE order, so a layout setting both drew two different colours until the normalizer began folding them — the same defect shape as CheckBox's accent chain (plan 51-E). When a `gradient` is also declared on the same view, the GRADIENT wins and this is the fallback fill — not a layer underneath it. Full ruling in attribute_semantics.json -> backgroundFill; do not restate it in toolchain comments."
     },
     "tapBackground": {
       "type": [
@@ -663,7 +663,8 @@
         "boolean",
         "binding"
       ],
-      "description": "Whether to clip content to bounds (binding supported)"
+      "description": "Whether to clip content to bounds (binding supported). Defaults to FALSE: content is not clipped unless the layout asks. A clipping default would silently destroy a child's `shadow` and would make `clipToBounds: true` inert on the platform that already clips. Full ruling in attribute_semantics.json -> clipToBounds; do not restate it in toolchain comments.",
+      "default": false
     },
     "onclick": {
       "type": [
@@ -856,7 +857,7 @@
           "systemChromeMaterial": "Chrome"
         },
         "default": "Regular",
-        "description": "Visual effect (blur) style. Measured across the three converters 2026-08-05: the UIKit trio Light/Dark/ExtraLight is what all three map (sjui blur_converter.rb:71, kjui blurview_component.rb:38, rjui blur_converter.rb:98), and web additionally maps the SwiftUI material names. Every converter downcases before matching, so the casing here is presentational. `Regular` is the fallback all three already use for an unrecognised or absent value, hence the declared default. Enumerated because it was declared as a bare string while Blur.effectStyle — the same concept on the component that owns it — carried the enum: the split let the common spelling reach the render stage unvalidated, which is what the codegen-effect gate reported once the mode audit put these fixtures back in scope."
+        "description": "Visual effect (blur) style. Measured across the three converters 2026-08-05: the UIKit trio Light/Dark/ExtraLight is what all three map (sjui blur_converter.rb:71, kjui blurview_component.rb:38, rjui blur_converter.rb:98), and web additionally maps the SwiftUI material names. Every converter downcases before matching, so the casing here is presentational. `Regular` is the fallback all three already use for an unrecognised or absent value, hence the declared default. Enumerated because it was declared as a bare string while Blur.effectStyle — the same concept on the component that owns it — carried the enum: the split let the common spelling reach the render stage unvalidated, which is what the codegen-effect gate reported once the mode audit put these fixtures back in scope. Declared on `common`, so it applies on all three platforms and not only on Blur; the ios material/tint table is pinned in attribute_semantics.json -> effectStyle, which is also where the system* valueAliases and the tint layer order are ruled."
       },
     "tag": {
       "type": [
@@ -950,7 +951,7 @@
         "centerHorizontal",
         "center"
       ],
-      "description": "Content gravity/alignment"
+      "description": "Content gravity/alignment. A single value names ONE axis; the axis it does not name falls to the container default (top vertically, start horizontally), so in LTR `left` and `top` both resolve to (start, top) and render identically. Use the array form to name both axes. Full ruling in attribute_semantics.json -> gravityDefaults; do not restate it in toolchain comments."
     },
     "onAppear": {
       "type": "string",
@@ -1110,6 +1111,20 @@
       "description": "Debug: original height string before parsing. Dynamic-only; not emitted to static code.",
       "platform": "swift",
       "mode": "dynamic-only"
+    },
+    "offsetX": {
+      "type": [
+        "number",
+        "binding"
+      ],
+      "description": "Horizontal offset applied after layout, in pt / dp / px. Measurement and sibling placement are unchanged — the layout is computed first and the offset moves only this view. Its INTERACTIVE region moves with it: an offset control is tappable where it is drawn, which is what rules out a draw-only translation. Absolute, not RTL-mirroring, like leftMargin/rightMargin rather than startMargin/endMargin. Pairs with offsetY; either one alone implies 0 for the other. Full ruling (including the android primitive) in attribute_semantics.json -> offset."
+    },
+    "offsetY": {
+      "type": [
+        "number",
+        "binding"
+      ],
+      "description": "Vertical offset applied after layout, in pt / dp / px. Measurement and sibling placement are unchanged — the layout is computed first and the offset moves only this view. Its INTERACTIVE region moves with it: an offset control is tappable where it is drawn, which is what rules out a draw-only translation. Absolute, not RTL-mirroring, like leftMargin/rightMargin rather than startMargin/endMargin. Pairs with offsetX; either one alone implies 0 for the other. Full ruling (including the android primitive) in attribute_semantics.json -> offset."
     }
   },
   "Label": {
@@ -1242,7 +1257,7 @@
         "object",
         "array"
       ],
-      "description": "Underline styling (boolean for simple, object for styled)",
+      "description": "Underline styling: boolean for a plain line, object to style it. The object face must never draw LESS than `true` does — a platform that cannot honour lineStyle or color still draws the plain Single line in the text colour. `lineStyle: \"None\"` is the one object value that draws nothing, exactly like `false`. Full ruling in attribute_semantics.json -> textDecoration; do not restate it in toolchain comments.",
       "properties": {
         "lineStyle": {
           "type": "string",
@@ -1269,7 +1284,7 @@
         "boolean",
         "object"
       ],
-      "description": "Strikethrough styling (boolean for simple, object for styled)",
+      "description": "Strikethrough styling: boolean for a plain line, object to style it. Same contract as Label.underline, minus lineOffset, which strikethrough does not declare and must not invent. `lineStyle: \"None\"` draws nothing, exactly like `false`. Full ruling in attribute_semantics.json -> textDecoration; do not restate it in toolchain comments.",
       "properties": {
         "lineStyle": {
           "type": "string",
@@ -1289,7 +1304,7 @@
     },
     "autoShrink": {
       "type": "boolean",
-      "description": "Enable auto-shrink"
+      "description": "Enable auto-shrink. Active only on a bounded axis (explicit size, matchParent, or a max bound) — a no-op under wrapContent, which grows to the content and leaves nothing to shrink into. Full ruling in attribute_semantics.json -> autoShrink."
     },
     "minimumScaleFactor": {
       "type": [
@@ -1479,6 +1494,13 @@
         "number"
       ],
       "description": "Font weight (e.g., 'bold', 'semibold', '500', 600)"
+    },
+    "disabledFontColor": {
+      "type": [
+        "string",
+        "binding"
+      ],
+      "description": "Font color when disabled - hex string or color name from colors.json (binding supported). Declared from the implementation, which already read it: sjui label_converter.rb:179-180 (plan 51-E)."
     }
   },
   "TextField": {
@@ -1487,8 +1509,11 @@
         "string",
         "binding"
       ],
-      "description": "Text content (binding for two-way)",
-      "binding_direction": "two-way"
+      "description": "Text content (binding for two-way). `value` folds here (sjui textfield_converter.rb:527 reads `text || value || bind`).",
+      "binding_direction": "two-way",
+      "aliases": [
+        "value"
+      ]
     },
     "hint": {
       "type": "string",
@@ -1902,6 +1927,10 @@
       "description": "Hide other elements while the field is focused.",
       "platform": "swift",
       "mode": "swiftui"
+    },
+    "hintLineHeightMultiple": {
+      "type": "number",
+      "description": "Placeholder line height multiplier. Declared from the implementation, which already read it: sjui textfield_converter.rb:153 and textview_converter.rb:93,117 (EditText/Input follow via _alias_of) (plan 51-E)."
     }
   },
   "TextView": {
@@ -2291,6 +2320,105 @@
         "binding"
       ],
       "description": "Font weight (e.g., 'bold', 'semibold', '500', 600, or binding)"
+    },
+    "fontFamily": {
+      "type": [
+        "string",
+        "binding"
+      ],
+      "description": "Font family name (e.g., 'Noto Sans JP'). Passed as the `family` field of `FontSpec` to `Configuration.Font.fontProvider`. Coexists with `font` (weight) and `fontSize` which are passed in the same FontSpec. Declared from the implementation, which already read it: sjui button_converter.rb:173-178 (plan 51-E)."
+    },
+    "partialAttributes": {
+      "type": "array",
+      "description": "Partial text styling: apply font/size/color/underline/shadow to a substring selected by 'range' (a [start, end] pair, a text pattern, or a binding), and optionally make it tappable with 'onclick'. This is the supported way to get emphasis or a link inside a Label, since 'text' is plain text and markdown is not interpreted, and it is the portable way to express a cross-reference: the handler navigates (and scrolls to the target) in host code, so the same layout works everywhere, where a URL-based link would only work on web. All three platforms resolve partials at RUNTIME against the resolved string, so a pattern range and a localized or bound 'text' both work. Semantics, identical across platforms and verified against each runtime: an array range is [start, end) with the end exclusive; a string range is the FIRST occurrence and the partial is skipped (not an error) when the pattern is absent; a range that is out of bounds or inverted is skipped; partials apply in declaration order and MERGE where they overlap, later declarations winning per property. Declared from the implementation, which already read it: sjui button_converter.rb:68-129 (plan 51-E).",
+      "items": {
+        "type": "object",
+        "properties": {
+          "font": {
+            "type": "string",
+            "description": "Font name"
+          },
+          "fontSize": {
+            "type": "number",
+            "description": "Font size"
+          },
+          "fontColor": {
+            "type": "string",
+            "description": "Font color - hex string or color name from colors.json"
+          },
+          "lineSpacing": {
+            "type": "number",
+            "description": "Line spacing"
+          },
+          "lineHeightMultiple": {
+            "type": "number",
+            "description": "Line height multiplier"
+          },
+          "lineBreakMode": {
+            "type": "string",
+            "enum": [
+              "Char",
+              "Clip",
+              "Word",
+              "Head",
+              "Middle",
+              "Tail"
+            ],
+            "description": "Line break mode"
+          },
+          "textAlign": {
+            "type": "string",
+            "enum": [
+              "Left",
+              "Right",
+              "Center"
+            ],
+            "description": "Text alignment"
+          },
+          "underline": {
+            "type": "object",
+            "properties": {
+              "lineStyle": {
+                "type": "string",
+                "enum": [
+                  "Single",
+                  "Double",
+                  "Thick",
+                  "None"
+                ],
+                "description": "Underline style"
+              },
+              "color": {
+                "type": "string",
+                "description": "Underline color - hex string or color name from colors.json"
+              },
+              "lineOffset": {
+                "type": "number",
+                "description": "Baseline offset"
+              }
+            }
+          },
+          "textShadow": {
+            "type": "string",
+            "description": "Text shadow"
+          },
+          "range": {
+            "type": [
+              "array",
+              "string"
+            ],
+            "description": "Range [start, end], text pattern string, or binding expression"
+          },
+          "onclick": {
+            "type": "string",
+            "description": "Click handler for this range (selector-based, lowercase)"
+          },
+          "onClick": {
+            "type": "binding",
+            "description": "Click handler for this range (camelCase) - binding only (@{functionName})"
+          }
+        }
+      }
     }
   },
   "Image": {
@@ -2418,6 +2546,10 @@
       "description": "Pinch-zoom lower bound.",
       "platform": "swift",
       "mode": "swiftui"
+    },
+    "defaultImage": {
+      "type": "string",
+      "description": "Default image name. Declared from the implementation, which already read it: sjui image_converter.rb:36,42 (defaultImage || errorImage || loadingImage) (plan 51-E)."
     }
   },
   "NetworkImage": {
@@ -2433,7 +2565,10 @@
         "string",
         "binding"
       ],
-      "description": "Image URL (alias, can be data binding)"
+      "description": "Image URL (alias, can be data binding). `source` folds here (sjui network_image_converter.rb:14 reads `url || source || src`).",
+      "aliases": [
+        "source"
+      ]
     },
     "hint": {
       "type": "string",
@@ -2513,6 +2648,18 @@
       "description": "HTTP headers for the image request (Coil 3: httpHeaders(NetworkHeaders) on ImageRequest.Builder).",
       "platform": "kotlin",
       "mode": "compose"
+    },
+    "renderingMode": {
+      "type": "string",
+      "enum": [
+        "original",
+        "template"
+      ],
+      "description": "Rendering mode. Declared from the implementation, which already read it: sjui network_image_converter.rb:67-68 (plan 51-E).",
+      "platform": [
+        "swift",
+        "kotlin"
+      ]
     }
   },
   "SelectBox": {
@@ -2575,7 +2722,7 @@
         "string",
         "binding"
       ],
-      "description": "Initial selected date (yyyy-MM-dd format, two-way binding)"
+      "description": "Initial selected date (yyyy-MM-dd format, two-way binding). No `default`: when it is absent no initial selection has been stated, and the closed face shows the prompt / hint / placeholder rather than today's date. Full ruling in attribute_semantics.json -> selectBoxDate."
     },
     "datePickerMode": {
       "type": "string",
@@ -2605,7 +2752,10 @@
     },
     "dateStringFormat": {
       "type": "string",
-      "description": "Date string format"
+      "description": "Date string format. `dateFormat` folds here (sjui selectbox_converter.rb:132 reads `dateFormat || dateStringFormat`).",
+      "aliases": [
+        "dateFormat"
+      ]
     },
     "minimumDate": {
       "type": [
@@ -2940,6 +3090,42 @@
     "trackTintColor": {
       "type": "string",
       "description": "Colour of the switch track - hex string or color name from colors.json. Deprecation retracted with the Slider pair; a SwiftUI Toggle is not limited to a unified tint any more than Progress is."
+    },
+    "fontColor": {
+      "type": [
+        "string",
+        "binding"
+      ],
+      "description": "Text color - hex string or color name from colors.json (binding supported). Declared from the implementation, which already read it: sjui toggle_converter.rb:62-63,71-72 (plan 51-E)."
+    },
+    "toggleStyle": {
+      "type": "string",
+      "enum": [
+        "switch",
+        "button",
+        "checkbox",
+        "default"
+      ],
+      "description": "Which control shape the Switch is drawn as. A SwiftUI-only concept (the ToggleStyle protocol); an unrecognised value falls back to the platform default rather than erroring. Declared from the implementation, which already read it: sjui toggle_converter.rb:92-104 (plan 51-E).",
+      "platform": "swift",
+      "mode": "swiftui"
+    },
+    "label": {
+      "type": [
+        "string",
+        "binding"
+      ],
+      "description": "Switch label (can be data binding). Same shape CheckBox and Radio already declare: `label` is the canonical row and `text` folds into it. Declared from the implementation, which already read it: sjui toggle_converter.rb:21 (text || label) (plan 51-E).",
+      "aliases": [
+        "text"
+      ]
+    },
+    "fontSize": {
+      "type": [
+        "number",
+        "binding"
+      ],
+      "description": "Font size (binding supported). Declared from the implementation, which already read it: sjui toggle_converter.rb hands the whole component to the shared apply_font_modifiers helper, so the size was honoured with no declaration behind it (plan 51-E)."
     }
   },
   "Toggle": {
@@ -2957,12 +3143,18 @@
         "number",
         "binding"
       ],
-      "description": "Initially selected index (binding for two-way)",
-      "binding_direction": "two-way"
+      "description": "Initially selected index (binding for two-way). `selectedTabIndex` folds here (sjui segment_converter.rb:16), matching the alias TabView already declares.",
+      "binding_direction": "two-way",
+      "aliases": [
+        "selectedTabIndex"
+      ]
     },
     "tintColor": {
       "type": "string",
-      "description": "Accent color of the SELECTED segment - a background fill on ios/web, the indicator on Compose. Hex string or color name from colors.json"
+      "description": "Accent color of the SELECTED segment - a background fill on ios/web, the indicator on Compose. Hex string or color name from colors.json. `selectedSegmentTintColor` folds here (sjui segment_converter.rb:128 reads `selectedSegmentTintColor || tintColor`).",
+      "aliases": [
+        "selectedSegmentTintColor"
+      ]
     },
     "fontColor": {
       "type": "string",
@@ -3013,22 +3205,24 @@
         "number",
         "binding"
       ],
-      "description": "Minimum value (binding supported). `minValue` / `minimumValue` are accepted alias spellings.",
+      "description": "Minimum value (binding supported). `minValue` / `minimumValue` are accepted alias spellings. Defaults to 0: with no bounds declared the range is 0 .. 1, this SSoT's convention for a unitless value on a track (compare Progress.progress and opacity, both declared min 0 / max 1). Full ruling in attribute_semantics.json -> sliderRange.",
       "aliases": [
         "minimumValue",
         "minValue"
-      ]
+      ],
+      "default": 0
     },
     "maximum": {
       "type": [
         "number",
         "binding"
       ],
-      "description": "Maximum value (binding supported). `maxValue` / `maximumValue` are accepted alias spellings.",
+      "description": "Maximum value (binding supported). `maxValue` / `maximumValue` are accepted alias spellings. Defaults to 1: with no bounds declared the range is 0 .. 1, this SSoT's convention for a unitless value on a track (compare Progress.progress and opacity, both declared min 0 / max 1). Full ruling in attribute_semantics.json -> sliderRange.",
       "aliases": [
         "maximumValue",
         "maxValue"
-      ]
+      ],
+      "default": 1
     },
     "tintColor": {
       "type": "string",
@@ -3065,6 +3259,10 @@
     "trackTintColor": {
       "type": "string",
       "description": "Colour of the unfilled track - hex string or color name from colors.json. Deprecation retracted with progressTintColor: SwiftUI Progress reaches the same result through .background()."
+    },
+    "range": {
+      "type": "array",
+      "description": "Both bounds at once, as [minimum, maximum] — a shorthand for declaring `minimum` and `maximum` separately. It is NOT an alias: one spelling carries two values, so the normalizer cannot fold it. Read only when it is a two-element array; anything else leaves `minimum` / `maximum` to speak for themselves. Declared from the implementation, which already read it: sjui slider_converter.rb:16-19 (plan 51-E)."
     }
   },
   "Progress": {
@@ -3197,7 +3395,7 @@
     },
     "gradient": {
       "type": "array",
-      "description": "Gradient colors",
+      "description": "Gradient colors Wins over `background` when both are declared on the same view; see attribute_semantics.json -> backgroundFill.",
       "platform": "swift"
     },
     "gradientDirection": {
@@ -3459,6 +3657,19 @@
       ],
       "description": "Scroll behavior animation",
       "platform": "react"
+    },
+    "horizontalScroll": {
+      "type": "boolean",
+      "description": "Enable horizontal scroll. Declared from the implementation, which already read it: sjui scrollview_converter.rb:39 (plan 51-E)."
+    },
+    "defaultScrollAnchor": {
+      "type": "string",
+      "enum": [
+        "top",
+        "center",
+        "bottom"
+      ],
+      "description": "Initial scroll position anchor. Sets where the scroll view starts. Declared from the implementation, which already read it: sjui scrollview_converter.rb:207-215. Scope is deliberately all three platforms: the anchor is a portable concept and the declaration says an attribute EXISTS, not which face has caught up — the coverage ledger carries the android and web gaps. The \"(iOS 17+)\" note this description was copied with belonged to Collection's ios implementation, not to the contract, and has been dropped here (plan 51-E, raised by C)."
     }
   },
   "Collection": {
@@ -3505,7 +3716,10 @@
     },
     "lineSpacing": {
       "type": "number",
-      "description": "Spacing between rows"
+      "description": "Spacing between rows. `sectionSpacing` folds here (sjui collection_converter.rb:799,960 read `sectionSpacing || lineSpacing || 8`).",
+      "aliases": [
+        "sectionSpacing"
+      ]
     },
     "horizontalScroll": {
       "type": "boolean",
@@ -3728,6 +3942,29 @@
         "onValueChanged",
         "onPageChanged"
       ]
+    },
+    "cellWidth": {
+      "type": "number",
+      "description": "Fixed width for every cell, in pt / dp / px. Applied to the cell view AFTER it is built, so it overrides whatever width the cell layout asked for; leave it out to let each cell size itself. Declared from the implementation, which already read it: sjui collection_converter.rb:256,282,315,650 (plan 51-E)."
+    },
+    "cellHeight": {
+      "type": "number",
+      "description": "Fixed height for every cell, in pt / dp / px. Applied to the cell view AFTER it is built, so it overrides whatever height the cell layout asked for; leave it out to let each cell size itself. Declared from the implementation, which already read it: sjui collection_converter.rb:260,286,318,402 (plan 51-E)."
+    },
+    "hideSeparator": {
+      "type": "boolean",
+      "description": "Hide the row separators a list draws between cells. A NO-OP where the container draws no separators (a grid-shaped Collection has none) — that is the contract, not an unimplemented gap, and it does not license switching the container to a List. No CODEGEN face reads it, so the coverage row is runtime-only. Full ruling in attribute_semantics.json -> collectionSeparators."
+    },
+    "listStyle": {
+      "type": "string",
+      "enum": [
+        "plain",
+        "grouped",
+        "insetGrouped",
+        "sidebar"
+      ],
+      "default": "plain",
+      "description": "Which list chrome the collection is drawn with. Enumerated from the only implementation that reads it (SwiftJsonUI TableConverter.applyListStyle); an unrecognised value falls back to plain. ORTHOGONAL to hideSeparator — that one hides the separators, this one picks the chrome, and neither overrides the other. No CODEGEN face reads it, so the coverage row is runtime-only: sjui collection_converter.rb:213 hardcodes PlainListStyle instead. Full ruling in attribute_semantics.json -> collectionSeparators."
     }
   },
   "Radio": {
@@ -3774,7 +4011,10 @@
         "boolean",
         "binding"
       ],
-      "description": "Seeds the group's INITIAL selection — it is not the live state, and it is not two-way. The state a radio group carries is `selectedValue`; `checked` only says which option starts selected when nothing else has said. Precedence, and all three platforms implement it in this order: a BOUND `selectedValue` wins outright (the group's own two-way state), then a LITERAL `selectedValue` (a group-level statement naming the starting option), then this option's `checked`. So a radio group that binds selectedValue ignores `checked` entirely, which is what stops a seed from freezing a group that the user can no longer change. The bound form of `checked` seeds the glyph rather than the state, since a property initialiser cannot read the data map: it selects only while the group has made no choice yet (sjui radio_converter.rb:88-103, and the same rule in RadioConverter.swift). CONTRAST with CheckBox.checked and Switch.checked, which look identical and are not: those ARE the control's state and carry binding_direction two-way. A radio has no state of its own — the group does. Declared 2026-08-05 (plan 49-E) from the implementations; the previous description said only \"Initial checked state\", which was true and told nobody what happens when both are declared."
+      "description": "Seeds the group's INITIAL selection — it is not the live state, and it is not two-way. The state a radio group carries is `selectedValue`; `checked` only says which option starts selected when nothing else has said. Precedence, and all three platforms implement it in this order: a BOUND `selectedValue` wins outright (the group's own two-way state), then a LITERAL `selectedValue` (a group-level statement naming the starting option), then this option's `checked`. So a radio group that binds selectedValue ignores `checked` entirely, which is what stops a seed from freezing a group that the user can no longer change. The bound form of `checked` seeds the glyph rather than the state, since a property initialiser cannot read the data map: it selects only while the group has made no choice yet (sjui radio_converter.rb:88-103, and the same rule in RadioConverter.swift). CONTRAST with CheckBox.checked and Switch.checked, which look identical and are not: those ARE the control's state and carry binding_direction two-way. A radio has no state of its own — the group does. Declared 2026-08-05 (plan 49-E) from the implementations; the previous description said only \"Initial checked state\", which was true and told nobody what happens when both are declared. `isOn` folds here (sjui radio_converter.rb:88,102 read both the literal and the bound form as `checked || isOn`).",
+      "aliases": [
+        "isOn"
+      ]
     },
     "value": {
       "type": "any",
@@ -3850,6 +4090,13 @@
     "onValueChange": {
       "type": "binding",
       "description": "Value change handler - binding only (@{functionName})"
+    },
+    "items": {
+      "type": [
+        "array",
+        "binding"
+      ],
+      "description": "List of items for normal picker (can be template variable). Declared from the implementation, which already read it: sjui radio_converter.rb:13 — the option list a radio GROUP renders; with it the converter emits a group, without it a single radio (plan 51-E)."
     }
   },
   "CheckBox": {
@@ -3949,14 +4196,22 @@
     },
     "onValueChange": {
       "type": "binding",
-      "description": "Value change handler - binding only (@{functionName})"
+      "description": "Value change handler - binding only (@{functionName}). Legacy handler spellings fold here (sjui checkbox_converter.rb:122 reads `onValueChange || onClick || action || onValueChanged`; `onClick` stays common).",
+      "aliases": [
+        "action",
+        "onValueChanged"
+      ]
     },
     "checkedColor": {
       "type": "color",
-      "description": "Color when checked.",
+      "description": "Color when checked. Legacy accent spellings fold here (sjui checkbox_converter.rb:98 and kjui checkbox_component.rb:211 both read the same four spellings for this one colour). `tintColor` is deliberately NOT in the alias list: it is already declared on `common`, and an alias that is also a declared row is a silent no-op (test_no_alias_is_cancelled_by_a_declaration_of_its_own_name). On a CheckBox the common tint IS the checked colour - that is what both converters implement - so it needs no alias row. Declaring the other two also settles a live divergence: ios reads `checkedColor` first, android reads `checkColor` first, so a layout setting both drew two different colours until the normalizer began folding them (plan 51-E).",
       "platform": [
         "swift",
         "kotlin"
+      ],
+      "aliases": [
+        "checkColor",
+        "onTintColor"
       ]
     },
     "uncheckedColor": {
@@ -3981,6 +4236,16 @@
       "platform": [
         "swift",
         "kotlin"
+      ]
+    },
+    "fontWeight": {
+      "type": [
+        "string",
+        "number"
+      ],
+      "description": "Font weight (e.g., 'bold', 'semibold', '500', 600). Canonical name matches Label and Button; the legacy `fontStyle` spelling folds here. Declared from the implementation, which already read it: sjui checkbox_converter.rb:74-76, which reads `fontStyle` and emits `fontWeight:` (plan 51-E).",
+      "aliases": [
+        "fontStyle"
       ]
     }
   },
@@ -4016,13 +4281,16 @@
         "string",
         "binding"
       ],
-      "description": "Indicator color - hex string or color name from colors.json (binding supported)",
+      "description": "Indicator color - hex string or color name from colors.json (binding supported). `tint` folds here (sjui indicator_converter.rb:77 reads `color || tintColor || tint`).",
       "platform": "swift",
-      "mode": "swiftui"
+      "mode": "swiftui",
+      "aliases": [
+        "tint"
+      ]
     },
     "hidesWhenStopped": {
       "type": "boolean",
-      "description": "Hide when stopped",
+      "description": "Hide when stopped. Decides SPACE: `true` collapses the stopped indicator out of the layout, `false` keeps it drawn AND laid out. Full ruling in attribute_semantics.json -> indicatorStopped.",
       "platform": "swift",
       "mode": "swiftui"
     }
@@ -4030,7 +4298,10 @@
   "GradientView": {
     "gradient": {
       "type": "array",
-      "description": "Gradient colors"
+      "description": "Gradient colors. `colors` folds here (sjui gradient_view_converter.rb:52,66 read `colors || gradient`). On GradientView the gradient is the component's own fill, so the backgroundFill precedence question does not arise.",
+      "aliases": [
+        "colors"
+      ]
     },
     "gradientDirection": {
       "type": "string",
@@ -4044,6 +4315,54 @@
     "locations": {
       "type": "array",
       "description": "Color stop locations (0.0-1.0)"
+    },
+    "child": {
+      "type": "array",
+      "description": "Child component(s). Declared from the implementation, which already read it: sjui gradient_view_converter.rb:16 (plan 51-E)."
+    },
+    "children": {
+      "type": "array",
+      "description": "Child components (alias for child). Declared from the implementation, which already read it: sjui gradient_view_converter.rb:16 (child || children) (plan 51-E)."
+    },
+    "startPoint": {
+      "type": [
+        "array",
+        "object"
+      ],
+      "description": "Unit coordinates in the view's own box for where the gradient starts: [x, y] or {\"x\": x, \"y\": y}, with 0 = leading/top, 0.5 = centre/middle, 1 = trailing/bottom. THREE faces read this key three incompatible ways today: sjui gradient_view_converter.rb:107-109 wants an OBJECT ({x, y}), rjui gradient_view_converter.rb:72-73 destructures an ARRAY ([x, y]), and kjui gradientview_component.rb:58-59 expects a STRING edge name ('top'). The two coordinate forms are declared because both are real coordinate spellings of the same thing; the android string form is NOT declared - it is `gradientDirection` semantics written under the wrong key, and is filed as a defect rather than blessed here. Declaring BOTH startPoint and endPoint replaces gradientDirection entirely; declaring only one is ignored and gradientDirection still decides (plan 51-E).",
+      "items": {
+        "type": "number"
+      },
+      "properties": {
+        "x": {
+          "type": "number",
+          "description": "0 = leading, 0.5 = centre, 1 = trailing"
+        },
+        "y": {
+          "type": "number",
+          "description": "0 = top, 0.5 = middle, 1 = bottom"
+        }
+      }
+    },
+    "endPoint": {
+      "type": [
+        "array",
+        "object"
+      ],
+      "description": "Unit coordinates in the view's own box for where the gradient ends: [x, y] or {\"x\": x, \"y\": y}, with 0 = leading/top, 0.5 = centre/middle, 1 = trailing/bottom. THREE faces read this key three incompatible ways today: sjui gradient_view_converter.rb:107-109 wants an OBJECT ({x, y}), rjui gradient_view_converter.rb:72-73 destructures an ARRAY ([x, y]), and kjui gradientview_component.rb:58-59 expects a STRING edge name ('top'). The two coordinate forms are declared because both are real coordinate spellings of the same thing; the android string form is NOT declared - it is `gradientDirection` semantics written under the wrong key, and is filed as a defect rather than blessed here. Declaring BOTH startPoint and endPoint replaces gradientDirection entirely; declaring only one is ignored and gradientDirection still decides (plan 51-E).",
+      "items": {
+        "type": "number"
+      },
+      "properties": {
+        "x": {
+          "type": "number",
+          "description": "0 = leading, 0.5 = centre, 1 = trailing"
+        },
+        "y": {
+          "type": "number",
+          "description": "0 = top, 0.5 = middle, 1 = bottom"
+        }
+      }
     }
   },
   "Blur": {
@@ -4063,6 +4382,14 @@
         "kotlin",
         "react"
       ]
+    },
+    "child": {
+      "type": "array",
+      "description": "Child component(s). Declared from the implementation, which already read it: sjui blur_converter.rb:16 (plan 51-E)."
+    },
+    "children": {
+      "type": "array",
+      "description": "Child components (alias for child). Declared from the implementation, which already read it: sjui blur_converter.rb:16 (child || children) (plan 51-E)."
     }
   },
   "IconLabel": {
@@ -4078,7 +4405,10 @@
         "boolean",
         "binding"
       ],
-      "description": "Selected state (binding supported). Chooses icon_on over icon_off and selectedFontColor over fontColor, so every platform declaring those needs this too."
+      "description": "Selected state (binding supported). Chooses icon_on over icon_off and selectedFontColor over fontColor, so every platform declaring those needs this too. `isOn` folds here — the legacy spelling for the same state. IconLabelConverter.swift:145-151 says so in as many words (\"Pre-SSoT layouts that spelled it `isOn` keep working\") and reads it out of rawData because no typed slot existed; sjui icon_label_converter.rb:130 reads the canonical `selected` (plan 51-E).",
+      "aliases": [
+        "isOn"
+      ]
     },
     "font": {
       "type": "string",
@@ -4124,6 +4454,13 @@
     "iconMargin": {
       "type": "number",
       "description": "Icon-text spacing"
+    },
+    "iconSize": {
+      "type": [
+        "number",
+        "array"
+      ],
+      "description": "Icon size. A number sizes both edges; a two-element [width, height] sizes them separately (rjui icon_label_converter.rb:130-138 reads both, and its spec covers both). NOT the same shape as CheckBox.iconSize, which is a square glyph and takes a number only. sjui icon_label_converter.rb:50-51 interpolates the value straight into `iconSize:`, so the array form is web-only today — declared here because the attribute's value space is a property of the attribute, not of whichever face lags (plan 51-E)."
     }
   },
   "Web": {
@@ -4193,6 +4530,34 @@
     "children": {
       "type": "array",
       "description": "Child components (alias for child)"
+    },
+    "direction": {
+      "type": "string",
+      "enum": [
+        "topToBottom",
+        "bottomToTop",
+        "leftToRight",
+        "rightToLeft",
+        "none"
+      ],
+      "description": "Layout direction. Declared from the implementation, which already read it: sjui view_converter.rb:140 (SafeAreaView routes through the View converter) (plan 51-E)."
+    },
+    "gradient": {
+      "type": "array",
+      "description": "Gradient colors. Declared from the implementation, which already read it: sjui view_converter.rb:456 (plan 51-E).",
+      "platform": "swift"
+    },
+    "spacing": {
+      "type": [
+        "number",
+        "binding"
+      ],
+      "description": "Space between children (binding supported). Declared from the implementation, which already read it: sjui view_converter.rb:181 (plan 51-E).",
+      "mode": [
+        "swiftui",
+        "compose",
+        "react"
+      ]
     }
   },
   "TabView": {
