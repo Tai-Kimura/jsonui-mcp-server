@@ -386,6 +386,61 @@ describe("SpecLoader spec model", () => {
   });
 });
 
+describe("SpecLoader platform rules + topic-guide search", () => {
+  const SEMANTICS = {
+    version: 1,
+    title: "Platform-scoped layout semantics",
+    keywords: ["platform", "ios only", "iosだけ", "出し分け"],
+    nodeDirective: { attribute: "platform" },
+  };
+
+  function loaderWithSemantics(): SpecLoader {
+    const mcpRoot = makeTempDir("mcp-root");
+    makeBundledDataset(mcpRoot);
+    writeJson(join(mcpRoot, "data/platform_semantics.json"), SEMANTICS);
+    return new SpecLoader(mcpRoot);
+  }
+
+  it("getPlatformRules returns the semantics file verbatim", () => {
+    expect(loaderWithSemantics().getPlatformRules()).toEqual(SEMANTICS);
+  });
+
+  it("getPlatformRules is null (not invented) without the file", () => {
+    const mcpRoot = makeTempDir("mcp-root");
+    makeBundledDataset(mcpRoot);
+    expect(new SpecLoader(mcpRoot).getPlatformRules()).toBeNull();
+  });
+
+  it("task vocabulary surfaces the guide pointer at the top of search", () => {
+    // No component or attribute name in the query — only the guide can hit.
+    const results = loaderWithSemantics().searchComponents(
+      "iosだけフォントカラーを変えたい"
+    );
+    expect(results[0]).toMatchObject({
+      guide: "platform_rules",
+      nextTool: "get_platform_rules",
+      score: 100,
+    });
+  });
+
+  it("an english task query hits the guide too", () => {
+    const results = loaderWithSemantics().searchComponents("ios only color");
+    expect(results.some((r: any) => r.guide === "platform_rules")).toBe(true);
+  });
+
+  it("guide keywords do not fire on unrelated queries", () => {
+    const results = loaderWithSemantics().searchComponents("zebra");
+    expect(results.every((r: any) => r.guide == null)).toBe(true);
+  });
+
+  it("no guide entries without the semantics file", () => {
+    const mcpRoot = makeTempDir("mcp-root");
+    makeBundledDataset(mcpRoot);
+    const results = new SpecLoader(mcpRoot).searchComponents("ios only");
+    expect(results.every((r: any) => r.guide == null)).toBe(true);
+  });
+});
+
 // ----- root helper ----------------------------------------------------------
 
 describe("mcpRootFromImportMetaUrl", () => {

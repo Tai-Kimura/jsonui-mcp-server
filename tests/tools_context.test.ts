@@ -13,6 +13,7 @@ import { register as registerListComponentSpecs } from "../src/tools/context/lis
 import { register as registerListLayouts } from "../src/tools/context/list_layouts.js";
 import { register as registerReadSpecFile } from "../src/tools/context/read_spec_file.js";
 import { register as registerReadLayoutFile } from "../src/tools/context/read_layout_file.js";
+import { register as registerSearchSpecs } from "../src/tools/context/search_specs.js";
 import {
   cleanupTempDirs,
   createToolHarness,
@@ -38,7 +39,45 @@ beforeEach(() => {
   registerListLayouts(harness.server, config);
   registerReadSpecFile(harness.server, config);
   registerReadLayoutFile(harness.server, config);
+  registerSearchSpecs(harness.server, config);
 });
+
+/** A screen split across a parent spec + sub-spec files in a subdirectory. */
+function writeSplitSpecFixture(root: string) {
+  writeJson(join(root, "docs/screens/json/messages.spec.json"), {
+    type: "screen_parent_spec",
+    metadata: {
+      name: "Messages",
+      displayName: "Messages Screen",
+      layoutFile: "messages",
+    },
+    subSpecs: [
+      {
+        file: "messages/messages-core.spec.json",
+        name: "Messages - Core",
+        description: "Core structure and message list",
+      },
+      {
+        file: "messages/messages-composer.spec.json",
+        name: "Messages - Composer",
+        description: "Input area and attachments",
+      },
+    ],
+  });
+  writeJson(join(root, "docs/screens/json/messages/messages-core.spec.json"), {
+    type: "screen_spec",
+    metadata: { name: "Messages - Core" },
+    structure: { messageList: { paging: true, currentPage: "@{currentPage}" } },
+  });
+  writeJson(
+    join(root, "docs/screens/json/messages/messages-composer.spec.json"),
+    {
+      type: "screen_spec",
+      metadata: { name: "Messages - Composer" },
+      structure: { attachButton: { note: "opens the attachment sheet" } },
+    }
+  );
+}
 
 afterEach(() => {
   delete process.env.JUI_PROJECT_DIR;
@@ -120,6 +159,81 @@ describe("list_screen_specs", () => {
     });
     const text = await harness.call("list_screen_specs", { project_dir: proj });
     expect(text).toContain("Spec directory not found");
+  });
+
+  it("expands a parent spec's subSpecs inline so the split is visible", async () => {
+    writeSplitSpecFixture(projectDir);
+    const specs = JSON.parse(
+      await harness.call("list_screen_specs", { project_dir: projectDir })
+    );
+    const core = specs.find(
+      (s: any) => s.file === "messages/messages-core.spec.json"
+    );
+    expect(core).toEqual({
+      file: "messages/messages-core.spec.json",
+      name: "Messages - Core",
+      displayName: "Core structure and message list",
+      type: "screen_sub_spec",
+      parent: "messages.spec.json",
+      layoutFile: "messages",
+    });
+    // The parent itself still lists normally.
+    expect(
+      specs.find((s: any) => s.file === "messages.spec.json")?.type
+    ).toBe("screen_parent_spec");
+  });
+});
+
+describe("search_specs", () => {
+  it("finds a keyword inside a sub-spec file in a subdirectory", async () => {
+    writeSplitSpecFixture(projectDir);
+    const results = JSON.parse(
+      await harness.call("search_specs", {
+        query: "currentPage",
+        project_dir: projectDir,
+      })
+    );
+    const hit = results.find(
+      (r: any) => r.file === "messages/messages-core.spec.json"
+    );
+    expect(hit).toBeTruthy();
+    expect(hit.matches[0].path).toContain("structure.messageList");
+    expect(hit.matches[0].snippet).toContain("@{currentPage}");
+  });
+
+  it("matches keys as well as string values, case-insensitively", async () => {
+    writeSplitSpecFixture(projectDir);
+    const results = JSON.parse(
+      await harness.call("search_specs", {
+        query: "ATTACHMENT",
+        project_dir: projectDir,
+      })
+    );
+    expect(
+      results.some(
+        (r: any) => r.file === "messages/messages-composer.spec.json"
+      )
+    ).toBe(true);
+  });
+
+  it("searches component specs too", async () => {
+    const results = JSON.parse(
+      await harness.call("search_specs", {
+        query: "ExampleCard",
+        project_dir: projectDir,
+      })
+    );
+    expect(
+      results.some((r: any) => r.file === "example_card.component.json")
+    ).toBe(true);
+  });
+
+  it("reports no matches as a plain message", async () => {
+    const text = await harness.call("search_specs", {
+      query: "zzz_nothing_zzz",
+      project_dir: projectDir,
+    });
+    expect(text).toContain("No matches");
   });
 });
 

@@ -14,6 +14,7 @@ import { register as registerGetBindingRules } from "./tools/spec/get_binding_ru
 import { register as registerGetScreenIdentity } from "./tools/spec/get_screen_identity.js";
 import { register as registerGetPlatformMapping } from "./tools/spec/get_platform_mapping.js";
 import { register as registerGetDataSource } from "./tools/spec/get_data_source.js";
+import { register as registerGetPlatformRules } from "./tools/spec/get_platform_rules.js";
 
 // --- Group B: Project Context ---
 import { register as registerGetProjectConfig } from "./tools/context/get_project_config.js";
@@ -22,6 +23,7 @@ import { register as registerListComponentSpecs } from "./tools/context/list_com
 import { register as registerListLayouts } from "./tools/context/list_layouts.js";
 import { register as registerReadSpecFile } from "./tools/context/read_spec_file.js";
 import { register as registerReadLayoutFile } from "./tools/context/read_layout_file.js";
+import { register as registerSearchSpecs } from "./tools/context/search_specs.js";
 
 // --- Group C: jui CLI ---
 import { register as registerJuiInit } from "./tools/jui/jui_init.js";
@@ -89,7 +91,7 @@ log(
 // Initialize server config for Groups B/C/D
 const config = new ServerConfig();
 
-// Register Group A: Component Spec Lookup (7 tools)
+// Register Group A: Component Spec Lookup (9 tools)
 registerLookupComponent(server, loader);
 registerLookupAttribute(server, loader);
 registerSearchComponents(server, loader);
@@ -98,14 +100,16 @@ registerGetBindingRules(server, loader);
 registerGetScreenIdentity(server, loader);
 registerGetPlatformMapping(server, loader);
 registerGetDataSource(server, loader);
+registerGetPlatformRules(server, loader);
 
-// Register Group B: Project Context (6 tools)
+// Register Group B: Project Context (7 tools)
 registerGetProjectConfig(server, config);
 registerListScreenSpecs(server, config);
 registerListComponentSpecs(server, config);
 registerListLayouts(server, config);
 registerReadSpecFile(server, config);
 registerReadLayoutFile(server, config);
+registerSearchSpecs(server, config);
 
 // Register Group C: jui CLI (8 tools)
 registerJuiInit(server, config);

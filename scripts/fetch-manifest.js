@@ -33,6 +33,13 @@ export const FILES = [
     remote: "shared/core/attribute_semantics.json",
     local: "attribute_semantics.json",
   },
+  // Canonical platform-scoping semantics (node 'platform' directive, root
+  // 'platforms', vs 'responsive') — backs get_platform_rules and the
+  // search-side topic-guide index.
+  {
+    remote: "shared/core/platform_semantics.json",
+    local: "platform_semantics.json",
+  },
   // Canonical binding-resolution semantics. This was bundled in data/ but
   // missing from FILES, so the snapshot only ever refreshed by hand and
   // silently went stale — the same trap the screen-identity asset would

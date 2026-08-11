@@ -45,6 +45,7 @@ function reportedFiles(source: DataSourceInfo) {
     source.screenIdentity,
     source.bindingSemantics,
     source.attributeSemantics,
+    source.platformSemantics,
     source.coverage,
   ].filter((f): f is NonNullable<typeof f> => f != null);
 }

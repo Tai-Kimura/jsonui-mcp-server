@@ -61,6 +61,10 @@ export interface DataSourceInfo {
   /// contract (cross-effect rulings, plan 33). Optional: absent on older
   /// jsonui-cli checkouts.
   attributeSemantics: FileInfo | null;
+  /// shared/core/platform_semantics.json — platform-scoped layout semantics
+  /// (the node-level 'platform' directive, root 'platforms', vs
+  /// 'responsive'). Optional: absent on older jsonui-cli checkouts.
+  platformSemantics: FileInfo | null;
   /// conformance/coverage.json — declared-but-unimplemented (component,
   /// attribute, platform) pairs with their recorded reasons. Optional: absent
   /// on older jsonui-cli checkouts.
@@ -102,6 +106,7 @@ export class SpecLoader {
   private commonAttributesRaw: Record<string, any> = {};
   private bindingSemantics: Record<string, any> | null = null;
   private attributeSemantics: Record<string, any> | null = null;
+  private platformSemantics: Record<string, any> | null = null;
   /// `${component}.${attribute}` -> [{platform, reason, note}] from the
   /// coverage ledger. The ledger tracks pairs that ARE declared (platform
   /// field includes them) but that the platform's codegen does not consume —
@@ -243,7 +248,54 @@ export class SpecLoader {
       }
     }
 
+    // Topic-guide index: task vocabulary ("iOSだけ色を変える", "ios only",
+    // "platform override") does not contain any component or attribute
+    // name, so the loops above can't surface the mechanism. Each guide
+    // declares its own keywords (en + ja) in its semantics file; a hit
+    // pins a pointer to the dedicated tool at the top of the results.
+    for (const guide of this.topicGuides()) {
+      const hit = guide.keywords.some(
+        (kw) => q.includes(kw) || (q.length >= 3 && kw.includes(q))
+      );
+      if (hit) {
+        results.push({
+          guide: guide.topic,
+          score: 100,
+          matches: [guide.summary],
+          nextTool: guide.tool,
+        });
+      }
+    }
+
     return results.sort((a, b) => b.score - a.score);
+  }
+
+  /** Keyword-indexed topical guides, each backed by a dedicated MCP tool. */
+  private topicGuides(): Array<{
+    topic: string;
+    tool: string;
+    summary: string;
+    keywords: string[];
+  }> {
+    const guides: Array<{
+      topic: string;
+      tool: string;
+      summary: string;
+      keywords: string[];
+    }> = [];
+    if (this.platformSemantics) {
+      const kws = Array.isArray(this.platformSemantics.keywords)
+        ? (this.platformSemantics.keywords as string[])
+        : [];
+      guides.push({
+        topic: "platform_rules",
+        tool: "get_platform_rules",
+        summary:
+          "Per-platform styling/visibility (e.g. change fontColor on iOS only): node-level 'platform' directive (object form = per-platform overrides, string form = platform filter), root 'platforms' whitelist, vs 'responsive'. Call get_platform_rules for the full semantics with examples.",
+        keywords: kws.map((k) => k.toLowerCase()),
+      });
+    }
+    return guides;
   }
 
   getModifierOrder(platform?: string): any {
@@ -275,6 +327,7 @@ export class SpecLoader {
       this.dataSource.screenIdentity,
       this.dataSource.bindingSemantics,
       this.dataSource.attributeSemantics,
+      this.dataSource.platformSemantics,
       this.dataSource.coverage,
     ].filter((f): f is FileInfo => f != null);
 
@@ -307,6 +360,15 @@ export class SpecLoader {
       semanticsVersion: this.bindingSemantics.version,
       semantics: this.bindingSemantics,
     };
+  }
+
+  getPlatformRules(): any {
+    // Canonical platform-scoping semantics (SSoT:
+    // shared/core/platform_semantics.json — restates
+    // jui_tools/jui_cli/core/platform_resolver.py). Null on jsonui-cli
+    // checkouts that predate the file; the tool reports that instead of
+    // inventing rules.
+    return this.platformSemantics;
   }
 
   getPlatformMapping(category?: string): any {
@@ -374,6 +436,23 @@ export class SpecLoader {
       attributeSemanticsResolution = attrSemResolution;
     } catch {
       this.attributeSemantics = null;
+    }
+
+    // Platform-scoped layout semantics (node 'platform' directive, root
+    // 'platforms', vs 'responsive'). Optional for the same backward-compat
+    // reason.
+    let platformSemanticsResolution: FileInfo | null = null;
+    try {
+      const platSemResolution = this.resolveFile(
+        "shared/core/platform_semantics.json",
+        "data/platform_semantics.json"
+      );
+      this.platformSemantics = JSON.parse(
+        readFileSync(platSemResolution.path, "utf-8")
+      ) as Record<string, any>;
+      platformSemanticsResolution = platSemResolution;
+    } catch {
+      this.platformSemantics = null;
     }
 
     // Canonical screen identity (screen-identity track). Optional so older
@@ -462,6 +541,7 @@ export class SpecLoader {
       screenIdentity: screenIdentityResolution,
       bindingSemantics: bindingResolution,
       attributeSemantics: attributeSemanticsResolution,
+      platformSemantics: platformSemanticsResolution,
       coverage: coverageResolution,
       componentCount,
       commonAttributeCount: Object.keys(this.commonAttributesRaw).filter(
