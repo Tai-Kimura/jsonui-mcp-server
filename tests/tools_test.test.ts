@@ -14,6 +14,7 @@ import { ServerConfig } from "../src/config.js";
 import { register as registerTestValidate } from "../src/tools/test/test_validate.js";
 import { register as registerTestGenerateScreen } from "../src/tools/test/test_generate_screen.js";
 import { register as registerTestGenerateFlow } from "../src/tools/test/test_generate_flow.js";
+import { register as registerTestGenerateBranchTests } from "../src/tools/test/test_generate_branch_tests.js";
 import { register as registerTestGenerateDescription } from "../src/tools/test/test_generate_description.js";
 import { register as registerTestReport } from "../src/tools/test/test_report.js";
 import { register as registerTestMockGenerate } from "../src/tools/test/test_mock_generate.js";
@@ -65,6 +66,7 @@ beforeEach(() => {
   registerTestValidate(harness.server, config);
   registerTestGenerateScreen(harness.server, config);
   registerTestGenerateFlow(harness.server, config);
+  registerTestGenerateBranchTests(harness.server, config);
   registerTestGenerateDescription(harness.server, config);
   registerTestReport(harness.server, config);
   registerTestMockGenerate(harness.server, config);
@@ -86,11 +88,12 @@ function failWithCode(code: number, stdout = "", stderr = ""): void {
 }
 
 describe("Group F registration", () => {
-  it("registers all 8 jsonui-test tools", () => {
+  it("registers all 9 jsonui-test tools", () => {
     expect([...harness.tools.keys()].sort()).toEqual(
       [
         "test_artifacts_pull",
         "test_artifacts_status",
+        "test_generate_branch_tests",
         "test_generate_description",
         "test_generate_flow",
         "test_generate_screen",
@@ -99,6 +102,68 @@ describe("Group F registration", () => {
         "test_validate",
       ].sort()
     );
+  });
+});
+
+describe("test_generate_branch_tests", () => {
+  it("builds the base argv and runs in the project dir", async () => {
+    nextResponse = { stdout: "generated 5 branch(es)" };
+    await harness.call("test_generate_branch_tests", {
+      project_dir: projectDir,
+      screen: "booking_confirm",
+    });
+    expect(recorded).toEqual([
+      expect.objectContaining({
+        command: "jsonui-test",
+        args: ["generate", "branch-tests", "booking_confirm"],
+        options: expect.objectContaining({ cwd: projectDir }),
+      }),
+    ]);
+  });
+
+  it("maps every optional flag", async () => {
+    nextResponse = { stdout: "ok" };
+    await harness.call("test_generate_branch_tests", {
+      project_dir: projectDir,
+      screen: "bottle_detail",
+      platform: "android",
+      package: "com.example.app",
+      module: "AppModule",
+      spec: "docs/screens/json/bottle_detail.spec.json",
+      out_dir: "app/src/test/java",
+      harness_dir: "app/src/test/java",
+      mocks_dir: "tests/mocks",
+    });
+    expect(recorded[0].args).toEqual([
+      "generate",
+      "branch-tests",
+      "bottle_detail",
+      "--platform",
+      "android",
+      "--package",
+      "com.example.app",
+      "--module",
+      "AppModule",
+      "--spec",
+      "docs/screens/json/bottle_detail.spec.json",
+      "--out-dir",
+      "app/src/test/java",
+      "--harness-dir",
+      "app/src/test/java",
+      "--mocks-dir",
+      "tests/mocks",
+    ]);
+  });
+
+  it("surfaces a generation failure instead of reporting success", async () => {
+    // Unbindable declarations are hard errors in the generator, and the
+    // wrapper must not flatten them into a bland OK.
+    failWithCode(1, "", "branches[0].when.arg.status: no parameter");
+    const text = await harness.call("test_generate_branch_tests", {
+      project_dir: projectDir,
+      screen: "home",
+    });
+    expect(text).toContain("no parameter");
   });
 });
 

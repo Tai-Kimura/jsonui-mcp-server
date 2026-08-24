@@ -107,13 +107,14 @@ bash ~/.jsonui-mcp-server/uninstall.sh
 | `list_api_models` | 生成済み DTO/Domain 一覧（orphan 検出付き） | `jui ls api-models --json` |
 | `preview_api_model_sync` | swagger→DTO/Domain 同期の dry-run プレビュー（書き込みなし） | `jui g api --dry-run --json` |
 
-### Group F: jsonui-test CLI (8)
+### Group F: jsonui-test CLI (9)
 
 | Tool | Description | CLI |
 |------|-------------|-----|
 | `test_validate` | テストファイル（screen/flow + description）のバリデーション。既定では CLI 同様に flatten-install 副作用あり（`no_install=true` で検証のみ） | `jsonui-test validate [--no-install]` |
 | `test_generate_screen` | screen テストテンプレート生成 | `jsonui-test generate test screen` |
 | `test_generate_flow` | flow テストテンプレート生成 | `jsonui-test generate test flow` |
+| `test_generate_branch_tests` | spec の branchContracts から分岐テスト生成(web/android/ios) | `jsonui-test generate branch-tests` |
 | `test_generate_description` | テストケースの description JSON 生成（screen/flow） | `jsonui-test generate description` |
 | `test_report` | results JSON → JUnit XML / HTML レポート変換 | `jsonui-test report` |
 | `test_mock_generate` | OpenAPI からモック scaffold（`check=true` で drift レポートのみ・書き込みなし） | `jsonui-test mock generate [--check]` |

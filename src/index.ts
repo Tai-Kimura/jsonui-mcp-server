@@ -55,6 +55,7 @@ import { register as registerDocRulesShow } from "./tools/doc/doc_rules_show.js"
 import { register as registerTestValidate } from "./tools/test/test_validate.js";
 import { register as registerTestGenerateScreen } from "./tools/test/test_generate_screen.js";
 import { register as registerTestGenerateFlow } from "./tools/test/test_generate_flow.js";
+import { register as registerTestGenerateBranchTests } from "./tools/test/test_generate_branch_tests.js";
 import { register as registerTestGenerateDescription } from "./tools/test/test_generate_description.js";
 import { register as registerTestReport } from "./tools/test/test_report.js";
 import { register as registerTestMockGenerate } from "./tools/test/test_mock_generate.js";
@@ -144,6 +145,7 @@ registerPreviewApiModelSync(server, config);
 registerTestValidate(server, config);
 registerTestGenerateScreen(server, config);
 registerTestGenerateFlow(server, config);
+registerTestGenerateBranchTests(server, config);
 registerTestGenerateDescription(server, config);
 registerTestReport(server, config);
 registerTestMockGenerate(server, config);
