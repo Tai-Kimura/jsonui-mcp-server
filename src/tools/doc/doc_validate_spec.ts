@@ -7,7 +7,7 @@ import { runCli } from "../../cli_runner.js";
 export function register(server: McpServer, config: ServerConfig) {
   server.tool(
     "doc_validate_spec",
-    "Validate a screen specification JSON file against the schema",
+    "Validate a screen specification JSON file against the schema. Also expands `@canonical` marks in dataFlow method params/returnType against the project's OpenAPI documents, so a mark that names no operation is reported here as an error rather than reaching `jui build`.",
     {
       file: z.string().describe("Spec file path (e.g., 'login.spec.json' or full path)"),
       project_dir: z.string().optional().describe("Project directory (overrides JUI_PROJECT_DIR env)"),
