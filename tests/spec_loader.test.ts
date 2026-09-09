@@ -4,7 +4,7 @@
  * Layer order under test:
  *   1. $JSONUI_CLI_PATH  2. ./.jsonui-cli/  3. ~/.jsonui-cli/  4. bundled data/
  */
-import { utimesSync } from "fs";
+import { utimesSync, writeFileSync } from "fs";
 import { join, resolve, sep } from "path";
 import { pathToFileURL } from "url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -527,17 +527,35 @@ describe("SpecLoader coverage ledger", () => {
   // The ledger is served from the same in-memory cache as everything else,
   // so an on-disk refresh MUST surface in getChangedSinceLoad — a tracked
   // list that omits a file is the "silently stale" trap in a second costume.
+  //
+  // 🔻 THE PROVOCATION CHANGED 2026-09-10, THE INTENT DID NOT. This used to
+  // move the mtimes with utimesSync and expect both paths back, which encoded
+  // the old mtime-based comparison. That comparison fired on every jsonui-cli
+  // distribution (each install replaces ~/.jsonui-cli wholesale, so every
+  // timestamp moves whether or not a byte changed) and was replaced by a
+  // sha256 comparison. The claim this arm makes — "the ledger is in the
+  // tracked set" — is unaffected; only the way it provokes a change is.
   it("counts the ledger among the files tracked by getChangedSinceLoad", () => {
     expect(loader.getChangedSinceLoad()).toEqual([]);
 
     const ledgerPath = loader.getDataSource().coverage!.path;
     const attrPath = loader.getDataSource().attributeDefinitions.path;
-    const later = new Date(Date.now() + 5000);
-    utimesSync(ledgerPath, later, later);
-    utimesSync(attrPath, later, later);
+    writeFileSync(ledgerPath, JSON.stringify({ schemaVersion: 1, entries: [] }));
+    writeFileSync(attrPath, JSON.stringify({ common: {} }));
 
     const changed = loader.getChangedSinceLoad();
     expect(changed).toContain(ledgerPath);
     expect(changed).toContain(attrPath);
+  });
+
+  // 逆向きの腕。Without it, an implementation that reported every tracked file
+  // unconditionally would pass the one above — and that is precisely the
+  // implementation this release removed.
+  it("does not count a tracked file whose bytes did not move", () => {
+    const ledgerPath = loader.getDataSource().coverage!.path;
+    const later = new Date(Date.now() + 5000);
+    utimesSync(ledgerPath, later, later);
+
+    expect(loader.getChangedSinceLoad()).toEqual([]);
   });
 });
