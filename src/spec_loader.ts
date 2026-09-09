@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import { existsSync, readFileSync, statSync } from "fs";
 import { homedir } from "os";
 import { join, resolve } from "path";
@@ -37,6 +38,20 @@ export interface ComponentSpec {
 
 export type FallbackLayer = "env" | "cwd" | "home" | "bundled";
 
+/**
+ * sha256 of a file's bytes, or "" when it cannot be read.
+ *
+ * "" never equals a real digest, so an unreadable file compares as CHANGED
+ * rather than as unchanged — the safe direction for a staleness check.
+ */
+function hashFile(path: string): string {
+  try {
+    return createHash("sha256").update(readFileSync(path)).digest("hex");
+  } catch {
+    return "";
+  }
+}
+
 export interface FileInfo {
   /** Which fallback layer provided the file. */
   layer: FallbackLayer;
@@ -46,6 +61,24 @@ export interface FileInfo {
   lastModified: string;
   /** Freshness bucket. "fresh" <= 30d, "aging" <= 90d, "stale" > 90d. */
   freshness: "fresh" | "aging" | "stale";
+  /**
+   * sha256 of the bytes this process actually read.
+   *
+   * 🚨 THE STALENESS QUESTION IS ABOUT CONTENT, NOT ABOUT mtime. Every
+   * jsonui-cli distribution replaces `~/.jsonui-cli` wholesale, so an install
+   * moves every mtime whether or not a byte changed — measured 2026-09-09: a
+   * release whose `shared/core` was blob-identical to the previous one moved
+   * all seven timestamps, and every running server then reported "restart it"
+   * while serving exactly the right content. An alarm that fires on every
+   * distribution stops being read.
+   *
+   * The same toolchain already learned this one repo over: `jui build`'s
+   * generation manifest records a sha256 and says why — "a record that changes
+   * when nothing changed is noise, and noise is what gets ignored" — after an
+   * mtime-based version churned 89 entries between two builds with nothing
+   * edited. Same conclusion, reached twice, applied once.
+   */
+  contentHash: string;
 }
 
 export interface DataSourceInfo {
@@ -313,12 +346,18 @@ export class SpecLoader {
   }
 
   /**
-   * Paths whose mtime has moved since this process read them.
+   * Paths whose CONTENT differs from what this process read.
    *
-   * Compares against the mtime recorded AT LOAD, not against a wall-clock
-   * timestamp: "was this file edited after I read it" is a question about
-   * the file, and comparing a file mtime to Date.now() is a race whenever
-   * the two land in the same millisecond.
+   * 🔻 mtime is a PRE-FILTER, not the answer. It is cheap and right about the
+   * common case (nothing touched the file), so it saves a read — but a moved
+   * timestamp on identical bytes is not staleness, and that is exactly what a
+   * distribution produces: `~/.jsonui-cli` is replaced wholesale on every
+   * install, so every mtime moves every time. Reporting on mtime alone made
+   * this fire on 100% of distributions, which is the same as not reporting.
+   *
+   * ⚠️ A file that disappeared is still reported: the server is serving
+   * content whose source is gone, which a reader needs to know even though no
+   * hash can be computed for it.
    */
   getChangedSinceLoad(): string[] {
     const tracked = [
@@ -334,8 +373,15 @@ export class SpecLoader {
     const changed: string[] = [];
     for (const file of tracked) {
       try {
-        const now = statSync(file.path).mtime.toISOString();
-        if (now !== file.lastModified) changed.push(file.path);
+        // 🚫 NO mtime PRE-FILTER. An earlier draft skipped the read when the
+        // timestamp had not moved, to save I/O — and an arm caught it missing
+        // an edit that landed in the same millisecond as the load. The saving
+        // was seven small reads on a diagnostic call nobody runs in a loop;
+        // the cost was a checker that answers "unchanged" for a file it never
+        // looked at. That is the same shape as the mtime comparison this
+        // replaced: a cheap proxy standing in for the question.
+        statSync(file.path); // still there? (throws into the catch if not)
+        if (hashFile(file.path) !== file.contentHash) changed.push(file.path);
       } catch {
         // Disappeared since load — also a reason to restart.
         changed.push(file.path);
@@ -649,6 +695,7 @@ export class SpecLoader {
           path: candidate.path,
           lastModified: mtime.toISOString(),
           freshness,
+          contentHash: hashFile(candidate.path),
         };
       }
     }

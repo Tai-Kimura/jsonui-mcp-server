@@ -297,7 +297,7 @@
   },
   "diagram": {
     "description": "The screen-transition diagram is derived from the same ids.",
-    "nodeSource": "flow test inline step 'screen' values, plus file-reference steps normalized to the same id space",
+    "nodeSource": "TWO sources, both normalized into the same id space: (1) flow test inline step 'screen' values plus file-reference steps; (2) spec 'transitions[].destination' values, through specTransitions below. Naming only one of them here is how an implementation ends up reading a source the canon does not declare.",
     "pipeline": [
       "resolve",
       "canonicalize",
@@ -309,6 +309,53 @@
       "An edge caused by a 'back' action is a return edge and is rendered distinctly from a forward transition.",
       "Node ids are sanitized for the diagram language; a screen id is never emitted raw into a diagram identifier position."
     ],
+    "specTransitions": {
+      "source": "<screen spec>.transitions[].destination",
+      "description": "A spec transition's destination is FREE PROSE, not an identifier. The validator requires only that the key exists (condition + destination), so nothing has ever constrained its shape, and the corpus shows at least six different kinds of value in that one column.",
+      "measured": {
+        "date": "2026-09-09",
+        "scanRoot": "<face>/docs/screens/json/*.spec.json (the generated <face>/docs/html/screens tree is NOT the corpus)",
+        "idSpace": "the spec stems under that root, UNION the layout basenames under <face>/docs/screens/layouts (variant-normalized)",
+        "faces": 4,
+        "transitions": 271,
+        "note": "Two of the four faces carry exactly 93 transitions. A count reported without naming its face is therefore ambiguous, and reads as correct either way."
+      },
+      "kinds": {
+        "description": "CLOSED vocabulary. It exists so that a destination which is not a screen id stops being reported as a defect. Declaring only 'screen' would make 119 of 271 measured destinations spec errors, when they are other kinds of transition — that turns a reporting gap into a rejection of correct input, which is the worse direction.",
+        "values": [
+          {"kind": "screen", "meaning": "resolves to a screen id in this face's id space", "drawn": "a node and an edge"},
+          {"kind": "route", "meaning": "a URL path owned by a web router, e.g. '/admin/login'", "drawn": "an edge once the route is mapped to a screen; until then, reported"},
+          {"kind": "external", "meaning": "leaves the app entirely (browser, tel:, map app, mailer)", "drawn": "a terminal node, never a screen"},
+          {"kind": "none", "meaning": "declares that no screen transition happens (in-page tab switch, SPA state change)", "drawn": "nothing. This is a POSITIVE declaration, not a missing value"},
+          {"kind": "back", "meaning": "returns through the navigation stack (pop, dismiss, previous screen)", "drawn": "a return edge, like a flow test's back action"},
+          {"kind": "unknown", "meaning": "none of the above matched", "drawn": "nothing, and it is COUNTED AND LISTED — see unresolvedReporting"}
+        ]
+      },
+      "normalization": {
+        "description": "Applied in order. Every step is here rather than in a resolver because a rule that lives at one call site is absent from the other two (screen_identity.py, mermaid/flow_graph.py, verify_cmd.py each resolve ids today).",
+        "parentheticalsNest": "The strip step COUNTS DEPTH; it is not a match. A flat pattern consumes up to the INNER close of `Name (a=b / onNavigate(Screen.X))` and leaves the OUTER one, producing the candidate `Name )`, which resolves to nothing. Measured 2026-09-09: 5 destinations nest, and 3 of them were unresolvable for this reason alone — the value read like prose the classifier could not handle when it was prose the classifier had damaged.",
+        "pipeline": [
+          "compare case-insensitively with whitespace, '_' and '-' removed",
+          "strip a trailing parenthetical, full-width or half-width, then split on ' or ', '/', and '、' and try each part",
+          "apply the face's declared aliases (below)"
+        ],
+        "aliases": {
+          "shape": "each declared alias is (position, affix); position is drawn from the closed set below",
+          "positions": ["prefix", "suffix"],
+          "positionsNote": "THE TWO POSITIONS OBSERVED SO FAR, not all of them. Infix and partial matches are NOT covered, and saying which is which matters: a generalization that names its coverage makes the third example a counterexample that asks for a redesign, while one that says 'all' makes the same example an exception to be pushed in sideways, leaving the mechanism bent.",
+          "measured": "prefix 'Web' resolves 50 of one face's 93 destinations; suffix '画面' resolves 10 (9 distinct spellings) of another face's 69. The two sit at different ends, which is why the mechanism carries a position rather than a bare string. A THIRD affix then turned up that does not behave like those two: suffix 'View' resolves 8 on one face and 2 on ANOTHER, so an affix is not necessarily one face's convention. Per-face declaration still expresses it — each face declares it separately — but the earlier reading that 'an affix helps exactly one face' was drawn from a sample of two. Whether to declare it is the FACE's call, not the library's — the mechanism already accepts it — so the numbers a face needs are recorded here rather than argued: declaring suffix 'View' resolves 10 destinations (8 on one face, 2 on another) and leaves 5 occurrences / 4 spellings that contain 'View' still unresolved, because stripping it yields no id — FullscreenImageViewer, LicensesView, and the Privacy/Terms WebView pair, whose kind is a separate question (embedded page or external browser) that no measurement here answers.",
+          "scopingIsARiskChoiceNotAMeasuredOne": {
+            "whatWasMeasuredAndFailed": "Applying either affix to ALL FOUR faces unconditionally changes not one count. The other faces' zeros come from having no id that matches after the strip — NOT from the declaration withholding itself. So the corpus cannot tell a per-face declaration from a global rule, and an earlier version of this note claimed it could: it read '0 of the other three faces' as evidence the scoping was working, when that zero was made by the predicate.",
+            "whatCanBeMeasured": "How close the global rule is to going wrong. Ids beginning with 'Web' already exist — `web_view`, in two of the four faces. Strip the prefix and you get `view`, which is no face's id TODAY. The distance is ONE id: a face that adds `view` turns the global rule into a silent misresolution that gets drawn in a diagram.",
+            "conclusion": "Per-face, because the distance is one id — not because the counts said so. The two sentences above are kept apart on purpose: 'we could not measure a difference' and 'we measured how near the failure is' are different claims, and collapsing them is how a withdrawn reason survives a correct decision."
+          }
+        }
+      },
+      "unresolvedReporting": {
+        "rule": "The count of 'unknown' destinations is reported PER FACE, never only as a total, together with the scanned total it was drawn from.",
+        "rationale": "Measured unresolved rates were 28% / 61% / 50% / 100%. Summed, the face at 100% disappears into the average — and a face that resolves nothing looks exactly like a face with nothing to resolve. A bare zero, or a bare average, cannot tell an instrument that found nothing from one that never reached the corpus."
+      }
+    },
     "fileReferences": {
       "rule": "A file-reference step ({ file, case }) becomes a node for the SCREEN the referenced test covers — resolved through that test's own source.layout — not for the referenced file's name.",
       "rationale": "A test file NAME is not a screen id. One screen routinely has several test files (login_smoke, booking_complete--bank_pending), so naming the node after the file splits one screen into several nodes; the split-off node also carries no metadata, so it loses the group its test declared and drops into the ungrouped bucket. The basename only looked right because it usually happens to equal the screen id.",
