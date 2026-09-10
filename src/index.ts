@@ -3,6 +3,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { SpecLoader, mcpRootFromImportMetaUrl } from "./spec_loader.js";
+import { installAutoReload } from "./auto_reload.js";
 import { ServerConfig } from "./config.js";
 
 // --- Group A: Component Spec Lookup ---
@@ -78,6 +79,9 @@ const server = new McpServer({
 // JSONUI_CLI_PATH env > ./.jsonui-cli/ > ~/.jsonui-cli/ > bundled snapshot in data/.
 const mcpRoot = mcpRootFromImportMetaUrl(import.meta.url);
 const loader = new SpecLoader(mcpRoot);
+// Every tool re-reads the canon when its content changed (2.12.0). This
+// replaces "restart the MCP server after each jsonui-cli distribution".
+installAutoReload(server, loader);
 const source = loader.getDataSource();
 log(
   `attribute_definitions: [${source.attributeDefinitions.layer}] ${source.attributeDefinitions.path} (${source.attributeDefinitions.freshness})`

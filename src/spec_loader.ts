@@ -81,6 +81,15 @@ export interface FileInfo {
   contentHash: string;
 }
 
+/** One automatic reload attempt. `ok: false` means the previous content is
+ *  still being served — a file did not parse — and `error` says which. */
+export interface ReloadRecord {
+  at: string;
+  changed: string[];
+  ok: boolean;
+  error?: string;
+}
+
 export interface DataSourceInfo {
   attributeDefinitions: FileInfo;
   componentMetadata: FileInfo;
@@ -153,9 +162,54 @@ export class SpecLoader {
   /** When this process read the files. Data is cached in memory from then
    *  on, so a file edited later is not what the server is serving. */
   private loadedAt: string = new Date().toISOString();
+  /** What the last automatic reload did — see `refreshIfChanged`. */
+  private lastReload: ReloadRecord | null = null;
 
   constructor(private mcpRootDir: string) {
     this.load();
+  }
+
+  /**
+   * Re-read the canon when its CONTENT changed since this process loaded it.
+   *
+   * 🚨 WHY THIS EXISTS. Every jsonui-cli distribution replaces `~/.jsonui-cli`
+   * under a running server, and until 2.12.0 the only remedy was "restart the
+   * MCP server" — in every session, on every release. Measured 2026-09-10:
+   * the check costs ~0.2 ms per call (seven sha256s of small files), which is
+   * nothing against a tool call, so every tool handler runs it first
+   * (`installAutoReload`) and a restart is no longer part of a distribution.
+   *
+   * ⚠️ A reload is ALL OR NOTHING. A distribution writes files one by one, so
+   * a call can land on a half-written JSON. The fresh state is built in a
+   * separate instance and swapped in only when every file parsed; on failure
+   * the server keeps serving the last good content and records the error
+   * (`getLastReload`), and the next call tries again.
+   *
+   * Returns the paths whose content differed (empty = nothing to do).
+   */
+  refreshIfChanged(): string[] {
+    const changed = this.getChangedSinceLoad();
+    if (changed.length === 0) return [];
+    const at = new Date().toISOString();
+    try {
+      const fresh = new SpecLoader(this.mcpRootDir);
+      // Own enumerable fields only — the private state, all of it, in one
+      // step. Nothing observes a half-swapped loader.
+      Object.assign(this, fresh);
+      this.lastReload = { at, changed, ok: true };
+    } catch (error) {
+      this.lastReload = {
+        at,
+        changed,
+        ok: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+    return changed;
+  }
+
+  getLastReload(): ReloadRecord | null {
+    return this.lastReload;
   }
 
   // ----- public API ------------------------------------------------------

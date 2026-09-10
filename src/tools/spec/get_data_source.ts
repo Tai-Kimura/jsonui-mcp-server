@@ -4,7 +4,7 @@ import { SpecLoader } from "../../spec_loader.js";
 export function register(server: McpServer, loader: SpecLoader) {
   server.tool(
     "get_data_source",
-    "Report where the MCP server loaded EVERY canonical data file from — attribute_definitions.json (raw schema), component_metadata.json (presentation metadata), screen_identity.json and binding_semantics.json. Shows layer (env / cwd / home / bundled), the absolute path actually read, file mtime and freshness per file, plus when this server process loaded them. Use it when the CLI and the MCP seem to disagree about the canon: it distinguishes a stale file from a server that simply has not been restarted since the file changed.",
+    "Report where the MCP server loaded EVERY canonical data file from — attribute_definitions.json (raw schema), component_metadata.json (presentation metadata), screen_identity.json and binding_semantics.json. Shows layer (env / cwd / home / bundled), the absolute path actually read, file mtime and freshness per file, plus when this server process loaded them. Use it when the CLI and the MCP seem to disagree about the canon: since 2.12.0 every tool call re-reads a file whose CONTENT changed (sha256, not mtime), so a restart is not needed after a jsonui-cli distribution; `lastReload` says when that last happened and whether it succeeded, and `staleInMemory` is non-empty only when a reload FAILED (a file did not parse) and the server is still serving the previous content.",
     {},
     async () => {
       const info = loader.getDataSource();
@@ -29,6 +29,7 @@ export function register(server: McpServer, loader: SpecLoader) {
       // however current the file on disk looks.
       const loadedAt = loader.getLoadedAt();
       const changedSinceLoad = loader.getChangedSinceLoad();
+      const lastReload = loader.getLastReload() ?? undefined;
       return {
         content: [
           {
@@ -45,6 +46,7 @@ export function register(server: McpServer, loader: SpecLoader) {
                 componentCount: info.componentCount,
                 commonAttributeCount: info.commonAttributeCount,
                 loadedAt,
+                lastReload,
                 staleInMemory: changedSinceLoad.length > 0 ? changedSinceLoad : undefined,
                 //  `freshness` is a property of the FILE (how old it is);
                 //  `staleInMemory` is a property of THIS SERVER (whether what
@@ -53,7 +55,7 @@ export function register(server: McpServer, loader: SpecLoader) {
                 //  "fresh" on every file while the server serves something
                 //  else. The hint names which one fired.
                 hint: changedSinceLoad.length
-                  ? "The CONTENT of these files differs from what this server loaded (compared by sha256, not by timestamp — a distribution moves every mtime without changing bytes). The server is serving the older content from memory — restart it."
+                  ? "The CONTENT of these files differs from what this server loaded (compared by sha256, not by timestamp — a distribution moves every mtime without changing bytes) AND the automatic reload did not replace it — see lastReload.error. The server keeps serving the last content that parsed; fix the file (or wait for the distribution to finish writing it) and call again."
                   : stale
                     ? "At least one data file is > 90 days old. Re-fetch via `npm rebuild jui-tools-mcp-server` or point JSONUI_CLI_PATH at a fresher checkout."
                     : undefined,
