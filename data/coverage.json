@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "_comment": "Declared attributes no platform converter reads. Hand-maintained: close a gap by implementing it (then delete the entry) or by narrowing platform/mode in attribute_definitions.json. reason is one of: dynamic-key, legacy, platform-na, runtime-only, unimplemented.",
+  "_comment": "Declared attributes no platform converter reads. Hand-maintained: close a gap by implementing it (then delete the entry) or by narrowing platform/mode in attribute_definitions.json. reason is one of: dynamic-key, legacy, platform-na, runtime-only, unimplemented, unreviewed.",
   "entries": [
     {
       "component": "ScrollView",
@@ -17,7 +17,8 @@
       "platforms": [
         "android"
       ],
-      "reason": "unimplemented"
+      "reason": "unimplemented",
+      "note": "written by `coverage --update`; replace with a real reason and a note, or close the gap"
     },
     {
       "component": "common",
