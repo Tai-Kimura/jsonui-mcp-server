@@ -1,10 +1,11 @@
 {
   "name": "jui-tools-mcp-server",
-  "version": "2.12.10",
+  "version": "2.12.11",
   "description": "MCP server for JsonUI project management - wraps jui and jsonui-doc CLIs plus component spec lookup",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
+    "prepack": "npm run build",
     "start": "node dist/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
