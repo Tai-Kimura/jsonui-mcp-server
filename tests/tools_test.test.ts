@@ -20,6 +20,7 @@ import { register as registerTestReport } from "../src/tools/test/test_report.js
 import { register as registerTestMockGenerate } from "../src/tools/test/test_mock_generate.js";
 import { register as registerTestArtifactsPull } from "../src/tools/test/test_artifacts_pull.js";
 import { register as registerTestArtifactsStatus } from "../src/tools/test/test_artifacts_status.js";
+import { register as registerTestContractsCoverage } from "../src/tools/test/test_contracts_coverage.js";
 
 import {
   cleanupTempDirs,
@@ -72,6 +73,7 @@ beforeEach(() => {
   registerTestMockGenerate(harness.server, config);
   registerTestArtifactsPull(harness.server, config);
   registerTestArtifactsStatus(harness.server, config);
+  registerTestContractsCoverage(harness.server, config);
 });
 
 afterEach(() => {
@@ -88,11 +90,12 @@ function failWithCode(code: number, stdout = "", stderr = ""): void {
 }
 
 describe("Group F registration", () => {
-  it("registers all 9 jsonui-test tools", () => {
+  it("registers all 10 jsonui-test tools", () => {
     expect([...harness.tools.keys()].sort()).toEqual(
       [
         "test_artifacts_pull",
         "test_artifacts_status",
+        "test_contracts_coverage",
         "test_generate_branch_tests",
         "test_generate_description",
         "test_generate_flow",
@@ -343,6 +346,101 @@ describe("test_artifacts_status", () => {
 
   it("does not spawn anything when no project dir is configured", async () => {
     const text = await harness.call("test_artifacts_status");
+    expect(text).toMatch(/^Error: /);
+    expect(execFileMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("test_contracts_coverage", () => {
+  const report = (exit: number) =>
+    JSON.stringify({ app: { spec_file: null, rules: 0, declaration_errors: [] }, platforms: [], exit }, null, 2);
+
+  it("runs `jsonui-test contracts coverage --json` in the project dir", async () => {
+    nextResponse = { stdout: report(0) };
+    await harness.call("test_contracts_coverage", { project_dir: projectDir });
+    expect(recorded).toEqual([
+      expect.objectContaining({
+        command: "jsonui-test",
+        args: ["contracts", "coverage", "--json"],
+        options: expect.objectContaining({ cwd: projectDir, timeout: 180_000 }),
+      }),
+    ]);
+  });
+
+  it("maps the screen and every platform, in order", async () => {
+    nextResponse = { stdout: report(0) };
+    await harness.call("test_contracts_coverage", {
+      project_dir: projectDir,
+      screen: "detail",
+      platform: ["web", "ios"],
+    });
+    expect(recorded[0].args).toEqual([
+      "contracts", "coverage", "detail", "--platform", "web", "--platform", "ios", "--json",
+    ]);
+  });
+
+  it("resolves jsonui-test the way the other jsonui-test tools do", async () => {
+    // The same bare command name and the same environment as
+    // test_artifacts_status: the installed jsonui-cli on PATH, never a
+    // development tree put in front of it by this tool.
+    nextResponse = { stdout: "{}" };
+    await harness.call("test_artifacts_status", { project_dir: projectDir });
+    nextResponse = { stdout: report(0) };
+    await harness.call("test_contracts_coverage", { project_dir: projectDir });
+    const [sibling, coverage] = recorded;
+    expect(coverage.command).toBe(sibling.command);
+    expect(coverage.options.env).toEqual(sibling.options.env);
+    expect(coverage.options.env.PYTHONPATH).toBe(process.env.PYTHONPATH);
+    expect(coverage.options.env.JSONUI_CLI_PATH).toBeUndefined();
+  });
+
+  // The exit IS the verdict, so each of the four has to arrive as itself —
+  // not flattened into success/failure the way formatResult would.
+  it.each([0, 1, 2, 3])("passes the report through verbatim when it and the process both say exit %i", async (code) => {
+    if (code === 0) {
+      nextResponse = { stdout: report(0) };
+    } else {
+      failWithCode(code, report(code));
+    }
+    const text = await harness.call("test_contracts_coverage", { project_dir: projectDir });
+    expect(text).toBe(report(code));
+    expect(JSON.parse(text).exit).toBe(code);
+  });
+
+  it("says so when the report and the process disagree about the exit", async () => {
+    failWithCode(1, report(0));
+    const parsed = JSON.parse(await harness.call("test_contracts_coverage", { project_dir: projectDir }));
+    expect(parsed.exit).toBeNull();
+    expect(parsed.verdict).toBe("no_report");
+    expect(parsed.error).toContain("exit 0");
+    expect(parsed.report.exit).toBe(0);
+  });
+
+  it("names the version when the installed jsonui-test has no contracts command", async () => {
+    failWithCode(2, "", "jsonui-test: error: argument command: invalid choice: 'contracts'");
+    const parsed = JSON.parse(await harness.call("test_contracts_coverage", { project_dir: projectDir }));
+    expect(parsed).toMatchObject({ exit: 2, verdict: "cannot_start" });
+    expect(parsed.error).toContain("1.8.116");
+  });
+
+  it("says jsonui-test is missing when it is not on PATH", async () => {
+    nextResponse = { error: Object.assign(new Error("spawn jsonui-test ENOENT"), { code: "ENOENT" }) };
+    const parsed = JSON.parse(await harness.call("test_contracts_coverage", { project_dir: projectDir }));
+    expect(parsed).toMatchObject({ exit: 2, verdict: "cannot_start" });
+    expect(parsed.error).toContain("not on PATH");
+  });
+
+  it("does not report a timeout as a coverage verdict", async () => {
+    // runCli turns a timeout into exit 1 — which is "uncovered" here.
+    nextResponse = { error: Object.assign(new Error("killed"), { killed: true, code: null }), stdout: '{"plat' };
+    const parsed = JSON.parse(await harness.call("test_contracts_coverage", { project_dir: projectDir }));
+    expect(parsed.exit).toBeNull();
+    expect(parsed.verdict).toBe("no_report");
+    expect(parsed.errors).toContain("timed out");
+  });
+
+  it("does not spawn anything when no project dir is configured", async () => {
+    const text = await harness.call("test_contracts_coverage");
     expect(text).toMatch(/^Error: /);
     expect(execFileMock).not.toHaveBeenCalled();
   });
