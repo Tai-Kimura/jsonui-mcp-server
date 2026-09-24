@@ -62,6 +62,7 @@ import { register as registerTestReport } from "./tools/test/test_report.js";
 import { register as registerTestMockGenerate } from "./tools/test/test_mock_generate.js";
 import { register as registerTestArtifactsPull } from "./tools/test/test_artifacts_pull.js";
 import { register as registerTestArtifactsStatus } from "./tools/test/test_artifacts_status.js";
+import { register as registerTestContractsCoverage } from "./tools/test/test_contracts_coverage.js";
 
 function log(message: string) {
   console.error(`[jui-tools] ${new Date().toISOString()} ${message}`);
@@ -155,6 +156,7 @@ registerTestReport(server, config);
 registerTestMockGenerate(server, config);
 registerTestArtifactsPull(server, config);
 registerTestArtifactsStatus(server, config);
+registerTestContractsCoverage(server, config);
 
 log(`Registered 41 tools (7 spec + 6 context + 8 jui + 9 doc + 3 api + 8 test)`);
 
