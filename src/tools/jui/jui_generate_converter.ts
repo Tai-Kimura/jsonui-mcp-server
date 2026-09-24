@@ -14,9 +14,15 @@ export function register(server: McpServer, config: ServerConfig) {
       attributes: z.string().optional().describe("Attributes in key:type format (e.g., 'prop1:String,prop2:Int')"),
       container: z.boolean().optional().describe("Mark as container component"),
       skip_existing: z.boolean().optional().describe(
-        "Leave existing converter files untouched (no overwrite prompt). " +
-        "`jui build` enables this automatically; pass it here for idempotent " +
-        "explicit scaffold runs."
+        "Leave existing converter and scaffold files untouched, without the " +
+        "overwrite prompt — for idempotent scaffold runs. Wins over `force` " +
+        "when both are set."
+      ),
+      force: z.boolean().optional().describe(
+        "Replace existing converter and scaffold files without the overwrite " +
+        "prompt. The scaffolds are the project's own code: edits made in them " +
+        "are lost. Needs jsonui-cli 1.8.113 or later (earlier `jui` rejects " +
+        "--force)."
       ),
       project_dir: z.string().optional().describe("Project directory (overrides JUI_PROJECT_DIR env)"),
     },
@@ -30,6 +36,7 @@ export function register(server: McpServer, config: ServerConfig) {
         if (params.attributes) { args.push("--attributes", params.attributes); }
         if (params.container) { args.push("--container"); }
         if (params.skip_existing) { args.push("--skip-existing"); }
+        if (params.force) { args.push("--force"); }
 
         const result = await runCli("jui", args, { cwd: projectDir });
         return { content: [{ type: "text", text: formatResult(result) }] };

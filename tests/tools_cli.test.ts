@@ -284,6 +284,28 @@ describe("jui_generate_converter", () => {
       "--all",
     ]);
   });
+
+  // `jui g converter --force` exists from jsonui-cli 1.8.113; the tool had no
+  // way to pass it.
+  it("passes --force only when asked", async () => {
+    await harness.call("jui_generate_converter", {
+      all: true,
+      force: true,
+      project_dir: projectDir,
+    });
+    await harness.call("jui_generate_converter", { all: true, project_dir: projectDir });
+    expect(recorded[0].args).toEqual(["generate", "converter", "--all", "--force"]);
+    expect(recorded[1].args).toEqual(["generate", "converter", "--all"]);
+  });
+
+  // The description said "`jui build` enables this automatically": the build
+  // has not generated converters for a long time (jsonui-cli 1.8.113 removed
+  // the same sentence from its own docstring).
+  it("does not tell the agent that jui build skips existing converters", () => {
+    const schema = harness.tools.get("jui_generate_converter")!.schema;
+    expect(schema.skip_existing.description).not.toContain("jui build");
+    expect(schema.force.description).toContain("1.8.113");
+  });
 });
 
 describe("jui_verify", () => {
