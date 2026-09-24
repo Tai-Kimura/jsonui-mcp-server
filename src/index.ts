@@ -5,6 +5,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { SpecLoader, mcpRootFromImportMetaUrl } from "./spec_loader.js";
 import { installAutoReload } from "./auto_reload.js";
 import { ServerConfig } from "./config.js";
+import { packageVersion } from "./version.js";
 
 // --- Group A: Component Spec Lookup ---
 import { register as registerLookupComponent } from "./tools/spec/lookup_component.js";
@@ -72,7 +73,7 @@ log("Server starting...");
 
 const server = new McpServer({
   name: "jui-tools",
-  version: "2.0.0",
+  version: packageVersion(),
 });
 
 // Initialize spec loader for Group A
