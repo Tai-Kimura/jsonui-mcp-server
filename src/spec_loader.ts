@@ -90,6 +90,17 @@ export interface ReloadRecord {
   error?: string;
 }
 
+/// A spelling the build accepts for a type it is not, as type_synonyms.json
+/// says: its canonical section, the type it is drawn as when that differs,
+/// and the attributes the spelling itself means.
+export interface TypeSynonym {
+  spelling: string;
+  canonical: string;
+  renderAs?: string;
+  implies?: Record<string, unknown>;
+  source: string;
+}
+
 export interface DataSourceInfo {
   attributeDefinitions: FileInfo;
   componentMetadata: FileInfo;
@@ -111,6 +122,10 @@ export interface DataSourceInfo {
   /// attribute, platform) pairs with their recorded reasons. Optional: absent
   /// on older jsonui-cli checkouts.
   coverage: FileInfo | null;
+  /// shared/core/type_synonyms.json — type spellings the build accepts for a
+  /// section they are not (ProgressBar, HStack, Text …). Optional: absent on
+  /// jsonui-cli before 1.8.121.
+  typeSynonyms: FileInfo | null;
   componentCount: number;
   commonAttributeCount: number;
 }
@@ -157,6 +172,10 @@ export class SpecLoader {
   private screenIdentity: Record<string, any> | null = null;
   private commonAttributes: any = null;
   private aliasMap: Map<string, string> = new Map();
+  /// Lower-cased spelling -> its entry in type_synonyms.json, for the
+  /// spellings that resolve through it (not a section, `_alias_of` or
+  /// metadata alias of their own).
+  private typeSynonyms: Map<string, TypeSynonym> = new Map();
   private metadata: Record<string, ComponentMetadata> = {};
   private dataSource!: DataSourceInfo;
   /** When this process read the files. Data is cached in memory from then
@@ -223,6 +242,13 @@ export class SpecLoader {
   getComponentWithCommon(name: string): any {
     const comp = this.getComponent(name);
     if (!comp) return null;
+    // Say which spelling was asked for and why it resolved: the build
+    // accepts `ProgressBar` as a Progress, and an HStack is a View that
+    // also means `orientation: horizontal`.
+    const synonym = this.typeSynonyms.get(name.toLowerCase());
+    if (synonym) {
+      return { ...comp, typeSynonym: synonym, commonAttributes: this.commonAttributes };
+    }
     return { ...comp, commonAttributes: this.commonAttributes };
   }
 
@@ -309,6 +335,15 @@ export class SpecLoader {
         if (rule.toLowerCase().includes(q)) {
           score += 2;
           matches.push(`rule: ${rule}`);
+        }
+      }
+
+      // A spelling the build accepts for this type (type_synonyms.json).
+      for (const synonym of this.typeSynonyms.values()) {
+        if (this.getComponent(synonym.spelling) !== comp) continue;
+        if (synonym.spelling.toLowerCase().includes(q)) {
+          score += 8;
+          matches.push(`type synonym: ${synonym.spelling}`);
         }
       }
 
@@ -422,6 +457,7 @@ export class SpecLoader {
       this.dataSource.attributeSemantics,
       this.dataSource.platformSemantics,
       this.dataSource.coverage,
+      this.dataSource.typeSynonyms,
     ].filter((f): f is FileInfo => f != null);
 
     const changed: string[] = [];
@@ -635,6 +671,8 @@ export class SpecLoader {
       componentCount++;
     }
 
+    const typeSynonymsResolution = this.loadTypeSynonyms();
+
     this.dataSource = {
       attributeDefinitions: attrResolution,
       componentMetadata: metaResolution,
@@ -643,11 +681,58 @@ export class SpecLoader {
       attributeSemantics: attributeSemanticsResolution,
       platformSemantics: platformSemanticsResolution,
       coverage: coverageResolution,
+      typeSynonyms: typeSynonymsResolution,
       componentCount,
       commonAttributeCount: Object.keys(this.commonAttributesRaw).filter(
         (k) => !k.startsWith("_")
       ).length,
     };
+  }
+
+  /**
+   * Type spellings the build accepts for a section they are not
+   * (shared/core/type_synonyms.json, jsonui-cli 1.8.121 — the one table the
+   * tools and the dynamic runtimes read). Until then lookup_component knew
+   * only `_alias_of` sections and metadata aliases, and answered "not found"
+   * for `ProgressBar`, which the build draws as a Progress.
+   *
+   * A section, an `_alias_of` section or a metadata alias of the same
+   * spelling wins: the exact match is found first, as in the tools. An entry
+   * whose canonical is not a section here is skipped.
+   *
+   * Absent (older jsonui-cli): no synonyms. Present but not JSON: the load
+   * throws, so an automatic reload keeps the last content that parsed rather
+   * than swapping in a loader that silently lost every synonym.
+   */
+  private loadTypeSynonyms(): FileInfo | null {
+    this.typeSynonyms = new Map();
+    let resolution: FileInfo;
+    try {
+      resolution = this.resolveFile("shared/core/type_synonyms.json", "data/type_synonyms.json");
+    } catch {
+      return null;
+    }
+    const doc = JSON.parse(readFileSync(resolution.path, "utf-8")) as {
+      synonyms?: Record<string, Record<string, unknown>>;
+    };
+    for (const [spelling, entry] of Object.entries(doc.synonyms ?? {})) {
+      if (typeof entry !== "object" || entry === null) continue;
+      const { canonical, render_as: renderAs, ...implies } = entry;
+      if (typeof canonical !== "string" || canonical.length === 0) continue;
+      const key = spelling.toLowerCase();
+      if (this.components.has(key) || this.aliasMap.has(key)) continue;
+      const target = this.aliasMap.get(canonical.toLowerCase()) ?? canonical.toLowerCase();
+      if (!this.components.has(target)) continue;
+      this.aliasMap.set(key, target);
+      this.typeSynonyms.set(key, {
+        spelling,
+        canonical,
+        ...(typeof renderAs === "string" ? { renderAs } : {}),
+        ...(Object.keys(implies).length > 0 ? { implies } : {}),
+        source: "shared/core/type_synonyms.json",
+      });
+    }
+    return resolution;
   }
 
   private normalizeMetadata(raw: Record<string, any>): ComponentMetadata {

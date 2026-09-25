@@ -4,11 +4,12 @@ import { SpecLoader } from "../../spec_loader.js";
 export function register(server: McpServer, loader: SpecLoader) {
   server.tool(
     "get_data_source",
-    "Report where the MCP server loaded EVERY canonical data file from — attribute_definitions.json (raw schema), component_metadata.json (presentation metadata), screen_identity.json and binding_semantics.json. Shows layer (env / cwd / home / bundled), the absolute path actually read, file mtime and freshness per file, plus when this server process loaded them. Use it when the CLI and the MCP seem to disagree about the canon: since 2.12.0 every tool call re-reads a file whose CONTENT changed (sha256, not mtime), so a restart is not needed after a jsonui-cli distribution; `lastReload` says when that last happened and whether it succeeded, and `staleInMemory` is non-empty only when a reload FAILED (a file did not parse) and the server is still serving the previous content.",
+    "Report where the MCP server loaded EVERY canonical data file from — attribute_definitions.json (raw schema), component_metadata.json (presentation metadata), screen_identity.json, binding_semantics.json and the rest, down to type_synonyms.json (the type spellings the build accepts). Shows layer (env / cwd / home / bundled), the absolute path actually read, file mtime and freshness per file, plus when this server process loaded them. Use it when the CLI and the MCP seem to disagree about the canon: since 2.12.0 every tool call re-reads a file whose CONTENT changed (sha256, not mtime), so a restart is not needed after a jsonui-cli distribution; `lastReload` says when that last happened and whether it succeeded, and `staleInMemory` is non-empty only when a reload FAILED (a file did not parse) and the server is still serving the previous content.",
     {},
     async () => {
       const info = loader.getDataSource();
-      // 🚨 THE SAME SEVEN THE STALENESS CHECK WATCHES. This list held five
+      // 🚨 THE SAME FILES THE STALENESS CHECK WATCHES (eight since
+      // type_synonyms.json). This list held five
       // while `getChangedSinceLoad` tracked seven, so `staleInMemory` could
       // name a path that appeared in no per-file entry — and a reader who
       // "checked every file reported" had two outside their view. Reported by
@@ -22,6 +23,7 @@ export function register(server: McpServer, loader: SpecLoader) {
         info.attributeSemantics,
         info.platformSemantics,
         info.coverage,
+        info.typeSynonyms,
       ].filter((f): f is NonNullable<typeof f> => f != null);
       const stale = files.some((f) => f.freshness === "stale");
       // The data is read once at construction and cached in memory, so a
@@ -43,6 +45,7 @@ export function register(server: McpServer, loader: SpecLoader) {
                 attributeSemantics: info.attributeSemantics,
                 platformSemantics: info.platformSemantics,
                 coverage: info.coverage,
+                typeSynonyms: info.typeSynonyms,
                 componentCount: info.componentCount,
                 commonAttributeCount: info.commonAttributeCount,
                 loadedAt,
