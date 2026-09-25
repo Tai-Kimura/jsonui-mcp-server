@@ -156,7 +156,7 @@ describe("the per-file report covers what the check tracks", () => {
 
     const reported = new Set(
       ["attributeDefinitions", "componentMetadata", "screenIdentity",
-       "bindingSemantics", "attributeSemantics", "platformSemantics", "coverage"]
+       "bindingSemantics", "attributeSemantics", "platformSemantics", "coverage", "typeSynonyms"]
         .map((k) => out[k]?.path)
         .filter(Boolean)
     );
