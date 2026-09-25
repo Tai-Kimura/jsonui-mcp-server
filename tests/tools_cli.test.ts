@@ -270,6 +270,23 @@ describe("jui_generate_converter", () => {
     ]);
   });
 
+  // `container: false` is a leaf (`jui g converter --no-container`, jsonui-cli
+  // 1.8.121). It passed nothing before, so a leaf request scaffolded the
+  // default form.
+  it("passes --no-container for container: false, and neither flag when it is absent", async () => {
+    await harness.call("jui_generate_converter", {
+      name: "LeafCard",
+      container: false,
+      project_dir: projectDir,
+    });
+    await harness.call("jui_generate_converter", {
+      name: "PlainCard",
+      project_dir: projectDir,
+    });
+    expect(recorded[0].args).toEqual(["generate", "converter", "LeafCard", "--no-container"]);
+    expect(recorded[1].args).toEqual(["generate", "converter", "PlainCard"]);
+  });
+
   it("maps spec-mode params to flags", async () => {
     await harness.call("jui_generate_converter", {
       from_spec: "docs/components/json/example_card.component.json",

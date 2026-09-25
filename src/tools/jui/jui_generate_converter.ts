@@ -12,7 +12,12 @@ export function register(server: McpServer, config: ServerConfig) {
       from_spec: z.string().optional().describe("Generate from component spec file path"),
       all: z.boolean().optional().describe("Generate from all component specs"),
       attributes: z.string().optional().describe("Attributes in key:type format (e.g., 'prop1:String,prop2:Int')"),
-      container: z.boolean().optional().describe("Mark as container component"),
+      container: z.boolean().optional().describe(
+        "true: a container (it draws its children). false: a leaf (it takes no " +
+        "children, and a layout that gives it some is refused by name) — needs " +
+        "jsonui-cli 1.8.121 or later (earlier `jui` rejects --no-container). " +
+        "Absent: the default form."
+      ),
       skip_existing: z.boolean().optional().describe(
         "Leave existing converter and scaffold files untouched, without the " +
         "overwrite prompt — for idempotent scaffold runs. Wins over `force` " +
@@ -34,7 +39,10 @@ export function register(server: McpServer, config: ServerConfig) {
         if (params.from_spec) { args.push("--from", params.from_spec); }
         if (params.all) { args.push("--all"); }
         if (params.attributes) { args.push("--attributes", params.attributes); }
-        if (params.container) { args.push("--container"); }
+        // `false` asks for a leaf. It used to pass nothing, so the command ran
+        // in the default form and the request was dropped without a word.
+        if (params.container === true) { args.push("--container"); }
+        if (params.container === false) { args.push("--no-container"); }
         if (params.skip_existing) { args.push("--skip-existing"); }
         if (params.force) { args.push("--force"); }
 
