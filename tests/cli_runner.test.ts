@@ -1,5 +1,6 @@
 /**
- * cli_runner — execFile wrapper. child_process is mocked; no real CLI runs.
+ * cli_runner — execFile wrapper. child_process is mocked; no real CLI runs,
+ * except in "the child's stdin", which calls through to the real execFile.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -19,10 +20,14 @@ interface RecordedCall {
 
 let recorded: RecordedCall[];
 let nextResponse: { error?: any; stdout?: string; stderr?: string };
+// The mocked child's stdin: execFile returns a ChildProcess, and runCli ends
+// its stdin.
+let stdinEnd: ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
   recorded = [];
   nextResponse = {};
+  stdinEnd = vi.fn();
   execFileMock.mockReset();
   execFileMock.mockImplementation(
     (command: string, args: string[], options: any, callback: ExecCallback) => {
@@ -32,6 +37,7 @@ beforeEach(() => {
         nextResponse.stdout ?? "",
         nextResponse.stderr ?? ""
       );
+      return { stdin: { end: stdinEnd } };
     }
   );
 });
@@ -98,6 +104,37 @@ describe("runCli", () => {
   it("uses a 60s timeout when none is given", async () => {
     await runCli("jui", ["build"], { cwd: "/proj" });
     expect(recorded[0].options.timeout).toBe(60_000);
+  });
+});
+
+// execFile gives the child a stdin pipe, and through 2.13.1 nothing wrote to it
+// or closed it: a CLI that read stdin — `sjui / kjui / rjui g converter` at
+// its overwrite prompt, reached through `jui` — waited for a line that never
+// came, until this runner's timeout killed it (60 s by default; measured
+// 2026-09-26 on jsonui-cli, ticket
+// generate-commands-overwrite-edited-files-and-ignore-their-flags). The
+// child's stdin is ended at once: a reader sees end-of-file.
+describe("the child's stdin", () => {
+  it("is ended at once: a child that reads stdin to end-of-file finishes", async () => {
+    const actual = await vi.importActual<typeof import("child_process")>("child_process");
+    execFileMock.mockImplementation((...args: any[]) => (actual.execFile as any)(...args));
+    const reader =
+      "let n = 0; process.stdin.on('data', (c) => { n += c.length; });" +
+      " process.stdin.on('end', () => { console.log('eof after ' + n + ' bytes'); });";
+    const started = Date.now();
+    // runCli's own limit is 5 s: a child left waiting on stdin comes back as
+    // "Command timed out after 5s", and this test's limit (10 s) stops the
+    // suite from waiting longer than that.
+    const result = await runCli(process.execPath, ["-e", reader], { cwd: process.cwd(), timeout: 5_000 });
+    const elapsed = Date.now() - started;
+    expect(result.stderr).not.toMatch(/timed out/);
+    expect(result).toMatchObject({ exitCode: 0, stdout: "eof after 0 bytes\n" });
+    expect(elapsed).toBeLessThan(2_500);
+  }, 10_000);
+
+  it("ends the stdin of the process execFile returns", async () => {
+    await runCli("jui", ["build"], { cwd: "/proj" });
+    expect(stdinEnd).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -14,7 +14,7 @@ export async function runCli(
   const timeout = options.timeout ?? 60_000;
 
   return new Promise((resolve) => {
-    execFile(
+    const child = execFile(
       command,
       args,
       {
@@ -39,6 +39,12 @@ export async function runCli(
         });
       }
     );
+    // Nothing is ever written to the child's stdin: end it now, so a CLI that
+    // reads stdin — an overwrite prompt — sees end-of-file instead of waiting
+    // for a line that never comes. Through 2.13.1 the pipe stayed open, and such
+    // a child waited until the timeout above killed it (`jui g converter` on
+    // an existing component, measured 2026-09-26).
+    child.stdin?.end();
   });
 }
 
