@@ -128,11 +128,11 @@ describe("test_generate_branch_tests", () => {
     nextResponse = { stdout: "ok" };
     await harness.call("test_generate_branch_tests", {
       project_dir: projectDir,
-      screen: "bottle_detail",
+      screen: "item_detail",
       platform: "android",
       package: "com.example.app",
       module: "AppModule",
-      spec: "docs/screens/json/bottle_detail.spec.json",
+      spec: "docs/screens/json/item_detail.spec.json",
       out_dir: "app/src/test/java",
       harness_dir: "app/src/test/java",
       mocks_dir: "tests/mocks",
@@ -140,7 +140,7 @@ describe("test_generate_branch_tests", () => {
     expect(recorded[0].args).toEqual([
       "generate",
       "branch-tests",
-      "bottle_detail",
+      "item_detail",
       "--platform",
       "android",
       "--package",
@@ -148,7 +148,7 @@ describe("test_generate_branch_tests", () => {
       "--module",
       "AppModule",
       "--spec",
-      "docs/screens/json/bottle_detail.spec.json",
+      "docs/screens/json/item_detail.spec.json",
       "--out-dir",
       "app/src/test/java",
       "--harness-dir",
