@@ -297,7 +297,7 @@ describe("jui_generate_converter", () => {
   });
 
   // `container: false` is a leaf (`jui g converter --no-container`, jsonui-cli
-  // 1.8.121). It passed nothing before, so a leaf request scaffolded the
+  // 1.9.0). It passed nothing before, so a leaf request scaffolded the
   // default form.
   it("passes --no-container for container: false, and neither flag when it is absent", async () => {
     await harness.call("jui_generate_converter", {

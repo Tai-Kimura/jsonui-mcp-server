@@ -124,7 +124,7 @@ export interface DataSourceInfo {
   coverage: FileInfo | null;
   /// shared/core/type_synonyms.json — type spellings the build accepts for a
   /// section they are not (ProgressBar, HStack, Text …). Optional: absent on
-  /// jsonui-cli before 1.8.121.
+  /// jsonui-cli before 1.9.0.
   typeSynonyms: FileInfo | null;
   componentCount: number;
   commonAttributeCount: number;
@@ -691,7 +691,7 @@ export class SpecLoader {
 
   /**
    * Type spellings the build accepts for a section they are not
-   * (shared/core/type_synonyms.json, jsonui-cli 1.8.121 — the one table the
+   * (shared/core/type_synonyms.json, jsonui-cli 1.9.0 — the one table the
    * tools and the dynamic runtimes read). Until then lookup_component knew
    * only `_alias_of` sections and metadata aliases, and answered "not found"
    * for `ProgressBar`, which the build draws as a Progress.

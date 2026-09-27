@@ -59,7 +59,7 @@ export const FILES = [
   // Conformance coverage ledger (declared-but-unimplemented gaps). The loader
   // reads data/coverage.json as its fallback, so it must refresh with the rest
   // — binding_semantics.json already fell into this exact stale-snapshot trap.
-  // Type-spelling synonyms (jsonui-cli 1.8.121): lookup_component and
+  // Type-spelling synonyms (jsonui-cli 1.9.0): lookup_component and
   // search_components resolve ProgressBar, HStack, Text … through it.
   {
     remote: "shared/core/type_synonyms.json",

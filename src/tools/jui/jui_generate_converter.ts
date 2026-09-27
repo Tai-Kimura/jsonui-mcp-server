@@ -15,7 +15,7 @@ export function register(server: McpServer, config: ServerConfig) {
       container: z.boolean().optional().describe(
         "true: a container (it draws its children). false: a leaf (it takes no " +
         "children, and a layout that gives it some is refused by name) — needs " +
-        "jsonui-cli 1.8.121 or later (earlier `jui` rejects --no-container). " +
+        "jsonui-cli 1.9.0 or later (earlier `jui` rejects --no-container). " +
         "Absent: the default form."
       ),
       skip_existing: z.boolean().optional().describe(

@@ -1,6 +1,6 @@
 /**
  * Type spellings the build accepts for a section they are not
- * (jsonui-cli shared/core/type_synonyms.json, 1.8.121). Until then
+ * (jsonui-cli shared/core/type_synonyms.json, 1.9.0). Until then
  * lookup_component answered "not found" for `ProgressBar`, which the build
  * draws as a Progress: the server knew `_alias_of` sections and metadata
  * aliases only (ticket mcp-lookup-component-does-not-know-type-synonyms).
@@ -111,7 +111,7 @@ describe("lookup through type_synonyms.json", () => {
     expect(new SpecLoader(makeTempDir("mcp-root")).getComponentWithCommon("Ghost")).toBeNull();
   });
 
-  it("knows no synonym without the file (jsonui-cli before 1.8.121)", () => {
+  it("knows no synonym without the file (jsonui-cli before 1.9.0)", () => {
     checkout(null);
     const loader = new SpecLoader(makeTempDir("mcp-root"));
     expect(loader.getComponentWithCommon("Tappable")).toBeNull();
