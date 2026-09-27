@@ -214,14 +214,14 @@
         "string",
         "binding"
       ],
-      "description": "Background color when tapped - hex string or color name from colors.json (binding supported)"
+      "description": "Background color while pressed, on a node with a tap (onClick / onclick) and on a Button: it replaces the background until the press ends. On web a Button also shows it on hover (the web has hover; iOS and Android do not). A node without a tap draws nothing for it. Hex string or color name from colors.json (binding supported)"
     },
     "highlightBackground": {
       "type": [
         "string",
         "binding"
       ],
-      "description": "Background color when highlighted - hex string or color name from colors.json (binding supported)"
+      "description": "Background color while `highlighted` is true (a View; drawn only with both declared). Not the pressed colour, which is tapBackground, and not a focused text field's background. On a Button it is the pressed colour (Button.highlightBackground). Hex string or color name from colors.json (binding supported)"
     },
     "disabledBackground": {
       "type": [
@@ -701,7 +701,7 @@
     },
     "onClick": {
       "type": "binding",
-      "description": "Click handler (camelCase) - binding only (@{functionName})"
+      "description": "Click handler (camelCase) - binding only (@{functionName}). On a type the SSoT does not declare (an app's own component) JsonUI gives the tap no screen-reader role; the component carries its own."
     },
     "onLongPress": {
       "type": "binding",
@@ -725,7 +725,7 @@
         "boolean",
         "binding"
       ],
-      "description": "Whether component is tappable (binding supported)"
+      "description": "SwiftUI / Compose: a gate on the tap — false (or a binding that resolves false) turns onClick / onclick off; absent, there is no gate and the handler alone makes the tap. UIKit: whether the view shows its pressed state (tapBackgroundColor, an image's highlight filter); the tap itself comes from onclick either way."
     },
     "tintColor": {
       "type": [
@@ -745,7 +745,25 @@
     "bind": {
       "type": "binding",
       "binding_direction": "two-way",
-      "description": "Two-way binding for the component's primary value — Switch/Check isOn, Slider value, Segment selectedIndex, SelectBox selectedValue, Progress progress, Table items. An alternative spelling to each component's own value attribute, which takes precedence when both are set."
+      "description": "Two-way binding for the component's primary value — Switch/Check isOn, Slider value, Segment selectedIndex, SelectBox selectedValue (a Date SelectBox: selectedDate), Progress progress, Radio selectedValue, TextField/TextView text. An alternative spelling to each component's own value attribute, which takes precedence when both are set; it is folded on the node a renderer draws, after its style is merged and its responsive branch resolved (shared/core/bind_fold.rb), so a value a style gives counts as set. Not a Collection's data source (Table is a Collection): that is `items`, and the validator says so. `primaryValue` lists, per section, the attribute `bind` stands for (first) and the other spellings of that value: the layout normalizer rewrites a lone `bind` to the first, and drops `bind` with a warning when any of them is set. A section whose value depends on another attribute gives an object instead of a list: `by` names that attribute, `lists` the list for each of its values, and `whenAbsent` the value to take when it is not set (SelectBox by selectItemType: a Date SelectBox's value is selectedDate, and its selectedValue / selectedItem / selectedIndex are read by no path — the validator names each).",
+      "primaryValue": {
+        "Switch": ["isOn", "value", "checked"],
+        "CheckBox": ["isOn", "checked"],
+        "Slider": ["value"],
+        "Segment": ["selectedIndex"],
+        "SelectBox": {
+          "by": "selectItemType",
+          "whenAbsent": "Normal",
+          "lists": {
+            "Normal": ["selectedValue", "selectedItem", "selectedIndex"],
+            "Date": ["selectedDate"]
+          }
+        },
+        "Progress": ["progress"],
+        "Radio": ["selectedValue"],
+        "TextField": ["text"],
+        "TextView": ["text"]
+      }
     },
     "include": {
       "type": "string",
@@ -944,8 +962,16 @@
     },
     "touchDisabledState": {
       "type": "string",
-      "description": "Touch disable mode",
-      "platform": "swift"
+      "enum": [
+        "none",
+        "onlyMe",
+        "viewsWithoutTouchEnabled",
+        "viewsWithoutInList"
+      ],
+      "description": "The hit-test mode of SJUIView (UIKit). none — as usual; onlyMe — the view itself lets a touch through to what is behind it, its subviews still take theirs; viewsWithoutTouchEnabled — only subviews with isUserInteractionEnabled take a touch; viewsWithoutInList — only the subviews whose id is in touchEnabledViewIds do. SwiftUI, Compose and web do not read it: to stop a view and everything in it, use userInteractionEnabled: false.",
+      "platform": "swift",
+      "mode": "uikit",
+      "warn_outside_mode": true
     },
     "touchEnabledViewIds": {
       "type": "array",
@@ -977,16 +1003,16 @@
         "centerHorizontal",
         "center"
       ],
-      "description": "Content gravity/alignment. A single value names ONE axis; the axis it does not name falls to the container default (top vertically, start horizontally), so in LTR `left` and `top` both resolve to (start, top) and render identically. Use the array form to name both axes. Full ruling in attribute_semantics.json -> gravityDefaults; do not restate it in toolchain comments."
+      "description": "Content gravity/alignment. A single value names ONE axis; the axis it does not name falls to the container default (top vertically, start horizontally), so in LTR `left` and `top` both resolve to (start, top) and render identically. Use the array form to name both axes. On a Button and a TextField textAlign owns the horizontal: their gravity positions the content on the vertical axis only (see their textAlign). On a Label textAlign places the text across when it is declared; gravity's horizontal part places it only when textAlign is not (see Label.textAlign). Full ruling in attribute_semantics.json -> gravityDefaults; do not restate it in toolchain comments."
     },
     "onAppear": {
       "type": "string",
-      "description": "Lifecycle callback when view appears (SwiftUI/Compose only)",
+      "description": "Lifecycle callback when view appears (SwiftUI/Compose only). The handler's name (e.g. \"screenAppeared\"); written as a binding (`@{screenAppeared}`) or with UIKit's sender mark (`screenAppeared:`, which means nothing in SwiftUI or Compose) it is read as the same name, as the other event handlers are. Called as its declared closure type asks: `()` with nothing, `(String)` with the viewId.",
       "mode": ["swiftui", "compose"]
     },
     "onDisappear": {
       "type": "string",
-      "description": "Lifecycle callback when view disappears (SwiftUI/Compose only)",
+      "description": "Lifecycle callback when view disappears (SwiftUI/Compose only). The handler's name (e.g. \"screenDisappeared\"); written as a binding (`@{screenDisappeared}`) or with UIKit's sender mark (`screenDisappeared:`, which means nothing in SwiftUI or Compose) it is read as the same name, as the other event handlers are. Called as its declared closure type asks: `()` with nothing, `(String)` with the viewId.",
       "mode": ["swiftui", "compose"]
     },
     "className": {
@@ -1207,7 +1233,7 @@
         "string",
         "binding"
       ],
-      "description": "Text content (can be data binding, supports interpolation). PLAIN TEXT: markdown is not interpreted, so \"[label](/path)\", \"**bold**\" and backticks render literally, brackets and all. To emphasise or link part of the string, use partialAttributes ('range' plus font/color/underline, and 'onclick' for a tappable span). Rendering real markdown is out of scope for Label — write a custom component."
+      "description": "Text content (can be data binding, supports interpolation). PLAIN TEXT: markdown is not interpreted, so \"[label](/path)\", \"**bold**\" and backticks render literally, brackets and all. To emphasise or link part of the string, use partialAttributes ('range' plus font/color/underline, and 'onClick' for a tappable span). Rendering real markdown is out of scope for Label — write a custom component."
     },
     "hint": {
       "type": "string",
@@ -1281,7 +1307,7 @@
         "center",
         "right"
       ],
-      "description": "Text alignment (binding supported)"
+      "description": "Where the label's text sits across the label's own width: Left the start, Center the middle, Right the end (binding supported). Without textAlign, the horizontal part of gravity places it (left / right / centerHorizontal, center); without either, the start. Vertically the text sits at the vertical gravity names, else the middle (gravityDefaults -> leafOwnFrameChannel). The lines of a multi-line or wrapped label follow the same rule across. (4f ruling 2026-09-27, and the user's ruling for iOS, round 6: align iOS to start.) The web draws it so from jsonui-cli 1.9.0, its lines too (rjui gives gravity's text-center / text-right when textAlign is not declared; measured in Chromium, a wrapped label's lines stayed at the start until then); Compose from jsonui-cli 1.9.0 (4f round 17); iOS from jsonui-cli 1.9.0 and SwiftJsonUI 10.29.0 (round 6) - until then, measured on sjui codegen and SwiftJsonUI Dynamic, a fixed-width label with neither drew its text in the middle (\"Mon\" in 50, a 200 x 44 label), one with gravity right or center at the start, and the lines of a multi-line one at the start whatever its gravity."
     },
     "lines": {
       "type": [
@@ -1394,7 +1420,7 @@
         "boolean",
         "binding"
       ],
-      "description": "Enable URL/phone detection. Auto-links BARE http(s) URLs and phone numbers found in the text. It does not parse markdown, and relative paths are deliberately never linked: a path like \"/guides/x\" only means something to a web router, so linkifying it would produce a control that is dead on iOS and Android. Express a cross-document reference with partialAttributes 'range' + 'onclick', where the handler performs the navigation itself — including scrolling to the target position, which an href cannot express on mobile anyway."
+      "description": "Enable URL/phone detection. Auto-links BARE http(s) URLs and phone numbers found in the text. It does not parse markdown, and relative paths are deliberately never linked: a path like \"/guides/x\" only means something to a web router, so linkifying it would produce a control that is dead on iOS and Android. Express a cross-document reference with partialAttributes 'range' + 'onClick', where the handler performs the navigation itself — including scrolling to the target position, which an href cannot express on mobile anyway."
     },
     "textShadow": {
       "type": [
@@ -1450,7 +1476,7 @@
     },
     "partialAttributes": {
       "type": "array",
-      "description": "Partial text styling: apply font/size/color/underline/shadow to a substring selected by 'range' (a [start, end] pair, a text pattern, or a binding), and optionally make it tappable with 'onclick'. This is the supported way to get emphasis or a link inside a Label, since 'text' is plain text and markdown is not interpreted, and it is the portable way to express a cross-reference: the handler navigates (and scrolls to the target) in host code, so the same layout works everywhere, where a URL-based link would only work on web. All three platforms resolve partials at RUNTIME against the resolved string, so a pattern range and a localized or bound 'text' both work. Semantics, identical across platforms and verified against each runtime: an array range is [start, end) with the end exclusive; a string range is the FIRST occurrence and the partial is skipped (not an error) when the pattern is absent; a range that is out of bounds or inverted is skipped; partials apply in declaration order and MERGE where they overlap, later declarations winning per property.",
+      "description": "Partial text styling: apply font/size/color/underline/shadow to a substring selected by 'range' (a [start, end] pair, a text pattern, or a binding), and optionally make it tappable with 'onClick' (alias 'onclick'). This is the supported way to get emphasis or a link inside a Label, since 'text' is plain text and markdown is not interpreted, and it is the portable way to express a cross-reference: the handler navigates (and scrolls to the target) in host code, so the same layout works everywhere, where a URL-based link would only work on web. All three platforms resolve partials at RUNTIME against the resolved string, so a pattern range and a localized or bound 'text' both work. Semantics, identical across platforms and verified against each runtime: an array range is [start, end) with the end exclusive; a string range is the FIRST occurrence and the partial is skipped (not an error) when the pattern is absent; a range that is out of bounds or inverted is skipped; partials apply in declaration order and MERGE where they overlap, later declarations winning per property.",
       "items": {
         "type": "object",
         "properties": {
@@ -1529,13 +1555,10 @@
             ],
             "description": "Range [start, end], text pattern string, or binding expression"
           },
-          "onclick": {
-            "type": "string",
-            "description": "Click handler for this range (selector-based, lowercase)"
-          },
           "onClick": {
-            "type": "binding",
-            "description": "Click handler for this range (camelCase) - binding only (@{functionName})"
+            "type": ["binding", "string"],
+            "aliases": ["onclick"],
+            "description": "Click handler for this range: a binding (@{functionName}), or the method's name. `onclick` is its alias — the selector spelling, a method name — and the normalizer folds it here (both set: onClick is kept); a raw layout's `onclick` is read the same way on every platform. A name is called as the component's `onclick` selector calls it; a binding as its `onClick` does."
           }
         }
       }
@@ -1669,7 +1692,7 @@
         "center",
         "right"
       ],
-      "description": "Text alignment"
+      "description": "Where the field's text sits across it: Left the start, Center the middle, Right the end; default Left (the start). A TextField's text is placed horizontally by textAlign alone - its gravity positions its content only on the vertical axis, the one textAlign does not own (4f ruling 2026-09-27: iOS, Compose and the web each put a TextField's text at the start whatever its gravity)."
     },
     "borderStyle": {
       "type": "string",
@@ -2393,11 +2416,11 @@
     },
     "tapBackground": {
       "type": "string",
-      "description": "Background when tapped - hex string or color name from colors.json"
+      "description": "Background while pressed. On web it also shows on hover (the web has hover; iOS and Android do not). Hex string or color name from colors.json"
     },
     "highlightBackground": {
       "type": "string",
-      "description": "Background when highlighted - hex string or color name from colors.json"
+      "description": "Background while pressed: UIButton's highlighted state, the same colour as tapBackground under its older name. tapBackground wins when both are set. Hex string or color name from colors.json"
     },
     "image": {
       "type": [
@@ -2413,7 +2436,7 @@
         "Center",
         "Right"
       ],
-      "description": "Text alignment"
+      "description": "Where the button's text sits across it: Left the start, Center the middle, Right the end; default Center. A Button's text is placed horizontally by textAlign alone - its gravity positions its content only on the vertical axis, the one textAlign does not own (4f ruling 2026-09-27: iOS, Compose and the web each put a Button's text in the middle whatever its gravity; iOS drew Left and Right in the middle too until jsonui-cli 1.9.0 / SwiftJsonUI 10.29.0). On Compose the text takes the button's width to be placed when the button has a width of its own (declared, not wrapContent, or a weight) - a wrap-width button is its text's width - on kjui codegen and KotlinJsonUI Dynamic alike (round 17; it sat in the middle whatever textAlign said)."
     },
     "config": {
       "type": "object",
@@ -2448,7 +2471,7 @@
     },
     "partialAttributes": {
       "type": "array",
-      "description": "Partial text styling: apply font/size/color/underline/shadow to a substring selected by 'range' (a [start, end] pair, a text pattern, or a binding), and optionally make it tappable with 'onclick'. This is the supported way to get emphasis or a link inside a Label, since 'text' is plain text and markdown is not interpreted, and it is the portable way to express a cross-reference: the handler navigates (and scrolls to the target) in host code, so the same layout works everywhere, where a URL-based link would only work on web. All three platforms resolve partials at RUNTIME against the resolved string, so a pattern range and a localized or bound 'text' both work. Semantics, identical across platforms and verified against each runtime: an array range is [start, end) with the end exclusive; a string range is the FIRST occurrence and the partial is skipped (not an error) when the pattern is absent; a range that is out of bounds or inverted is skipped; partials apply in declaration order and MERGE where they overlap, later declarations winning per property. Declared from the implementation, which already read it: sjui button_converter.rb:68-129 (plan 51-E).",
+      "description": "Partial text styling: apply font/size/color/underline/shadow to a substring selected by 'range' (a [start, end] pair, a text pattern, or a binding), and optionally make it tappable with 'onClick' (alias 'onclick'). This is the supported way to get emphasis or a link inside a Label, since 'text' is plain text and markdown is not interpreted, and it is the portable way to express a cross-reference: the handler navigates (and scrolls to the target) in host code, so the same layout works everywhere, where a URL-based link would only work on web. All three platforms resolve partials at RUNTIME against the resolved string, so a pattern range and a localized or bound 'text' both work. Semantics, identical across platforms and verified against each runtime: an array range is [start, end) with the end exclusive; a string range is the FIRST occurrence and the partial is skipped (not an error) when the pattern is absent; a range that is out of bounds or inverted is skipped; partials apply in declaration order and MERGE where they overlap, later declarations winning per property. Declared from the implementation, which already read it: sjui button_converter.rb:68-129 (plan 51-E).",
       "items": {
         "type": "object",
         "properties": {
@@ -2527,13 +2550,10 @@
             ],
             "description": "Range [start, end], text pattern string, or binding expression"
           },
-          "onclick": {
-            "type": "string",
-            "description": "Click handler for this range (selector-based, lowercase)"
-          },
           "onClick": {
-            "type": "binding",
-            "description": "Click handler for this range (camelCase) - binding only (@{functionName})"
+            "type": ["binding", "string"],
+            "aliases": ["onclick"],
+            "description": "Click handler for this range: a binding (@{functionName}), or the method's name. `onclick` is its alias — the selector spelling, a method name — and the normalizer folds it here (both set: onClick is kept); a raw layout's `onclick` is read the same way on every platform. A name is called as the component's `onclick` selector calls it; a binding as its `onClick` does."
           }
         }
       }
@@ -2545,7 +2565,7 @@
         "string",
         "binding"
       ],
-      "description": "Image source name (can be data binding)"
+      "description": "Image source name (can be data binding). On web it is passed to `<img src>` as a path, since web has no asset catalog, so a bare image name belongs in srcName there (rjui warns)."
     },
     "srcName": {
       "type": [
@@ -2612,9 +2632,15 @@
       ]
     },
     "alt": {
-      "type": "string",
-      "description": "Alt text for accessibility",
-      "platform": "react"
+      "type": [
+        "string",
+        "binding"
+      ],
+      "description": "What screen readers say for the image (VoiceOver, TalkBack, web alt): a strings.json key or text, localized like `text`, or a binding. \"\" marks the image decorative (skipped). With no alt the image is decorative too, unless it operates a control (a tap handler on the image, or the only content of a tappable with no text): then it keeps the id / asset name each platform read before, and the build names it (INFO). Decorative is the default, so give every image that carries meaning (a logo, a photo, an icon that is the only content of a button) an alt.",
+      "aliases": [
+        "accessibilityLabel",
+        "contentDescription"
+      ]
     },
     "loading": {
       "type": "string",
@@ -2640,12 +2666,6 @@
         "swift",
         "kotlin"
       ]
-    },
-    "canTap": {
-      "type": "boolean",
-      "description": "Enable tap gesture independent of onClick.",
-      "platform": "swift",
-      "mode": "swiftui"
     },
     "systemIcon": {
       "type": "boolean",
@@ -2748,9 +2768,15 @@
       "mode": "uikit"
     },
     "alt": {
-      "type": "string",
-      "description": "Alt text for accessibility",
-      "platform": "react"
+      "type": [
+        "string",
+        "binding"
+      ],
+      "description": "What screen readers say for the image (VoiceOver, TalkBack, web alt): a strings.json key or text, localized like `text`, or a binding. \"\" marks the image decorative (skipped). With no alt the image is decorative too, unless it operates a control (a tap handler on the image, or the only content of a tappable with no text): then it keeps the id / asset name each platform read before, and the build names it (INFO). Decorative is the default, so give every image that carries meaning (a logo, a photo, an icon that is the only content of a button) an alt.",
+      "aliases": [
+        "accessibilityLabel",
+        "contentDescription"
+      ]
     },
     "loading": {
       "type": "string",
@@ -3068,7 +3094,7 @@
     },
     "onValueChange": {
       "type": "binding",
-      "description": "Value change handler - binding only (@{functionName}). The handler receives the new value of the selection binding, the same on every platform: with selectedIndex bound it is the Int index (declare ((Int) -> Void)?, or ((String, Int) -> Void)? for viewId + index); with selectedItem / selectedValue bound it is the String item (declare ((String, String) -> Void)? for viewId + item). A lone (String) parameter is read as the viewId, not the item. (() -> Void)? receives nothing and the ViewModel reads the bound value back."
+      "description": "Value change handler - binding only (@{functionName}). The handler receives the new value of the selection binding, the same on every platform: with selectedIndex bound it is the Int index (declare ((Int) -> Void)?, or ((String, Int) -> Void)? for viewId + index); with selectedItem / selectedValue bound it is the String item (declare ((String, String) -> Void)? for viewId + item). A lone (String) parameter is the selected item as a String, with selectedIndex bound too; the viewId comes only as the first of two parameters. (() -> Void)? receives nothing and the ViewModel reads the bound value back."
     },
     "onValueChanged": {
       "type": "binding",
@@ -3828,7 +3854,7 @@
         "none"
       ],
       "default": "lazy",
-      "description": "Outer container shape for the Collection (single-column section path uses CollectionStackView/CollectionStack). Accepts: 'lazy' (default) -> ScrollView+LazyVStack/LazyHStack on iOS, LazyColumn/LazyRow on Android, with virtualized cell rendering. 'eager' -> ScrollView+VStack/HStack on iOS, Column(verticalScroll)/Row(horizontalScroll) on Android — no virtualization, smooth scrolling for heavy cells (markdown / images / attributed text) that suffer from LazyVStack re-evaluation. 'none' -> VStack/HStack only, no scroll container, parent must already be scrollable (for layout:'flow' this is the only value that removes the Collection's own vertical scroll). Bindings (@{prop}) are resolved at runtime via the wrapper's mode parameter so toggles preserve view identity. Sticky headers and paging require 'lazy'."
+      "description": "Outer container shape for the Collection (single-column section path uses CollectionStackView/CollectionStack). Accepts: 'lazy' (default) -> ScrollView+LazyVStack/LazyHStack on iOS, LazyColumn/LazyRow on Android, with virtualized cell rendering. 'eager' -> ScrollView+VStack/HStack on iOS, Column(verticalScroll)/Row(horizontalScroll) on Android — no virtualization, smooth scrolling for heavy cells (markdown / images / attributed text) that suffer from LazyVStack re-evaluation. 'none' -> VStack/HStack only, no scroll container, parent must already be scrollable (for layout:'flow' this is the only value that removes the Collection's own vertical scroll). With no scroll container of its own, a 'none' Collection's scrollTo and defaultScrollAnchor move nothing, on every path - the parent owns the scrolling (declared 4f round 11, jsonui-cli 1.9.0; sjui, rjui and both Dynamic renderers already drew nothing for them). A vertical Collection whose height wraps its content (`height: wrapContent`, lazy or eager) scrolls inside the height its parent bounds it to, and under a parent that does not bound it (a scrolling ancestor) it is its content's height, with nothing of its own to scroll - its scrollTo and defaultScrollAnchor then move nothing. So iOS draws it (a ScrollView as tall as its parent lets it be) and the web (a fit-content box a flex parent shrinks, overflow auto), measured 2026-09-27 on sjui codegen, SwiftJsonUI Dynamic and rjui; both Compose paths draw it so from jsonui-cli 1.9.0 (4f ruling 2026-09-27, round 12) - until then it was a Column that never scrolled, its cells running past a bounded parent. With fewer cells than the parent's height every path fits the cells - iOS from jsonui-cli 1.9.0 (SwiftJsonUI's CollectionContentFit; the user's ruling 2026-09-27), it filled that height until then - except an iOS List-route Collection (the class-list List: cellClasses and no `sections`; a sectioned Collection with listStyle), which fills it: a SwiftUI List reports no content height to fit (measured 2026-09-27: fitted, it was 0pt tall). Bindings (@{prop}) are resolved at runtime via the wrapper's mode parameter so toggles preserve view identity. Sticky headers and paging require 'lazy'."
     },
     "columns": {
       "type": [
@@ -3840,15 +3866,15 @@
     },
     "columnSpacing": {
       "type": "number",
-      "description": "Spacing between columns"
+      "description": "Spacing between columns (on a horizontal Collection, between lanes). Undeclared: itemSpacing, else 0 on every route, flow included (attribute_semantics.json -> collectionSpacing)."
     },
     "itemSpacing": {
       "type": "number",
-      "description": "Spacing between items (used for both grid spacing and list item spacing)"
+      "description": "Spacing between items (used for both grid spacing and list item spacing): the fallback for lineSpacing and columnSpacing. Undeclared: 0 on every route, flow included (attribute_semantics.json -> collectionSpacing)."
     },
     "lineSpacing": {
       "type": "number",
-      "description": "Spacing between rows. `sectionSpacing` folds here (sjui collection_converter.rb:799,960 read `sectionSpacing || lineSpacing || 8`).",
+      "description": "Spacing between rows (on a horizontal Collection, along the scroll axis); `sectionSpacing` folds here. Undeclared: itemSpacing, else 0 on every route, flow included (attribute_semantics.json -> collectionSpacing).",
       "aliases": [
         "sectionSpacing"
       ]
@@ -3887,15 +3913,15 @@
         "array",
         "string"
       ],
-      "description": "Content insets"
+      "description": "Content insets: padding around the cells, inside the Collection's scroll - 1, 2 or 4 values, an array or a string separated by `|`, read as `paddings` reads them: one, every side; two, [vertical, horizontal]; four, [top, right, bottom, left] (right the end, left the start); any other value pads nothing. A value in the array may be a binding, bound as the data holds it (a number; unset, 0). Both Compose paths read it so from jsonui-cli 1.9.0 (4f rulings 2026-09-27, rounds 16 and 17; kjui read four as [top, left, bottom, right], only an array of four and no string, and KotlinJsonUI Dynamic no array of one or two, nor an array with a binding). It is ADDED to insetHorizontal / insetVertical and to the safe area contentInsetAdjustmentBehavior asks for, side by side, on iOS (measured 2026-09-27 on sjui codegen and SwiftJsonUI Dynamic: insets [8, 0, 0, 0] with insetVertical 8 at the top of a 62pt safe area put the first cell at 78) and on both Compose paths from jsonui-cli 1.9.0 (4f ruling, round 17; a declared insets replaced both until then), and on the web from jsonui-cli 1.9.0 (4f round 6: rjui adds them per edge on the Collection's own box, its scroll container, with exact values; until then it rounded them to Tailwind's spacing scale - 30 became 28 -, four values replaced insetHorizontal / insetVertical, two lost to insetHorizontal, the string form padded nothing and a bound value in the array stopped the layout, measured in Chromium; a pager's snap points keep the insets, as scroll-padding). On iOS every route pads inside its scroll from jsonui-cli 1.9.0 and SwiftJsonUI 10.29.0 (round 6): a List (a sectioned Collection with a listStyle, and the class-list shape) pads its rows with safe-area padding on the List, on top of its own row insets, and a pager pads the cell on every page, a page being the pager's size - until then sjui's Lists read no insets, and SwiftJsonUI Dynamic's Lists and both pagers were padded from outside, which narrowed the scroll (a 300-wide pager with insets [0, 0, 0, 30] turned its pages in a 270-wide scroll, measured). With insetHorizontal / insetVertical it pads every route's content on Compose - the lazy lists and grids, and from jsonui-cli 1.9.0 the containers that are not lazy lists too: the wrapContent and `lazy: none` Column and Row, the flow and CollectionStack's NONE container, as KotlinJsonUI Dynamic already drew them (4f ruling 2026-09-27, round 15; kjui codegen and CollectionStack applied none there)."
     },
     "insetHorizontal": {
       "type": "number",
-      "description": "Horizontal inset"
+      "description": "Horizontal inset: padding on the left and right of the cells, inside the Collection's scroll. Added to the safe area contentInsetAdjustmentBehavior asks for, on every platform - as iOS adds its safe area (measured 2026-09-27 on sjui codegen and SwiftJsonUI Dynamic), and on both Compose paths from jsonui-cli 1.9.0 (4f ruling, round 16; kjui dropped the safe area for it, KotlinJsonUI Dynamic dropped it for the safe area). A declared insets is added to it too, on iOS and from jsonui-cli 1.9.0 on both Compose paths (round 17; it replaced it), and on the web from jsonui-cli 1.9.0 (round 6; a declared insets replaced it there, and it was rounded to Tailwind's spacing scale - 13 became 12). On a horizontal Collection kjui's codegen keeps it in the content padding with the rest (round 17; handed to CollectionStack's insetLeading / insetTrailing, it dropped insetVertical and the safe area there)."
     },
     "insetVertical": {
       "type": "number",
-      "description": "Vertical inset"
+      "description": "Vertical inset: padding above and below the cells, inside the Collection's scroll. Added to the safe area contentInsetAdjustmentBehavior asks for, on every platform - iOS measured 2026-09-27 on sjui codegen and SwiftJsonUI Dynamic: a Collection at the top of a 62pt safe area with insetVertical 8 put its first cell at 70, `always` alike, and at 8 with `never` - and on both Compose paths from jsonui-cli 1.9.0 (4f ruling, round 16; kjui dropped the safe area for it, KotlinJsonUI Dynamic dropped it for the safe area). A declared insets is added to it too, on iOS (78 = 62 + 8 + 8), from jsonui-cli 1.9.0 on both Compose paths (round 17; it replaced it) and on the web (round 6; a four-value insets replaced it there)."
     },
     "contentInsets": {
       "type": [
@@ -3908,7 +3934,7 @@
     },
     "contentInsetAdjustmentBehavior": {
       "type": "string",
-      "description": "Content inset adjustment"
+      "description": "Content inset adjustment: whether the cells clear the safe area (the system bars). On iOS the system adjusts by default and `never` stops it. On Compose `always` / `automatic` pad the cells by the safe area, `scrollableAxes` by its sides on the scroll axis, and `never` - or no declaration - by nothing, Compose's own default. There is no precedence: the safe area, a declared insets (contentPadding) and insetHorizontal / insetVertical are all added, side by side, on iOS and on both Compose paths (4f rulings 2026-09-27, rounds 16 and 17; until jsonui-cli 1.9.0 a declared insets replaced the other two there, and insetHorizontal / insetVertical and the safe area replaced each other)."
     },
     "itemWeight": {
       "type": "number",
@@ -3968,11 +3994,8 @@
       }
     },
     "items": {
-      "type": [
-        "array",
-        "binding"
-      ],
-      "description": "Data source binding"
+      "type": "binding",
+      "description": "Data source binding (@{…}). A binding only: the array form was declared and drawn by no platform (codegen or Dynamic) and used by no face, so it was taken out on 2026-09-26; a literal array is named by the validator. The bound value is a CollectionDataSource or an array; an array is one section, every element drawn with cellClasses[0] (a Collection without `sections`; the layout's data declaration decides on the codegen paths, the value's shape on the Dynamic ones)."
     },
     "keyboardAvoidance": {
       "type": "boolean",
@@ -3981,13 +4004,15 @@
     },
     "setTargetAsDelegate": {
       "type": "boolean",
-      "description": "Set target as delegate",
-      "platform": "swift"
+      "description": "Set target as delegate (UIKit: SJUICollectionView reads it; the SwiftUI paths have no delegate to set)",
+      "platform": "swift",
+      "mode": "uikit"
     },
     "setTargetAsDataSource": {
       "type": "boolean",
-      "description": "Set target as data source",
-      "platform": "swift"
+      "description": "Set target as data source (UIKit: SJUICollectionView reads it; the SwiftUI paths have no data source to set)",
+      "platform": "swift",
+      "mode": "uikit"
     },
     "columnCount": {
       "type": "number",
@@ -3996,7 +4021,7 @@
     },
     "scrollTo": {
       "type": "binding",
-      "description": "Binding that requests a programmatic scroll. The declared DATA CLASS is a plain value — `String` when cellIdProperty is set (scroll to that cell id), `Int` otherwise (scroll to that index). It is deliberately NOT `PassthroughSubject<Int, Never>`, which this description used to prescribe: PassthroughSubject is a Combine type, and naming a Swift transport in the cross-platform SSoT is what made consumers write it into their data section, where kjui's map_to_kotlin_type passes unknown classes through verbatim and the Kotlin build dies on it. How the request is delivered is each platform's own business — iOS wraps the value in a publisher so a repeated send re-scrolls, Compose reads the String directly, web keys a useEffect on it. STATUS 2026-08-05, after B landed the derivation (jsonui-cli 8c41e3e): the CODEGEN side of all three platforms now takes the plain value — sjui emits `.onChange(of: data.<prop>)` with no publisher and no throttle, Compose keys a LaunchedEffect on it, web a useEffect. The remaining gap is the SwiftUI DYNAMIC renderer: CollectionConverter.swift:127 still resolves the binding as `data[propName] as? PassthroughSubject<Int, Never>` and gets nil for a plain value, so the scroll silently never fires there (it does not crash, it does nothing). Consequence for fixtures: a Collection.scrollTo fixture is now declarable and no longer kills the Kotlin build, and Collection.scrollAnchor is measurable on the codegen path — but ios codegen and ios dynamic will disagree until the dynamic resolver accepts the value, so expect a parity finding there rather than a render failure. Owner of the remainder: the SwiftJsonUI dynamic lane. Note also that the vendored CollectionAttributes.swift still carries the old publisher wording in its doc comment; it is generated from this description and will pick the correction up at the next re-vendor."
+      "description": "Binding that requests a programmatic scroll. The declared DATA CLASS is a plain value, and it decides what the value names, on every path (4f ruling 2026-09-27, round 14; jsonui-cli 1.9.0): an `Int` is a cell's index, a `String` a cell's key. cellIdProperty decides what a cell's key is — its `cellId`, else its cellIdProperty value — and not the class: a Collection with cellIdProperty may declare an `Int`, and one without it a `String` (its cells' cellIds are the keys). What it names across sections (4f ruling 2026-09-27, jsonui-cli 1.9.0; one rule on every path — sjui, kjui and rjui codegen, SwiftJsonUI and KotlinJsonUI Dynamic): an `Int` is the index of a CELL counted across all the drawn sections in order, cells only — a section's header or footer, and a grid's filler, is not counted (the same n as the paging address `<id>_item_<n>`); a `String` is the FIRST cell, in section order, whose key (its `cellId`, else its cellIdProperty value) it is, when two cells share the key — in two sections or in one; a cell with no key has none, and no String names it. A value that names no cell scrolls nowhere. Kotlin only (legacy): a String that is no cell's key and reads `<digits>` or `<digits>#<anything>` scrolls to lazy item <digits>, with a DEBUG warning, on the lazy lists; a container that is not one (the flow, the EAGER one, the wrapContent Column) has no lazy item and does not read it, and iOS and web do not read it. (A consuming Android screen asks its keyed, reverse-laid-out list for its bottom-most item with `\"0#<time>\"`; read as a cell, 0 would be section 0's first cell, which is not the bottom-most item when a later section has cells.) The request is a CHANGE of the value (4f ruling 2026-09-27, jsonui-cli 1.9.0): the value a Collection is drawn with scrolls nowhere, a value arriving where there was none is a change like any other, and sending the same value again does not re-scroll. It is deliberately NOT `PassthroughSubject<Int, Never>`, which this description used to prescribe: PassthroughSubject is a Combine type, and naming a Swift transport in the cross-platform SSoT is what made consumers write it into their data section, where kjui's map_to_kotlin_type passes unknown classes through verbatim and the Kotlin build dies on it. How the request is delivered is each platform's own business — iOS keys `.onChange(of:)` on the value inside a ScrollViewReader, Compose a LaunchedEffect, web a useEffect that compares the value with the one it last saw. STATUS 2026-09-27 (jsonui-cli 1.9.0): every path reads the plain value — sjui and SwiftJsonUI Dynamic, kjui and KotlinJsonUI Dynamic, rjui. On iOS and web it reaches the cells of every route with a scroll container of its own: the lists (the class-list shape's included), the grids, the flows, the horizontal Collections and the pagers — a pager turns to the page the value names, its currentPage when one is bound. On Compose (kjui codegen and KotlinJsonUI Dynamic) it reaches the lazy lists and grids, the horizontal rows, the pagers and a flow that scrolls in its own bounds (4f ruling 2026-09-27, round 11), and the EAGER container (kjui's CollectionStack EAGER, KotlinJsonUI Dynamic's Column and Row) and the Column of a vertical Collection whose height wraps its content (see `lazy`), by the same rule (4f ruling 2026-09-27, round 12); until jsonui-cli 1.9.0 neither scrolled to a cell. Until 1.9.0 kjui codegen read every value as its text and scrolled to that LAZY ITEM index - headers, footers and grid fillers counted -, with cellIdProperty looked an Int up as a key first (so an Int never became a cell there) and read a String without cellIdProperty as the index, scrolled on the value the list was first drawn with, landed bottom and center with the target's top edge at the viewport's bottom edge and middle, drew no scroll on the flow and the pager, and a key two cells shared took the lazy list down (\"Key ... was already used\"); KotlinJsonUI Dynamic read only a SharedFlow<Int>, so the plain value never scrolled, landed center and bottom at the top, and drew no scroll on the flow and the pager. Until 1.9.0 web's grid was no scroll container (a grid of a declared height drew its rows past its box and a scrollTo moved nothing); on iOS the flow (sjui codegen and SwiftJsonUI Dynamic), SwiftJsonUI Dynamic's sectioned List, the class-list List and the pager drew no scroll at all; and a String on a Collection with no cellIdProperty never met a cellId — web read a string of digits there as an index. Until 1.9.0 sjui codegen took what the value names from cellIdProperty, not from the declared class: an `Int` with cellIdProperty did not compile on the class-list List and the pager and scrolled nowhere on the other routes; and its cell ids with cellIdProperty let a String reach a cell with no key (its id was \"\\(index)\"), and gave two cells of one section with one key one id, the cell it reached SwiftUI's choice. A Collection with `lazy: none` has no scroll container of its own and scrolls nowhere. Until 2026-09-27 this paragraph named the SwiftUI Dynamic renderer as the one that could not read a plain value; it was the KotlinJsonUI Dynamic renderer, which reads it today."
     },
     "scrollAnchor": {
       "type": "string",
@@ -4006,7 +4031,7 @@
         "bottom"
       ],
       "default": "bottom",
-      "description": "Anchor point for the scrollTo target. Measured 2026-08-05: ios (sjui collection_converter.rb:1138), web (rjui build_command.rb:768) and the Compose GRID path (kjui collection_component.rb:313) all fall back to bottom, so bottom is the declared default. The Compose LIST path emits no anchor offset unless the attribute is explicitly declared, which lands the target at top - that is a divergence in that one path, not a second default."
+      "description": "Anchor point for the scrollTo target: where the target lands along the scroll axis. top - its leading edge at the viewport's leading edge; center - its middle at the viewport's middle; bottom (the default) - its trailing edge at the viewport's trailing edge. Drawn so by SwiftUI's ScrollViewReader (vertical), the web (scrollCollectionToCell) and, since jsonui-cli 1.9.0, both Compose paths (4f ruling 2026-09-27, round 11): kjui codegen offset the target by the viewport (bottom) or half of it (center), which put the target's top edge at the viewport's bottom edge or middle, and KotlinJsonUI Dynamic landed center and bottom at the top. A reverseLayout list (Compose) lands top and bottom on the edges they name on screen. Measured 2026-08-05: ios (sjui collection_converter.rb:1138), web (rjui build_command.rb:768) and the Compose GRID path all fall back to bottom, so bottom is the declared default. On a horizontal Collection, top / center / bottom mean the start / centre / end along the scroll axis, in reading direction, on every platform (4f ruling 2026-09-27)."
     },
     "defaultScrollAnchor": {
       "type": "string",
@@ -4015,7 +4040,7 @@
         "center",
         "bottom"
       ],
-      "description": "Initial scroll position anchor (iOS 17+). Sets where the scroll view starts."
+      "description": "Initial scroll position anchor (iOS 17+). Sets where the scroll view starts. On Compose (kjui codegen and KotlinJsonUI Dynamic) it is applied once, when the list first has cells, by scrolling to the middle (center) or last (bottom) CELL counted as scrollTo counts them - across the drawn sections, headers, footers and grid fillers not counted (4f ruling 2026-09-27, round 11); until jsonui-cli 1.9.0 it counted the first data section only and scrolled to that lazy item index. Under reverseLayout a list rests at its visual bottom, so top and bottom trade places, as they do for scrollAnchor (4f ruling 2026-09-27, round 12 - where iOS lands, which draws the same order from content anchored at its bottom): bottom is where the list rests and moves nothing; top goes to the cell drawn at the visual top, the last one the content emits. Until jsonui-cli 1.9.0 bottom went to the last cell, which a reversed list draws at its visual top. A container that is not a lazy list and draws no reverseLayout (the wrapContent Column, the horizontal EAGER one) takes the middle or last cell to its top edge (round 12); the vertical EAGER one draws reverseLayout and follows the lazy list (round 13). It sets the initial position only: how a list keeps its position when its data changes with no scrollTo is each platform's own - iOS keeps the anchored edge while the list rests at it and, once a scrollTo has moved it, stays where it scrolled; Compose keeps the first visible item - so to follow new content, send scrollTo (4f ruling 2026-09-27, round 13; the iOS half measured round 14: a list resting at its bottom showed an appended cell there, and one a scrollTo had left above a cell kept it below the edge when more arrived). On Compose a list that is not reversed, with defaultScrollAnchor bottom and content shorter than its viewport, sits at its bottom, as iOS draws it (4f ruling 2026-09-27, round 14; it sat at the top). On a horizontal Collection, top / center / bottom mean the start / centre / end along the scroll axis, in reading direction, on every platform (4f ruling 2026-09-27); a horizontal list whose content is shorter than its row sits at the row's centre (center) or end (bottom) on Compose too, on the lazy and eager routes, as iOS draws it - measured on sjui codegen and SwiftJsonUI Dynamic - and a `lazy: none` row, which does not scroll, at its start, as sjui codegen draws it (4f ruling 2026-09-27, round 15; every Compose row sat at its start until jsonui-cli 1.9.0). A vertical list shorter than its viewport sits in its middle for center, on Compose too - the lazy and eager routes, reversed or not, as iOS draws them (measured 2026-09-27 on sjui codegen and SwiftJsonUI Dynamic) - and a `lazy: none` Column, which does not scroll, at its top (4f ruling 2026-09-27, round 16; it sat at the top, the bottom when reversed, until jsonui-cli 1.9.0)."
     },
     "scrollAnimated": {
       "type": "boolean",
@@ -4023,7 +4048,7 @@
     },
     "cellIdProperty": {
       "type": "string",
-      "description": "Cell data property key to use as unique ID for ForEach identity. When set, scrollTo uses String type instead of Int."
+      "description": "Cell data property key to use as unique ID for ForEach identity: a cell's key is its `cellId`, else this property's value. It decides what a scrollTo String names, not the scrollTo's type — the declared data class does (see scrollTo; 4f ruling 2026-09-27, round 14; until jsonui-cli 1.9.0 this said a set cellIdProperty made scrollTo a String)."
     },
     "autoChangeTrackingId": {
       "type": "boolean",
@@ -4031,7 +4056,7 @@
     },
     "reverseLayout": {
       "type": "boolean",
-      "description": "Reverse the layout direction of the Collection grid. When true, section order in the generated code is also reversed so that JSON definition order (index 0 first) matches the visual top-to-bottom order on iOS (which does not support reverseLayout). Compose's reverseLayout then flips the entire list so index 0 appears at the bottom.",
+      "description": "Reverse the layout direction of the Collection grid. When true, section order in the generated code is also reversed so that JSON definition order (index 0 first) matches the visual top-to-bottom order on iOS (which does not support reverseLayout). Compose's reverseLayout then flips the entire list so index 0 appears at the bottom. A reversed list whose content is shorter than its viewport sits at its bottom (its end, horizontally) - where iOS draws such a list, bottom-anchored - and the vertical EAGER container draws reverseLayout as the lazy list does (its first cell at the bottom, resting there), on both Compose paths (4f rulings 2026-09-27, round 13; jsonui-cli 1.9.0). Until then a short reversed list sat at its top and EAGER drew no reverseLayout. The Column of a wrapContent or `lazy: none` Collection and the horizontal EAGER container draw no reverseLayout.",
       "mode": "compose"
     },
     "scrollEnabled": {
@@ -4039,7 +4064,7 @@
         "boolean",
         "binding"
       ],
-      "description": "Enable/disable scrolling (binding supported)"
+      "description": "Enable/disable scrolling (binding supported). It stops the user's scrolling only: a programmatic scroll (scrollTo, defaultScrollAnchor) still moves the Collection, as iOS's scrollDisabled does, on every route with a scroll container of its own (4f ruling 2026-09-27, round 13; jsonui-cli 1.9.0). Until then Compose's EAGER container dropped its scroll with it (kjui codegen), KotlinJsonUI Dynamic read it on the grids only, and neither Compose path read it on the flow, the pager or the single-lane row."
     },
     "onItemAppear": {
       "type": [
@@ -4085,7 +4110,7 @@
     },
     "hideSeparator": {
       "type": "boolean",
-      "description": "Hide the row separators a list draws between cells. A NO-OP where the container draws no separators (a grid-shaped Collection has none) — that is the contract, not an unimplemented gap, and it does not license switching the container to a List. No CODEGEN face reads it, so the coverage row is runtime-only. Full ruling in attribute_semantics.json -> collectionSeparators."
+      "description": "Hide the row separators a list draws between cells. A NO-OP where the container draws no separators (a grid-shaped Collection has none) — that is the contract, not an unimplemented gap, and it does not license switching the container to a List. Full ruling in attribute_semantics.json -> collectionSeparators."
     },
     "listStyle": {
       "type": "string",
@@ -4096,7 +4121,7 @@
         "sidebar"
       ],
       "default": "plain",
-      "description": "Which list chrome the collection is drawn with. Enumerated from the only implementation that reads it (SwiftJsonUI TableConverter.applyListStyle); an unrecognised value falls back to plain. ORTHOGONAL to hideSeparator — that one hides the separators, this one picks the chrome, and neither overrides the other. No CODEGEN face reads it, so the coverage row is runtime-only: sjui collection_converter.rb:213 hardcodes PlainListStyle instead. Full ruling in attribute_semantics.json -> collectionSeparators."
+      "description": "Which list chrome the collection is drawn with: plain (the default), grouped, insetGrouped or sidebar; an unrecognised value falls back to plain. ORTHOGONAL to hideSeparator — that one hides the separators, this one picks the chrome, and neither overrides the other. Full ruling in attribute_semantics.json -> collectionSeparators."
     }
   },
   "Radio": {
@@ -4401,12 +4426,20 @@
     "indicatorStyle": {
       "type": "string",
       "enum": [
+        "small",
         "medium",
-        "large"
+        "large",
+        "linear"
       ],
-      "description": "Indicator style",
-      "platform": "swift",
-      "mode": "swiftui"
+      "description": "Indicator style: `small` / `medium` / `large` are the spinner's size (`medium` the platform's own) and `linear` a bar instead of a spinner. A declared width / height wins over the style's size. The legacy spellings `style` (naming one of these values) and `size` (a length) are folded by the layout normalizer, with a warning: `style` into this attribute, `size` into width and height.",
+      "platform": [
+        "swift",
+        "kotlin"
+      ],
+      "mode": [
+        "swiftui",
+        "compose"
+      ]
     },
     "color": {
       "type": [
