@@ -218,6 +218,32 @@ describe("jui_generate_project", () => {
     ]);
     expect(recorded[0].options.timeout).toBe(120_000);
   });
+
+  // jsonui-cli 1.9.0: `jui g project` keeps a Layout JSON that exists and
+  // differs from what the spec generates, names it, and replaces it only with
+  // --force (never one whose data section the spec does not declare). From
+  // MCP it has no terminal, so it never asks. The description says the same,
+  // the flag reaches the CLI only when asked, and the CLI's line naming a kept
+  // file reaches the agent.
+  it("says what happens to a layout that is already there, as the CLI does", async () => {
+    const tool = harness.tools.get("jui_generate_project")!;
+    expect(tool.description).toContain("written when it is not there");
+    expect(tool.description).toContain("left as it is when it already holds exactly what the spec generates");
+    expect(tool.description).toContain("KEPT");
+    expect(tool.description).toContain("--force replaces it");
+    const force = tool.schema.force.description!;
+    expect(force).not.toBe("Force overwrite declaration files");
+    expect(force).toContain("not replaced even with force");
+    expect(force).toContain("never asks");
+
+    nextResponse = {
+      stdout: "Processing: home.spec.json (Home)\n  Kept existing layout: docs/screens/layouts/home.json " +
+        "(it differs from what the spec generates; --force replaces it)\n",
+    };
+    const text = await harness.call("jui_generate_project", { project_dir: projectDir });
+    expect(recorded[0].args).toEqual(["generate", "project"]);
+    expect(text).toContain("Kept existing layout: docs/screens/layouts/home.json");
+  });
 });
 
 describe("jui_generate_screen", () => {
