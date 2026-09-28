@@ -70,7 +70,7 @@ bash ~/.jsonui-mcp-server/uninstall.sh
 | `list_screen_specs` | 画面 spec 一覧（メタデータ付き） |
 | `list_component_specs` | コンポーネント spec 一覧 |
 | `list_layouts` | Layout JSON ファイル一覧 |
-| `read_spec_file` | spec ファイルの内容を返す |
+| `read_spec_file` | spec ファイルの内容を返す。散文フィールドの `{"md": "key"}`（`<name>.texts.yaml` への参照）は `{"md", "text"}` に展開して返す（編集は YAML 側）。参照の無い spec はファイルそのまま |
 | `read_layout_file` | Layout JSON の内容を返す |
 | `search_specs` | 全 spec（画面・サブディレクトリの sub-spec・コンポーネント）をキーワード検索し、ファイル・JSON path・抜粋を返す |
 

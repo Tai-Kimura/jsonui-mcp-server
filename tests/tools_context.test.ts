@@ -2,7 +2,7 @@
  * Group B tools (project context) — exercised against a tmp-dir fixture
  * project (jui.config.json + specs + layouts). No real project is touched.
  */
-import { symlinkSync, writeFileSync } from "fs";
+import { mkdirSync, symlinkSync, writeFileSync } from "fs";
 import { join } from "path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -338,6 +338,72 @@ describe("read_spec_file", () => {
     // Ends in .component.json so it resolves from component_spec_directory,
     // climbs to docs/, and lands back inside the project.
     expect(JSON.parse(text).metadata.name).toBe("ExampleCard");
+  });
+});
+
+describe("read_spec_file — texts-file prose", () => {
+  // `{"md": ...}` in description / notes / intent points into a YAML file
+  // (jsonui-cli shared/core/spec_texts.py). The reader expands it next to the
+  // reference, so an agent sees the text AND where to edit it.
+  const specDir = () => join(projectDir, "docs/screens/json");
+  const spec = {
+    type: "app_contracts_spec",
+    version: "1.0",
+    metadata: { name: "app", description: { md: "overview" } },
+    unitContracts: [
+      {
+        target: "ApiClient",
+        cases: [
+          { name: "retries", intent: { md: "cases.api.retries" } },
+          { name: "shared", intent: { md: "shared/net.texts.yaml#timeout" } },
+          { name: "inline", intent: "plain" },
+        ],
+      },
+    ],
+  };
+
+  async function callFull(file: string) {
+    const tool = harness.tools.get("read_spec_file")!;
+    const result = await tool.handler({ file, project_dir: projectDir });
+    return result.content.map((c: { text: string }) => c.text);
+  }
+
+  beforeEach(() => {
+    writeJson(join(specDir(), "app.spec.json"), spec);
+    writeFileSync(
+      join(specDir(), "app.texts.yaml"),
+      "overview: |\n  # Title\n\n  - item\ncases:\n  api:\n    retries: \"**once**\"\n"
+    );
+  });
+
+  it("expands paired and named references as {md, text}", async () => {
+    const shared = join(specDir(), "shared");
+    mkdirSync(shared, { recursive: true });
+    writeFileSync(join(shared, "net.texts.yaml"), "timeout: ten seconds\n");
+    const [json, summary] = await callFull("app.spec.json");
+    const data = JSON.parse(json);
+    expect(data.metadata.description).toEqual({ md: "overview", text: "# Title\n\n- item\n" });
+    const cases = data.unitContracts[0].cases;
+    expect(cases[0].intent).toEqual({ md: "cases.api.retries", text: "**once**" });
+    expect(cases[1].intent.text).toBe("ten seconds");
+    expect(cases[2].intent).toBe("plain");
+    expect(summary).toContain("3/3 reference(s) expanded");
+    expect(summary).toContain("edit the YAML file");
+  });
+
+  it("names a reference it cannot expand and leaves it as written", async () => {
+    const [json, summary] = await callFull("app.spec.json");
+    const cases = JSON.parse(json).unitContracts[0].cases;
+    expect(cases[1].intent).toEqual({ md: "shared/net.texts.yaml#timeout" });
+    expect(summary).toContain("2/3 reference(s) expanded");
+    expect(summary).toContain("shared/net.texts.yaml does not exist");
+  });
+
+  it("returns a spec without references byte-for-byte", async () => {
+    const raw = '{"type":"screen_spec",  "metadata":{"name":"X","description":"a\\nb"}}';
+    writeFileSync(join(specDir(), "raw.spec.json"), raw);
+    const texts = await callFull("raw.spec.json");
+    expect(texts).toEqual([raw]);
   });
 });
 
