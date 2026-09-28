@@ -100,7 +100,7 @@ These are served directly by the `get_modifier_order`,
 | `list_screen_specs` | Screen-spec index with metadata. |
 | `list_component_specs` | Component-spec index with metadata. |
 | `list_layouts` | Layout JSON inventory. |
-| `read_spec_file` | One spec file (no parsing beyond `JSON.parse`). |
+| `read_spec_file` | One spec file. Byte-for-byte unless it carries `{"md": ...}` prose references (jsonui-cli `shared/core/spec_texts.py`); those are expanded to `{"md", "text"}` from the YAML texts file by `src/spec_texts.ts` — a reader only, the YAML rules stay in `jsonui-doc validate`. |
 | `read_layout_file` | One layout JSON file. |
 
 ### Group C — `jui` CLI wrappers (8)
