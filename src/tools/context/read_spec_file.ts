@@ -9,11 +9,15 @@ export function register(server: McpServer, config: ServerConfig) {
   server.tool(
     "read_spec_file",
     "Read the contents of a screen or component spec file. Prose fields " +
-      "(description / notes / intent) written as {\"md\": \"key\"} live in a " +
+      "(description / notes / intent / purpose / processing / handling / " +
+      "rule / meaning / note / reason — not under harnessConditions or " +
+      "canonicalDivergence — and condition under transitions only) written " +
+      "as {\"md\": \"key\"} live in a " +
       "YAML texts file (<name>.texts.yaml beside the spec, or " +
       "{\"md\": \"file.texts.yaml#key\"}); they are returned expanded as " +
       "{\"md\": ..., \"text\": ...} — edit the text in the YAML file, not " +
-      "here. A spec without such references is returned byte-for-byte.",
+      "here. A spec without such references is returned byte-for-byte. " +
+      "search_specs does not search text held in a texts file.",
     {
       file: z.string().describe("Filename (e.g., 'login.spec.json' or 'my_card.component.json')"),
       project_dir: z.string().optional().describe("Project directory (overrides JUI_PROJECT_DIR env)"),

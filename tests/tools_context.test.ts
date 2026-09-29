@@ -7,6 +7,7 @@ import { join } from "path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { ServerConfig } from "../src/config.js";
+import { isTextField } from "../src/spec_texts.js";
 import { register as registerGetProjectConfig } from "../src/tools/context/get_project_config.js";
 import { register as registerListScreenSpecs } from "../src/tools/context/list_screen_specs.js";
 import { register as registerListComponentSpecs } from "../src/tools/context/list_component_specs.js";
@@ -342,7 +343,8 @@ describe("read_spec_file", () => {
 });
 
 describe("read_spec_file — texts-file prose", () => {
-  // `{"md": ...}` in description / notes / intent points into a YAML file
+  // `{"md": ...}` in a prose field (description / notes / intent / ...,
+  // path-scoped for reason and condition) points into a YAML file
   // (jsonui-cli shared/core/spec_texts.py). The reader expands it next to the
   // reference, so an agent sees the text AND where to edit it.
   const specDir = () => join(projectDir, "docs/screens/json");
@@ -397,6 +399,48 @@ describe("read_spec_file — texts-file prose", () => {
     expect(cases[1].intent).toEqual({ md: "shared/net.texts.yaml#timeout" });
     expect(summary).toContain("2/3 reference(s) expanded");
     expect(summary).toContain("shared/net.texts.yaml does not exist");
+  });
+
+  it("expands purpose / reason / condition-under-transitions, and leaves reason and condition where they are not prose", async () => {
+    const scoped = {
+      type: "screen_spec",
+      metadata: { name: "Scoped" },
+      decorativeElements: [{ id: "bg", purpose: { md: "p" } }],
+      apiOutcomeRules: [{ op: "get", reason: { md: "r" } }],
+      transitions: [{ destination: "Next", condition: { md: "c" } }],
+      harnessConditions: [{ name: "h", reason: { md: "r" } }],
+      contracts: { canonicalDivergence: [{ reason: { md: "r" } }] },
+      displayLogic: [{ condition: { md: "c" } }],
+      navigation: { transitions: [{ condition: { md: "c" } }] },
+    };
+    writeJson(join(specDir(), "scoped.spec.json"), scoped);
+    writeFileSync(join(specDir(), "scoped.texts.yaml"), "p: the purpose\nr: the reason\nc: the condition\n");
+    const [json, summary] = await callFull("scoped.spec.json");
+    const data = JSON.parse(json);
+    expect(data.decorativeElements[0].purpose).toEqual({ md: "p", text: "the purpose" });
+    expect(data.apiOutcomeRules[0].reason).toEqual({ md: "r", text: "the reason" });
+    expect(data.transitions[0].condition).toEqual({ md: "c", text: "the condition" });
+    // Not prose at these paths: found, left exactly as written.
+    expect(data.harnessConditions[0].reason).toEqual({ md: "r" });
+    expect(data.contracts.canonicalDivergence[0].reason).toEqual({ md: "r" });
+    expect(data.displayLogic[0].condition).toEqual({ md: "c" });
+    // `transitions` must be the FIRST ancestor, not any ancestor.
+    expect(data.navigation.transitions[0].condition).toEqual({ md: "c" });
+    expect(summary).toContain("3/3 reference(s) expanded");
+  });
+
+  it("isTextField matches jsonui-cli is_text_field", () => {
+    expect(isTextField([], "description")).toBe(true);
+    expect(isTextField(["userActions"], "processing")).toBe(true);
+    expect(isTextField(["apiOutcomeRules"], "reason")).toBe(true);
+    expect(isTextField(["harnessConditions"], "reason")).toBe(false);
+    expect(isTextField(["x", "canonicalDivergence", "y"], "reason")).toBe(false);
+    expect(isTextField(["transitions"], "condition")).toBe(true);
+    expect(isTextField([], "condition")).toBe(false);
+    expect(isTextField(["validation", "serverSide"], "condition")).toBe(false);
+    expect(isTextField(["a", "transitions"], "condition")).toBe(false);
+    expect(isTextField([], "displayName")).toBe(false);
+    expect(isTextField([], "toString")).toBe(false);
   });
 
   it("returns a spec without references byte-for-byte", async () => {
