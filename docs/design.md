@@ -100,7 +100,7 @@ These are served directly by the `get_modifier_order`,
 | `list_screen_specs` | Screen-spec index with metadata. |
 | `list_component_specs` | Component-spec index with metadata. |
 | `list_layouts` | Layout JSON inventory. |
-| `read_spec_file` | One spec file. Byte-for-byte unless it carries `{"md": ...}` prose references (jsonui-cli `shared/core/spec_texts.py`); those are expanded to `{"md", "text"}` from the YAML texts file by `src/spec_texts.ts` — a reader only, the YAML rules stay in `jsonui-doc validate`. |
+| `read_spec_file` | One spec file. Byte-for-byte unless it carries `{"md": ...}` prose references (jsonui-cli `shared/core/spec_texts.py`); those are expanded to `{"md", "text"}` from the YAML texts file by `src/spec_texts.ts` — a reader only, the YAML rules stay in `jsonui-doc validate`. Which fields are prose is path-aware and mirrors `is_text_field` (description / notes / intent / purpose / processing / handling / rule / meaning / note / reason — not under `harnessConditions` / `canonicalDivergence` — and `condition` under top-level `transitions` only). `search_specs` does not search texts-file text. |
 | `read_layout_file` | One layout JSON file. |
 
 ### Group C — `jui` CLI wrappers (8)

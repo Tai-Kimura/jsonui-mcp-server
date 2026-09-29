@@ -1,8 +1,9 @@
 // Expands `{"md": ...}` prose references in a spec for a reader.
 //
-// A spec's `description` / `notes` / `intent` may point into a YAML texts
-// file instead of holding the text inline (jsonui-cli shared/core/
-// spec_texts.py is the definition):
+// A spec's prose fields (TEXT_KEYS below, scoped by TEXT_KEY_SCOPE) may
+// point into a YAML texts file instead of holding the text inline (jsonui-cli
+// shared/core/spec_texts.py is the definition, and `isTextField` mirrors its
+// `is_text_field`):
 //
 //   {"md": "a.b.c"}                   -> <spec name>.texts.yaml, key path a.b.c
 //   {"md": "shared/x.texts.yaml#a.b"} -> that file (relative to the spec)
@@ -22,7 +23,35 @@ import { existsSync, readFileSync } from "fs";
 import { basename, dirname, join } from "path";
 import { parse } from "yaml";
 
-const TEXT_KEYS = new Set(["description", "notes", "intent"]);
+// Mirrors TEXT_KEYS / TEXT_KEY_SCOPE / is_text_field in jsonui-cli
+// shared/core/spec_texts.py. Prose only: a key a tool parses, matches as a
+// name or emits as code is not here, and at the paths TEXT_KEY_SCOPE names
+// the same key is not prose either.
+export const TEXT_KEYS: readonly string[] = [
+  "description", "notes", "intent", "purpose", "processing",
+  "handling", "rule", "meaning", "note", "reason", "condition",
+];
+
+// key -> [mode, ancestor keys]. "not-under": prose unless one of those keys
+// is an ancestor; "only-under": prose only when the first (top-level)
+// ancestor is one of them.
+export const TEXT_KEY_SCOPE: Readonly<Record<string, ["not-under" | "only-under", readonly string[]]>> = {
+  reason: ["not-under", ["harnessConditions", "canonicalDivergence"]],
+  condition: ["only-under", ["transitions"]],
+};
+
+/** Whether `key`, reached through `ancestors` (the dict keys above it, list
+ * indices left out), is a prose field a reference may stand in. */
+export function isTextField(ancestors: readonly string[], key: string): boolean {
+  if (!TEXT_KEYS.includes(key)) return false;
+  const scope = Object.prototype.hasOwnProperty.call(TEXT_KEY_SCOPE, key)
+    ? TEXT_KEY_SCOPE[key]
+    : undefined;
+  if (scope === undefined) return true;
+  const [mode, names] = scope;
+  if (mode === "not-under") return !ancestors.some((a) => names.includes(a));
+  return ancestors.length > 0 && names.includes(ancestors[0]);
+}
 const REF_KEY = "md";
 
 export interface TextsExpansion {
@@ -108,9 +137,14 @@ export function expandSpecTexts(data: unknown, specPath: string): TextsExpansion
     return { ...ref, text: node };
   };
 
-  const walk = (node: unknown, path: string, inText: boolean): unknown => {
+  const walk = (
+    node: unknown, path: string, inText: boolean, ancestors: readonly string[],
+  ): unknown => {
     if (Array.isArray(node)) {
-      return node.map((v, i) => walk(v, `${path}[${i}]`, inText && !Array.isArray(v)));
+      // `notes: [...]` — each entry is prose too. Deeper lists under a text
+      // key are not prose, so the flag is not carried past one.
+      return node.map((v, i) =>
+        walk(v, `${path}[${i}]`, inText && !Array.isArray(v), ancestors));
     }
     if (typeof node === "object" && node !== null) {
       if (isReference(node)) {
@@ -120,14 +154,14 @@ export function expandSpecTexts(data: unknown, specPath: string): TextsExpansion
       }
       const out: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(node)) {
-        out[k] = walk(v, path ? `${path}.${k}` : k, TEXT_KEYS.has(k));
+        out[k] = walk(v, path ? `${path}.${k}` : k, isTextField(ancestors, k), [...ancestors, k]);
       }
       return out;
     }
     return node;
   };
 
-  const walked = walk(data, "", false);
+  const walked = walk(data, "", false, []);
   if (result.found > 0) result.data = walked;
   return result;
 }
