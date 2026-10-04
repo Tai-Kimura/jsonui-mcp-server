@@ -136,10 +136,11 @@ export const MODIFIER_ORDER = {
   },
   kotlin: {
     order: [
-      "testTag",
       "margins",
       "weight (caller applies)",
       "size (width/height, matchParent/wrapContent, min/max/aspectRatio)",
+      "offset",
+      "testTag (with testTagsAsResourceId): after margins and offset, so the tagged node's bounds are the drawn box",
       "alpha/opacity",
       "shadow/elevation",
       "background (cornerRadius -> clip -> border -> bgColor)",
@@ -150,6 +151,7 @@ export const MODIFIER_ORDER = {
     criticalRules: [
       "Modifier.then() chains left-to-right; order matters",
       "margins before size (outside to inside)",
+      "testTag after margins and offset (from KotlinJsonUI 2.43.5 / jsonui-cli 1.9.16): a tag outside them reports a margin-inclusive box to accessibility",
       "cornerRadius must be applied as clip before background",
     ],
   },
