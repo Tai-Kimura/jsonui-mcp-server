@@ -74,7 +74,11 @@ jsonui-cli files — it encodes fixed cross-platform conventions:
   lifecycle / accessibility / binding buckets for the lookup tools.
 
 These are served directly by the `get_modifier_order`,
-`get_binding_rules`, and `get_platform_mapping` tools.
+`get_binding_rules`, and `get_platform_mapping` tools — except Swift's
+modifier order, which `get_modifier_order` reads from jsonui-cli's
+`sjui_tools/lib/swiftui/views/modifier_order.json` (bundled as
+`data/modifier_order.json`): the hand-written list that stood in
+`MODIFIER_ORDER.swift` had drifted from what sjui emits.
 
 ---
 

@@ -78,7 +78,10 @@ describe("derived constants (pinned)", () => {
       "react",
       "swift",
     ]);
-    expect(MODIFIER_ORDER.swift.order.length).toBeGreaterThan(0);
+    // Swift's order is read from jsonui-cli's modifier_order.json
+    // (SpecLoader.getModifierOrder); a list here is the drift that ticket
+    // mcp-get-modifier-order-swift-is-a-hand-written-list-that-drifted removed.
+    expect((MODIFIER_ORDER.swift as Record<string, unknown>).order).toBeUndefined();
     expect(MODIFIER_ORDER.swift.criticalRules.length).toBeGreaterThan(0);
     expect(MODIFIER_ORDER.kotlin.order.length).toBeGreaterThan(0);
   });

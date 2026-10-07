@@ -65,6 +65,12 @@ export const FILES = [
     remote: "shared/core/type_synonyms.json",
     local: "type_synonyms.json",
   },
+  // sjui's SwiftUI modifier order: get_modifier_order serves its Swift
+  // answer from it rather than from a hand-kept list.
+  {
+    remote: "sjui_tools/lib/swiftui/views/modifier_order.json",
+    local: "modifier_order.json",
+  },
   {
     remote: "conformance/coverage.json",
     local: "coverage.json",

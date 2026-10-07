@@ -100,32 +100,11 @@ export function categorizeCommonAttributes(commonAttrs: Record<string, any>): an
 export const MODIFIER_ORDER = {
   description:
     "Platform-specific modifier application order. Order affects rendering.",
+  // Swift's order is not restated here: SpecLoader.getModifierOrder reads it
+  // from jsonui-cli's sjui_tools/lib/swiftui/views/modifier_order.json. The
+  // list that stood here had drifted from it (margins before offset, onClick
+  // after the margins). Only the prose rules stay.
   swift: {
-    order: [
-      "centerAlignment",
-      "edgeAlignment",
-      "padding",
-      "frameConstraints (min/max)",
-      "frameSize (width/height)",
-      "insets/insetHorizontal",
-      "background",
-      "cornerRadius",
-      "border",
-      "margins",
-      "alpha/opacity",
-      "shadow",
-      "clipping",
-      "offset",
-      "visibility (hidden/opacity ternary)",
-      "safeAreaInsets",
-      "disabled",
-      "tag (for TabView)",
-      "tintColor",
-      "onClick/onTapGesture",
-      "lifecycle (onAppear/onDisappear)",
-      "confirmationDialog",
-      "accessibilityIdentifier",
-    ],
     criticalRules: [
       "background MUST come after padding (background includes padding area)",
       "border MUST come after cornerRadius (for rounded border)",

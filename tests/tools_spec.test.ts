@@ -23,6 +23,7 @@ import {
 import {
   cleanupTempDirs,
   createToolHarness,
+  FIXTURE_MODIFIER_ORDER,
   makeBundledDataset,
   makeTempDir,
   type ToolHarness,
@@ -42,9 +43,11 @@ function buildHarness(loader: SpecLoader): ToolHarness {
   return harness;
 }
 
-function makeFixtureLoader(opts: { staleDays?: number } = {}): SpecLoader {
+function makeFixtureLoader(opts: { staleDays?: number; modifierOrder?: Record<string, unknown> | null } = {}): SpecLoader {
   const mcpRoot = makeTempDir("mcp-root");
-  makeBundledDataset(mcpRoot);
+  makeBundledDataset(mcpRoot, {
+    modifierOrder: opts.modifierOrder === null ? undefined : (opts.modifierOrder ?? FIXTURE_MODIFIER_ORDER),
+  });
   if (opts.staleDays) {
     const when = new Date(Date.now() - opts.staleDays * 24 * 60 * 60 * 1000);
     for (const f of ["attribute_definitions.json", "component_metadata.json"]) {
@@ -156,16 +159,43 @@ describe("search_components", () => {
 });
 
 describe("get_modifier_order", () => {
-  it("returns the full table when platform is omitted", async () => {
-    const result = JSON.parse(await harness.call("get_modifier_order"));
-    expect(result).toEqual(JSON.parse(JSON.stringify(MODIFIER_ORDER)));
-  });
-
-  it("returns a single platform section", async () => {
+  // The Swift order is read from jsonui-cli's modifier_order.json. The
+  // fixture's slot names exist nowhere else, so an answer carrying them came
+  // from the file — a list kept in the server cannot pass (ticket mcp-get-
+  // modifier-order-swift-is-a-hand-written-list-that-drifted).
+  it("serves the Swift order from modifier_order.json: the bag, then what follows it", async () => {
     const result = JSON.parse(
       await harness.call("get_modifier_order", { platform: "swift" })
     );
-    expect(result).toEqual(JSON.parse(JSON.stringify(MODIFIER_ORDER.swift)));
+    expect(result.bag).toEqual(FIXTURE_MODIFIER_ORDER.bag);
+    expect(result.afterBag).toEqual(FIXTURE_MODIFIER_ORDER.after_bag);
+    expect(result.order).toEqual([
+      ...FIXTURE_MODIFIER_ORDER.bag,
+      "fixture_after_one (after the bag)",
+    ]);
+    expect(result.sharedSlots).toEqual(FIXTURE_MODIFIER_ORDER.shared_slots);
+    expect(result.source).toContain("sjui_tools/lib/swiftui/views/modifier_order.json");
+    expect(result.criticalRules).toEqual(MODIFIER_ORDER.swift.criticalRules);
+  });
+
+  it("says the Swift order is unavailable when the file does not resolve, and invents none", async () => {
+    harness = buildHarness(makeFixtureLoader({ modifierOrder: null }));
+    const result = JSON.parse(
+      await harness.call("get_modifier_order", { platform: "swift" })
+    );
+    expect(result.order).toBeNull();
+    expect(result.source).toMatch(/^unavailable/);
+  });
+
+  it("returns the full table when platform is omitted, Kotlin and React marked hand-written", async () => {
+    const result = JSON.parse(await harness.call("get_modifier_order"));
+    expect(Object.keys(result).sort()).toEqual(["description", "kotlin", "react", "swift"]);
+    expect(result.swift.bag).toEqual(FIXTURE_MODIFIER_ORDER.bag);
+    for (const key of ["kotlin", "react"] as const) {
+      expect(result[key].source).toMatch(/^hand-written/);
+      const { source, ...rest } = result[key];
+      expect(rest).toEqual(JSON.parse(JSON.stringify(MODIFIER_ORDER[key])));
+    }
   });
 
   it("rejects unknown platforms at the schema layer", async () => {

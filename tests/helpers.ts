@@ -108,7 +108,18 @@ export interface CliDatasetOptions {
   omitComponentMetadata?: boolean;
   /** Optional conformance/coverage.json fixture (implementation-gap ledger). */
   coverage?: Record<string, unknown>;
+  /** Optional sjui_tools/lib/swiftui/views/modifier_order.json fixture. */
+  modifierOrder?: Record<string, unknown>;
 }
+
+/** A modifier order whose slot names exist nowhere else: an answer that
+ *  carries them came from the file, not from a list kept in the server. */
+export const FIXTURE_MODIFIER_ORDER = {
+  _about: ["test fixture — not real data"],
+  bag: ["fixture_slot_alpha", "fixture_slot_beta", "fixture_slot_gamma"],
+  after_bag: ["fixture_after_one"],
+  shared_slots: { fixture_slot_alpha: ["fixture_slot_alpha", "fixture_extra"] },
+};
 
 /** Coverage-ledger fixture: one gap on Label.fontSize [web] + one on common.onClick [android]. */
 export const FIXTURE_COVERAGE = {
@@ -149,6 +160,9 @@ export function makeCliDataset(root: string, opts: CliDatasetOptions = {}): void
   if (opts.coverage) {
     writeJson(join(root, "conformance", "coverage.json"), opts.coverage);
   }
+  if (opts.modifierOrder) {
+    writeJson(join(root, "sjui_tools", "lib", "swiftui", "views", "modifier_order.json"), opts.modifierOrder);
+  }
 }
 
 /** Write a fixture bundled snapshot layout: <mcpRoot>/data/*.json */
@@ -165,6 +179,9 @@ export function makeBundledDataset(root: string, opts: CliDatasetOptions = {}): 
       join(dataDir, "component_metadata.json"),
       opts.componentMetadata ?? FIXTURE_COMPONENT_METADATA
     );
+  }
+  if (opts.modifierOrder) {
+    writeJson(join(dataDir, "modifier_order.json"), opts.modifierOrder);
   }
 }
 

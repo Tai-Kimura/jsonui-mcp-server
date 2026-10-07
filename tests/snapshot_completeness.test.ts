@@ -48,6 +48,7 @@ function reportedFiles(source: DataSourceInfo) {
     source.platformSemantics,
     source.coverage,
     source.typeSynonyms,
+    source.swiftModifierOrder,
   ].filter((f): f is NonNullable<typeof f> => f != null);
 }
 

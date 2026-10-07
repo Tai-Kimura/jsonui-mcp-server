@@ -126,6 +126,11 @@ export interface DataSourceInfo {
   /// section they are not (ProgressBar, HStack, Text …). Optional: absent on
   /// jsonui-cli before 1.9.0.
   typeSynonyms: FileInfo | null;
+  /// sjui_tools/lib/swiftui/views/modifier_order.json — the order sjui
+  /// codegen emits SwiftUI modifiers in, which SwiftJsonUI's Dynamic chain
+  /// is held to. get_modifier_order serves its Swift order from it. Optional:
+  /// absent on jsonui-cli before 1.9.x.
+  swiftModifierOrder: FileInfo | null;
   componentCount: number;
   commonAttributeCount: number;
 }
@@ -170,6 +175,7 @@ export class SpecLoader {
   /// the note explains why (backlog, alias normalization, runtime-only, ...).
   private coverageGaps: Map<string, any[]> | null = null;
   private screenIdentity: Record<string, any> | null = null;
+  private swiftModifierOrder: Record<string, any> | null = null;
   private commonAttributes: any = null;
   private aliasMap: Map<string, string> = new Map();
   /// Lower-cased spelling -> its entry in type_synonyms.json, for the
@@ -420,9 +426,45 @@ export class SpecLoader {
     return guides;
   }
 
+  /**
+   * The Swift order is read from jsonui-cli's modifier_order.json, the order
+   * sjui codegen emits and SwiftJsonUI's Dynamic chain is tested against. It
+   * was a hand-written list here (derived.ts), and it had drifted: margins
+   * before offset, onClick after the margins — while jsonui-cli 1.9.20 puts
+   * the tap inside the offset and the margins (ticket mcp-get-modifier-order-
+   * swift-is-a-hand-written-list-that-drifted). Kotlin and React have no such
+   * file in jsonui-cli; they stay hand-written and say so (`source`).
+   */
   getModifierOrder(platform?: string): any {
-    if (platform) return (MODIFIER_ORDER as any)[platform] || null;
-    return MODIFIER_ORDER;
+    const swift = this.swiftModifierOrderEntry();
+    const all: Record<string, any> = { ...MODIFIER_ORDER, swift };
+    for (const key of ["kotlin", "react"]) {
+      all[key] = { source: "hand-written in jsonui-mcp-server (src/data/derived.ts); jsonui-cli has no order file for it", ...(MODIFIER_ORDER as any)[key] };
+    }
+    if (platform) return all[platform] || null;
+    return all;
+  }
+
+  private swiftModifierOrderEntry(): Record<string, any> {
+    const doc = this.swiftModifierOrder;
+    const file = this.dataSource?.swiftModifierOrder;
+    if (!doc || !file || !Array.isArray(doc.bag)) {
+      return {
+        source: "unavailable: sjui_tools/lib/swiftui/views/modifier_order.json did not resolve",
+        order: null,
+      };
+    }
+    const afterBag: string[] = Array.isArray(doc.after_bag) ? doc.after_bag : [];
+    return {
+      source: `jsonui-cli sjui_tools/lib/swiftui/views/modifier_order.json (${file.layer}: ${file.path})`,
+      // The bag in the order it is written, then what is written after it.
+      order: [...doc.bag, ...afterBag.map((k: string) => `${k} (after the bag)`)],
+      bag: doc.bag,
+      afterBag,
+      sharedSlots: doc.shared_slots ?? {},
+      about: doc._about ?? [],
+      criticalRules: (MODIFIER_ORDER as any).swift?.criticalRules ?? [],
+    };
   }
 
   /**
@@ -458,6 +500,7 @@ export class SpecLoader {
       this.dataSource.platformSemantics,
       this.dataSource.coverage,
       this.dataSource.typeSynonyms,
+      this.dataSource.swiftModifierOrder,
     ].filter((f): f is FileInfo => f != null);
 
     const changed: string[] = [];
@@ -673,6 +716,22 @@ export class SpecLoader {
 
     const typeSynonymsResolution = this.loadTypeSynonyms();
 
+    // sjui's SwiftUI modifier order (get_modifier_order's Swift answer).
+    // Optional for the same backward-compat reason.
+    let swiftModifierOrderResolution: FileInfo | null = null;
+    try {
+      const orderResolution = this.resolveFile(
+        "sjui_tools/lib/swiftui/views/modifier_order.json",
+        "data/modifier_order.json"
+      );
+      this.swiftModifierOrder = JSON.parse(
+        readFileSync(orderResolution.path, "utf-8")
+      ) as Record<string, any>;
+      swiftModifierOrderResolution = orderResolution;
+    } catch {
+      this.swiftModifierOrder = null;
+    }
+
     this.dataSource = {
       attributeDefinitions: attrResolution,
       componentMetadata: metaResolution,
@@ -682,6 +741,7 @@ export class SpecLoader {
       platformSemantics: platformSemanticsResolution,
       coverage: coverageResolution,
       typeSynonyms: typeSynonymsResolution,
+      swiftModifierOrder: swiftModifierOrderResolution,
       componentCount,
       commonAttributeCount: Object.keys(this.commonAttributesRaw).filter(
         (k) => !k.startsWith("_")

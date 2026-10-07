@@ -55,7 +55,7 @@ bash ~/.jsonui-mcp-server/uninstall.sh
 | `lookup_component` | コンポーネント仕様を取得（属性、binding、プラットフォーム別詳細） |
 | `lookup_attribute` | 属性定義を取得（型、binding対応、使用コンポーネント） |
 | `search_components` | キーワードでコンポーネント/属性を検索 |
-| `get_modifier_order` | プラットフォーム別 modifier 適用順序 |
+| `get_modifier_order` | プラットフォーム別 modifier 適用順序（Swift は jsonui-cli の `sjui_tools/lib/swiftui/views/modifier_order.json` から導出。Kotlin / React は手書きで、`source` にそう出る） |
 | `get_binding_rules` | binding 構文ルール（two-way / read-only） |
 | `get_platform_mapping` | プラットフォーム間の値変換マッピング |
 | `get_screen_identity` | スクリーン正準定義（screen とは何か・id 導出・表示判定述語） |
