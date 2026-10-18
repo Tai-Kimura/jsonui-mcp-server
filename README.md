@@ -46,7 +46,7 @@ bash ~/.jsonui-mcp-server/install.sh
 bash ~/.jsonui-mcp-server/uninstall.sh
 ```
 
-## Available Tools (46)
+## Available Tools (51)
 
 ### Group A: コンポーネント仕様参照 (9)
 
@@ -125,6 +125,20 @@ bash ~/.jsonui-mcp-server/uninstall.sh
 | `test_contracts_coverage` | OpenAPI が宣言する応答 status を、画面・VM method・operation・platform ごとに「行が答える / 理由つきの除外 / 評価できない / 不足」に振り分ける（読み取り専用、まだ門ではない。exit 0 pass・1 不足か宣言の誤り・2 始められない・3 評価できないものがある。jsonui-cli 1.8.116 以上） | `jsonui-test contracts coverage [screen] [--platform …] --json` |
 
 > `jsonui-test mock serve`（常駐 HTTP + run-target 実行）は RCE 面のため **MCP 非公開**（CLI 直叩き限定）。
+
+### Group G: jui viz (5)
+
+Claude Code のセッションを見るローカルのビューア（`jui viz`）。**Claude Code のセッションだけを見せる**（Codex など他のエージェントのセッションは出ない）。どれもホームフォルダで走り、`JUI_PROJECT_DIR` は使わない。
+
+| Tool | Description | CLI |
+|------|-------------|-----|
+| `viz_status` | サーバーが動いているか（pid・URL）、`~/.claude/settings.json` のフック（18 個中いくつ）、権限の中継が登録済みか（`relay=false` で中継の確認を省く） | `jui viz status --json [--with-relay]` |
+| `viz_doctor` | viz の環境の点検（Python パッケージ・フックとその Python・ポート・claude CLI） | `jui viz doctor --json` |
+| `viz_start` | サーバーをバックグラウンドで起動し、`/health` が応答したら URL を返す。動いていれば起動せずに `alreadyRunning` で返す | `jui viz start --json [--port N]` |
+| `viz_stop` | jui が記録したサーバーだけを止める | `jui viz stop` |
+| `viz_open` | 動いているサーバーのページをブラウザで開く（動いていなければ失敗。先に `viz_start`） | `jui viz open` |
+
+> フックと中継の導入（`jui viz hooks install` / `jui viz relay install`）は `~/.claude/settings.json` と利用者の MCP 設定を書くので **MCP 非公開**（CLI で行う）。jui が古いと（`viz` / `start` / `--with-relay` が無い）、結果の `update_jui` に更新の手順が出る。
 
 ## Testing
 

@@ -53,6 +53,13 @@ import { register as registerDocGenerateHtml } from "./tools/doc/doc_generate_ht
 import { register as registerDocRulesInit } from "./tools/doc/doc_rules_init.js";
 import { register as registerDocRulesShow } from "./tools/doc/doc_rules_show.js";
 
+// --- Group G: jui viz (Claude Code sessions viewer) ---
+import { register as registerVizStatus } from "./tools/viz/viz_status.js";
+import { register as registerVizDoctor } from "./tools/viz/viz_doctor.js";
+import { register as registerVizStart } from "./tools/viz/viz_start.js";
+import { register as registerVizStop } from "./tools/viz/viz_stop.js";
+import { register as registerVizOpen } from "./tools/viz/viz_open.js";
+
 // --- Group F: jsonui-test CLI ---
 import { register as registerTestValidate } from "./tools/test/test_validate.js";
 import { register as registerTestGenerateScreen } from "./tools/test/test_generate_screen.js";
@@ -144,7 +151,7 @@ registerListApiSpecs(server, config);
 registerListApiModels(server, config);
 registerPreviewApiModelSync(server, config);
 
-// Register Group F: jsonui-test CLI (8 tools)
+// Register Group F: jsonui-test CLI (10 tools)
 // mock serve is intentionally NOT exposed (long-running local HTTP server that
 // executes run-targets — kept to direct CLI use only). test_mock_generate
 // covers both scaffold (default) and drift-check (check=true) modes.
@@ -159,7 +166,15 @@ registerTestArtifactsPull(server, config);
 registerTestArtifactsStatus(server, config);
 registerTestContractsCoverage(server, config);
 
-log(`Registered 41 tools (7 spec + 6 context + 8 jui + 9 doc + 3 api + 8 test)`);
+// Register Group G: jui viz (5 tools). Hooks / relay install stay with the
+// jui CLI (they write ~/.claude/settings.json and the user's MCP config).
+registerVizStatus(server);
+registerVizDoctor(server);
+registerVizStart(server);
+registerVizStop(server);
+registerVizOpen(server);
+
+log(`Registered 51 tools (9 spec + 7 context + 8 jui + 9 doc + 3 api + 10 test + 5 viz)`);
 
 async function main() {
   const transport = new StdioServerTransport();
