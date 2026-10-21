@@ -5,7 +5,7 @@
  * after the CLI's --json changes, and what no longer holds is red here. A key the tool needs and the output lacks is
  * named in the tool's answer, never summarised as an empty room.
  */
-import { copyFileSync, existsSync, mkdirSync, readFileSync } from "fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -280,5 +280,53 @@ describe("infra_cost", () => {
   it("names a key the month lacks", async () => {
     answer = { stdout: without("cost-infra.month.json", "month.noPrice") };
     expect(await harness.call("infra_cost", { project_dir: projectDir })).toMatch(/cost infra month: the JSON has no "noPrice"/);
+  });
+});
+
+describe("each tool names a key its summary reads and the CLI's JSON lacks", () => {
+  const cases: [string, Record<string, unknown>, string, string, RegExp][] = [
+    ["infra_validate", {}, "validate-infra.ok.json", "dir", /validate infra: the JSON has no "dir"/],
+    ["infra_load_validate", {}, "validate-infra-load.ok.json", "scenarios", /validate infra-load: the JSON has no "scenarios"/],
+    ["infra_prices_validate", {}, "validate-infra-prices.ok.json", "count", /validate infra-prices: the JSON has no "count"/],
+    ["infra_check", {}, "check-infra.json", "checks.0.status", /check infra check: the JSON has no "status"/],
+    ["infra_check", {}, "check-infra.json", "checks.0.name", /check infra check: the JSON has no "name"/],
+    ["infra_cost", {}, "cost-infra.month.json", "topNodes", /cost infra: the JSON has no "topNodes"/],
+    ["infra_cost", {}, "cost-infra.month.json", "prices.warningCount", /cost infra prices: the JSON has no "warningCount"/],
+    ["infra_cost", { date: "2026-11-03" }, "cost-infra.day.json", "day.nodes.0.hours", /cost infra day node: the JSON has no "hours"/],
+  ];
+  for (const [tool, params, file, path, message] of cases) {
+    it(`${tool}: ${path}`, async () => {
+      answer = { stdout: without(file, path) };
+      expect(await harness.call(tool, { project_dir: projectDir, ...params })).toMatch(message);
+    });
+  }
+
+  it("infra_seed: the report's unmatched", async () => {
+    answer = { seed: true };
+    const report = fixture("seed-infra.report.json");
+    delete report.unmatched;
+    execFileMock.mockImplementationOnce((command: string, args: string[], options: any, callback: ExecCallback) => {
+      const out = args[args.indexOf("-o") + 1];
+      mkdirSync(out, { recursive: true });
+      copyFileSync(join(FIX, "seed-infra.draft.json"), join(out, "draft.json"));
+      writeFileSync(join(out, "seed-report.json"), JSON.stringify(report));
+      callback(null, "", "");
+      return { stdin: { end() {} } };
+    });
+    expect(await harness.call("infra_seed", { project_dir: projectDir })).toMatch(/seed infra report: the JSON has no "unmatched"/);
+  });
+});
+
+describe("a long problem list", () => {
+  it("is counted whole and its first 20 kept", async () => {
+    const data = fixture("validate-infra.errors.json");
+    const [p] = data.problems;
+    data.problems = Array.from({ length: 25 }, (_, i) => ({ ...p, path: `/nodes/${i}/category` }));
+    answer = { code: 1, stdout: JSON.stringify(data) };
+    const out = await call("infra_validate");
+    expect(out.problems.count).toBe(25);
+    expect(out.problems.errors).toBe(25);
+    expect(out.problems.first).toHaveLength(20);
+    expect(out.problems.first[19].path).toBe("/nodes/19/category");
   });
 });
