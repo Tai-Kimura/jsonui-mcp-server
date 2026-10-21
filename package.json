@@ -1,6 +1,6 @@
 {
   "name": "jui-tools-mcp-server",
-  "version": "2.16.0",
+  "version": "2.17.0",
   "description": "MCP server for JsonUI project management - wraps jui and jsonui-doc CLIs plus component spec lookup",
   "main": "dist/index.js",
   "scripts": {
