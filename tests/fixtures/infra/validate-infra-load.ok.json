@@ -1,0 +1,29 @@
+{
+  "ok": true,
+  "dir": "docs/infra/load",
+  "files": [
+    "ordinary.json",
+    "sale.json"
+  ],
+  "problems": [],
+  "scenarios": [
+    {
+      "id": "ordinary",
+      "file": "ordinary.json",
+      "environment": "production",
+      "month": "2026-11",
+      "hours": 720,
+      "loads": 6,
+      "edges": 1
+    },
+    {
+      "id": "sale",
+      "file": "sale.json",
+      "environment": "production",
+      "month": "2026-11",
+      "hours": 720,
+      "loads": 3,
+      "edges": 0
+    }
+  ]
+}

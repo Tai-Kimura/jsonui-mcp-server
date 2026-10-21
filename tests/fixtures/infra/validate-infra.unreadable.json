@@ -1,0 +1,6 @@
+{
+  "ok": false,
+  "reason": "no_infra",
+  "message": "no model files in docs/infra (*.json)",
+  "short": "docs/infra に infra のファイル（*.json）がありません"
+}

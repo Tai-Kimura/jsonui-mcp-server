@@ -1,0 +1,39 @@
+{
+  "ok": true,
+  "dir": "docs/infra",
+  "version": 0,
+  "files": [
+    "external.json",
+    "main.json"
+  ],
+  "environments": [
+    {
+      "id": "production",
+      "label": "本番",
+      "kind": "production"
+    },
+    {
+      "id": "staging",
+      "label": "ステージング",
+      "kind": "staging"
+    }
+  ],
+  "flows": [],
+  "problems": [
+    {
+      "file": "bad.json",
+      "path": "/nodes/0/category",
+      "code": "schema",
+      "message": "must be one of client, compute.vm, compute.container, compute.function, compute.k8s, compute.paas, edge.cdn, edge.dns, edge.waf, load_balancer, gateway.api, gateway.nat, network.ip, database.relational, database.document, database.kv, database.search, cache, storage.object, storage.file, storage.block, queue, stream, scheduler, mail, auth, secrets, monitoring, ci, external.saas, security.iam, security.policy, monitoring.alarm",
+      "severity": "error",
+      "short": "docs/infra/bad.json: /nodes/0/category がスキーマに合いません"
+    }
+  ],
+  "icons": {},
+  "readMs": 2,
+  "counts": {
+    "groups": 8,
+    "nodes": 12,
+    "edges": 10
+  }
+}

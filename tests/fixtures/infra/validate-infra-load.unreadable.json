@@ -1,0 +1,6 @@
+{
+  "ok": false,
+  "reason": "no_infra",
+  "message": "the infra model cannot be read: no model files in docs/infra (*.json)",
+  "problems": []
+}

@@ -1,0 +1,233 @@
+{
+ "$schema": "https://jsonui.dev/schemas/infra-model/v0.json",
+ "version": 0,
+ "description": "Draft by jsonui-doc seed infra: not the display source. Review it, then move what you keep into the model's folder.",
+ "environments": [
+  {
+   "id": "local",
+   "label": "local (Docker Compose)",
+   "kind": "local"
+  },
+  {
+   "id": "deployed",
+   "label": "deployed (seed: split into the real environments)",
+   "kind": "other"
+  }
+ ],
+ "groups": [
+  {
+   "id": "compose",
+   "kind": "host",
+   "label": "Docker Compose",
+   "provider": "docker",
+   "environments": [
+    "local"
+   ]
+  },
+  {
+   "id": "aws-account",
+   "kind": "account",
+   "provider": "aws",
+   "label": "aws (account)",
+   "environments": [
+    "deployed"
+   ]
+  },
+  {
+   "id": "aws-ap-northeast-1",
+   "kind": "region",
+   "label": "aws ap-northeast-1",
+   "provider": "aws",
+   "parent": "aws-account",
+   "region": "ap-northeast-1",
+   "environments": [
+    "deployed"
+   ]
+  },
+  {
+   "id": "external",
+   "kind": "logical",
+   "label": "External services"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "compose-web",
+   "category": "compute.container",
+   "label": "web",
+   "provider": "docker",
+   "service": "compose.container",
+   "group": "compose",
+   "iac": [
+    "docker-compose.yml#services.web"
+   ],
+   "evidence": [
+    {
+     "file": "docker-compose.yml",
+     "pattern": "web",
+     "line": 1
+    }
+   ],
+   "environments": [
+    "local"
+   ]
+  },
+  {
+   "id": "compose-db",
+   "category": "database.relational",
+   "label": "db",
+   "provider": "docker",
+   "service": "compose.postgres",
+   "group": "compose",
+   "engine": "postgres 16",
+   "iac": [
+    "docker-compose.yml#services.db"
+   ],
+   "evidence": [
+    {
+     "file": "docker-compose.yml",
+     "pattern": "db",
+     "line": 4
+    }
+   ],
+   "environments": [
+    "local"
+   ]
+  },
+  {
+   "id": "compose-cache",
+   "category": "cache",
+   "label": "cache",
+   "provider": "docker",
+   "service": "compose.redis",
+   "group": "compose",
+   "engine": "redis 7",
+   "iac": [
+    "docker-compose.yml#services.cache"
+   ],
+   "evidence": [
+    {
+     "file": "docker-compose.yml",
+     "pattern": "cache",
+     "line": 6
+    }
+   ],
+   "environments": [
+    "local"
+   ]
+  },
+  {
+   "id": "rds-main",
+   "category": "database.relational",
+   "label": "main (rds.postgres)",
+   "provider": "aws",
+   "service": "rds.postgres",
+   "group": "aws-ap-northeast-1",
+   "engine": "postgres",
+   "iac": [
+    "aws_db_instance.main"
+   ],
+   "evidence": [
+    {
+     "file": "main.tf",
+     "pattern": "resource \"aws_db_instance\" \"main\"",
+     "line": 2
+    }
+   ],
+   "environments": [
+    "deployed"
+   ]
+  },
+  {
+   "id": "elb-web",
+   "category": "load_balancer",
+   "label": "web (elb.alb)",
+   "provider": "aws",
+   "service": "elb.alb",
+   "group": "aws-ap-northeast-1",
+   "iac": [
+    "aws_lb.web"
+   ],
+   "evidence": [
+    {
+     "file": "main.tf",
+     "pattern": "resource \"aws_lb\" \"web\"",
+     "line": 3
+    }
+   ],
+   "environments": [
+    "deployed"
+   ]
+  },
+  {
+   "id": "s3-assets",
+   "category": "storage.object",
+   "label": "assets (s3)",
+   "provider": "aws",
+   "service": "s3",
+   "group": "aws-ap-northeast-1",
+   "iac": [
+    "aws_s3_bucket.assets"
+   ],
+   "evidence": [
+    {
+     "file": "main.tf",
+     "pattern": "resource \"aws_s3_bucket\" \"assets\"",
+     "line": 4
+    }
+   ],
+   "environments": [
+    "deployed"
+   ]
+  },
+  {
+   "id": "app-app",
+   "category": "compute.container",
+   "label": "app (app: where it runs is not known)",
+   "evidence": [
+    {
+     "file": "app/main.py"
+    }
+   ]
+  },
+  {
+   "id": "stripe-payments",
+   "category": "external.saas",
+   "label": "stripe payments",
+   "provider": "stripe",
+   "service": "payments",
+   "group": "external",
+   "managed_by": "external",
+   "evidence": [
+    {
+     "file": "app/main.py",
+     "pattern": "stripe",
+     "line": 2
+    }
+   ]
+  }
+ ],
+ "edges": [
+  {
+   "from": "compose-web",
+   "to": "compose-db",
+   "label": "depends_on",
+   "environments": [
+    "local"
+   ]
+  },
+  {
+   "from": "compose-web",
+   "to": "compose-cache",
+   "label": "depends_on",
+   "environments": [
+    "local"
+   ]
+  },
+  {
+   "from": "app-app",
+   "to": "stripe-payments",
+   "label": "uses (code)"
+  }
+ ]
+}

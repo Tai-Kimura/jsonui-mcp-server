@@ -11,7 +11,7 @@ import { join } from "path";
 import { describe, expect, it } from "vitest";
 
 const ROOT = join(__dirname, "..");
-const GROUPS = ["spec", "context", "jui", "doc", "api", "test", "viz"]; // README Groups A..G, in order
+const GROUPS = ["spec", "context", "jui", "doc", "api", "test", "viz", "infra"]; // README Groups A..H, in order
 
 function registeredIn(group: string): string[] {
   const dir = join(ROOT, "src", "tools", group);

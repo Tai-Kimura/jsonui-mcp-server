@@ -1,0 +1,30 @@
+{
+  "ok": true,
+  "dir": "docs/infra",
+  "version": 0,
+  "files": [
+    "external.json",
+    "main.json"
+  ],
+  "environments": [
+    {
+      "id": "production",
+      "label": "本番",
+      "kind": "production"
+    },
+    {
+      "id": "staging",
+      "label": "ステージング",
+      "kind": "staging"
+    }
+  ],
+  "flows": [],
+  "problems": [],
+  "icons": {},
+  "readMs": 2,
+  "counts": {
+    "groups": 8,
+    "nodes": 12,
+    "edges": 10
+  }
+}

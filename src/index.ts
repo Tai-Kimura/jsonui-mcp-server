@@ -59,6 +59,12 @@ import { register as registerVizDoctor } from "./tools/viz/viz_doctor.js";
 import { register as registerVizStart } from "./tools/viz/viz_start.js";
 import { register as registerVizStop } from "./tools/viz/viz_stop.js";
 import { register as registerVizOpen } from "./tools/viz/viz_open.js";
+import { register as registerInfraValidate } from "./tools/infra/infra_validate.js";
+import { register as registerInfraLoadValidate } from "./tools/infra/infra_load_validate.js";
+import { register as registerInfraPricesValidate } from "./tools/infra/infra_prices_validate.js";
+import { register as registerInfraSeed } from "./tools/infra/infra_seed.js";
+import { register as registerInfraCheck } from "./tools/infra/infra_check.js";
+import { register as registerInfraCost } from "./tools/infra/infra_cost.js";
 
 // --- Group F: jsonui-test CLI ---
 import { register as registerTestValidate } from "./tools/test/test_validate.js";
@@ -174,7 +180,17 @@ registerVizStart(server);
 registerVizStop(server);
 registerVizOpen(server);
 
-log(`Registered 51 tools (9 spec + 7 context + 8 jui + 9 doc + 3 api + 10 test + 5 viz)`);
+// Register Group H: the server room's infra (6 tools) — jsonui-doc's validate / seed / check / cost infra, each
+// summarised from its --json (jsonui-cli 2.3.15+). `jui viz cloud-prices fetch` stays with the CLI (it goes to the
+// network and writes the viz home).
+registerInfraValidate(server, config);
+registerInfraLoadValidate(server, config);
+registerInfraPricesValidate(server, config);
+registerInfraSeed(server, config);
+registerInfraCheck(server, config);
+registerInfraCost(server, config);
+
+log(`Registered 57 tools (9 spec + 7 context + 8 jui + 9 doc + 3 api + 10 test + 5 viz + 6 infra)`);
 
 async function main() {
   const transport = new StdioServerTransport();

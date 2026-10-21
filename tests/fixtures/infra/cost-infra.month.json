@@ -1,0 +1,381 @@
+{
+  "ok": true,
+  "dir": "docs/infra/load",
+  "scenario": "ordinary",
+  "scenarios": [
+    {
+      "id": "ordinary",
+      "label": "ふだんの月",
+      "file": "ordinary.json",
+      "month": "2026-11",
+      "environment": "production"
+    },
+    {
+      "id": "sale",
+      "label": "セールの月",
+      "file": "sale.json",
+      "month": "2026-11",
+      "environment": "production"
+    }
+  ],
+  "problems": {
+    "count": 0,
+    "errors": 0,
+    "first": []
+  },
+  "prices": {
+    "warnings": [],
+    "warningCount": 0
+  },
+  "month": {
+    "scenario": "ordinary",
+    "month": "2026-11",
+    "usd": 1018.5974779999989,
+    "by": "provider",
+    "keys": [
+      {
+        "key": "aws",
+        "label": "aws"
+      },
+      {
+        "key": "sendgrid",
+        "label": "sendgrid"
+      }
+    ],
+    "days": [
+      {
+        "date": "2026-11-01",
+        "usd": 33.25126966666666,
+        "stack": {
+          "aws": 33.251269666666666
+        },
+        "overflowHours": 0,
+        "atMaxHours": 0
+      },
+      {
+        "date": "2026-11-02",
+        "usd": 34.25409766666661,
+        "stack": {
+          "aws": 34.254097666666674
+        },
+        "overflowHours": 0,
+        "atMaxHours": 0
+      },
+      {
+        "date": "2026-11-03",
+        "usd": 34.25409766666661,
+        "stack": {
+          "aws": 34.254097666666674
+        },
+        "overflowHours": 0,
+        "atMaxHours": 0
+      },
+      {
+        "date": "2026-11-04",
+        "usd": 34.25409766666661,
+        "stack": {
+          "aws": 34.254097666666674
+        },
+        "overflowHours": 0,
+        "atMaxHours": 0
+      },
+      {
+        "date": "2026-11-05",
+        "usd": 34.25409766666661,
+        "stack": {
+          "aws": 34.25409766666667
+        },
+        "overflowHours": 0,
+        "atMaxHours": 0
+      },
+      {
+        "date": "2026-11-06",
+        "usd": 34.25409766666661,
+        "stack": {
+          "aws": 34.25409766666667
+        },
+        "overflowHours": 0,
+        "atMaxHours": 0
+      },
+      {
+        "date": "2026-11-07",
+        "usd": 33.25126966666666,
+        "stack": {
+          "aws": 33.25126966666667
+        },
+        "overflowHours": 0,
+        "atMaxHours": 0
+      },
+      {
+        "date": "2026-11-08",
+        "usd": 33.25126966666666,
+        "stack": {
+          "aws": 33.25126966666667
+        },
+        "overflowHours": 0,
+        "atMaxHours": 0
+      },
+      {
+        "date": "2026-11-09",
+        "usd": 34.25409766666661,
+        "stack": {
+          "aws": 34.254097666666674
+        },
+        "overflowHours": 0,
+        "atMaxHours": 0
+      },
+      {
+        "date": "2026-11-10",
+        "usd": 34.25409766666661,
+        "stack": {
+          "aws": 34.25409766666666
+        },
+        "overflowHours": 0,
+        "atMaxHours": 0
+      },
+      {
+        "date": "2026-11-11",
+        "usd": 34.25409766666661,
+        "stack": {
+          "aws": 34.25409766666663
+        },
+        "overflowHours": 0,
+        "atMaxHours": 0
+      },
+      {
+        "date": "2026-11-12",
+        "usd": 34.25409766666661,
+        "stack": {
+          "aws": 34.25409766666663
+        },
+        "overflowHours": 0,
+        "atMaxHours": 0
+      },
+      {
+        "date": "2026-11-13",
+        "usd": 34.25409766666661,
+        "stack": {
+          "aws": 34.25409766666663
+        },
+        "overflowHours": 0,
+        "atMaxHours": 0
+      },
+      {
+        "date": "2026-11-14",
+        "usd": 33.251269666666666,
+        "stack": {
+          "aws": 33.25126966666663
+        },
+        "overflowHours": 0,
+        "atMaxHours": 0
+      },
+      {
+        "date": "2026-11-15",
+        "usd": 33.25126966666667,
+        "stack": {
+          "aws": 33.25126966666664
+        },
+        "overflowHours": 0,
+        "atMaxHours": 0
+      },
+      {
+        "date": "2026-11-16",
+        "usd": 34.25409766666662,
+        "stack": {
+          "aws": 34.25409766666664
+        },
+        "overflowHours": 0,
+        "atMaxHours": 0
+      },
+      {
+        "date": "2026-11-17",
+        "usd": 34.25409766666662,
+        "stack": {
+          "aws": 34.25409766666664
+        },
+        "overflowHours": 0,
+        "atMaxHours": 0
+      },
+      {
+        "date": "2026-11-18",
+        "usd": 34.25409766666662,
+        "stack": {
+          "aws": 34.25409766666664
+        },
+        "overflowHours": 0,
+        "atMaxHours": 0
+      },
+      {
+        "date": "2026-11-19",
+        "usd": 34.25409766666662,
+        "stack": {
+          "aws": 34.25409766666664
+        },
+        "overflowHours": 0,
+        "atMaxHours": 0
+      },
+      {
+        "date": "2026-11-20",
+        "usd": 34.25409766666662,
+        "stack": {
+          "aws": 34.25409766666664
+        },
+        "overflowHours": 0,
+        "atMaxHours": 0
+      },
+      {
+        "date": "2026-11-21",
+        "usd": 33.25126966666667,
+        "stack": {
+          "aws": 33.25126966666663
+        },
+        "overflowHours": 0,
+        "atMaxHours": 0
+      },
+      {
+        "date": "2026-11-22",
+        "usd": 33.25126966666667,
+        "stack": {
+          "aws": 33.25126966666663
+        },
+        "overflowHours": 0,
+        "atMaxHours": 0
+      },
+      {
+        "date": "2026-11-23",
+        "usd": 34.25409766666662,
+        "stack": {
+          "aws": 34.25409766666664
+        },
+        "overflowHours": 0,
+        "atMaxHours": 0
+      },
+      {
+        "date": "2026-11-24",
+        "usd": 34.25409766666662,
+        "stack": {
+          "aws": 34.25409766666664
+        },
+        "overflowHours": 0,
+        "atMaxHours": 0
+      },
+      {
+        "date": "2026-11-25",
+        "usd": 34.25409766666662,
+        "stack": {
+          "aws": 34.25409766666664
+        },
+        "overflowHours": 0,
+        "atMaxHours": 0
+      },
+      {
+        "date": "2026-11-26",
+        "usd": 34.25409766666662,
+        "stack": {
+          "aws": 34.25409766666664
+        },
+        "overflowHours": 0,
+        "atMaxHours": 0
+      },
+      {
+        "date": "2026-11-27",
+        "usd": 34.25409766666662,
+        "stack": {
+          "aws": 34.25409766666664
+        },
+        "overflowHours": 0,
+        "atMaxHours": 0
+      },
+      {
+        "date": "2026-11-28",
+        "usd": 33.25126966666668,
+        "stack": {
+          "aws": 33.251269666666644
+        },
+        "overflowHours": 0,
+        "atMaxHours": 0
+      },
+      {
+        "date": "2026-11-29",
+        "usd": 33.25126966666668,
+        "stack": {
+          "aws": 33.251269666666644
+        },
+        "overflowHours": 0,
+        "atMaxHours": 0
+      },
+      {
+        "date": "2026-11-30",
+        "usd": 34.254097666666624,
+        "stack": {
+          "aws": 34.254097666666645
+        },
+        "overflowHours": 0,
+        "atMaxHours": 0
+      }
+    ],
+    "noPrice": [
+      {
+        "node": "mailer",
+        "meter": "emails",
+        "sku": "emails",
+        "unit": "email"
+      },
+      {
+        "node": "api-5xx",
+        "meter": "alarm",
+        "sku": "alarm",
+        "unit": "month"
+      }
+    ],
+    "noRule": [
+      "stripe",
+      "api-role"
+    ],
+    "loadUndefined": [],
+    "overflowHours": {},
+    "warnings": [
+      {
+        "fn": "price_meter",
+        "message": "no price for (no service) emails (email) in ap-northeast-1",
+        "node": "mailer",
+        "hour": "2026-11-01T00",
+        "meter": "emails"
+      },
+      {
+        "fn": "price_meter",
+        "message": "no price for cloudwatch.alarm alarm (month) in no region",
+        "node": "api-5xx",
+        "hour": "2026-11-01T00",
+        "meter": "alarm"
+      }
+    ],
+    "warningCount": 2
+  },
+  "topNodes": [
+    {
+      "node": "cdn",
+      "usd": 455.4774000000002
+    },
+    {
+      "node": "db-prod",
+      "usd": 422.3999999999987
+    },
+    {
+      "node": "api-prod",
+      "usd": 64.80000000000005
+    },
+    {
+      "node": "assets",
+      "usd": 44.55927800000017
+    },
+    {
+      "node": "alb-prod",
+      "usd": 29.015999999999977
+    },
+    {
+      "node": "api-prod>db-prod",
+      "usd": 2.3447999999999984
+    }
+  ]
+}

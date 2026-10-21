@@ -1,0 +1,9 @@
+{
+  "ok": true,
+  "dir": "docs/infra/prices",
+  "files": [
+    "example.json"
+  ],
+  "problems": [],
+  "count": 5
+}

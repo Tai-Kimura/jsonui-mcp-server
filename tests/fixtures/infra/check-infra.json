@@ -1,0 +1,101 @@
+{
+  "ok": true,
+  "exit": 0,
+  "checks": [
+    {
+      "name": "infra-load",
+      "type": "builtin:infra-load",
+      "status": "ok",
+      "summary": {
+        "ok": 10,
+        "mismatch": 0,
+        "missing_in_impl": 0,
+        "missing_in_doc": 0,
+        "skipped": 6,
+        "warning": 2,
+        "unit": "node"
+      },
+      "results": [
+        {
+          "target": "load/ordinary/stripe",
+          "status": "skipped",
+          "confidence": "metadata",
+          "message": "its kind reads no load"
+        },
+        {
+          "target": "load/ordinary/api-role",
+          "status": "skipped",
+          "confidence": "metadata",
+          "message": "its kind reads no load"
+        },
+        {
+          "target": "load/ordinary/api-5xx",
+          "status": "skipped",
+          "confidence": "metadata",
+          "message": "its kind reads no load"
+        },
+        {
+          "target": "load/sale/stripe",
+          "status": "skipped",
+          "confidence": "metadata",
+          "message": "its kind reads no load"
+        },
+        {
+          "target": "load/sale/mailer",
+          "status": "warning",
+          "confidence": "metadata",
+          "expected": "emails",
+          "message": "billed by use, but this load definition gives it no load (undefined, not 0)"
+        },
+        {
+          "target": "load/sale/assets",
+          "status": "warning",
+          "confidence": "metadata",
+          "expected": "get_requests, put_requests, storage_gb, egress_gb",
+          "message": "billed by use, but this load definition gives it no load (undefined, not 0)"
+        },
+        {
+          "target": "load/sale/api-role",
+          "status": "skipped",
+          "confidence": "metadata",
+          "message": "its kind reads no load"
+        },
+        {
+          "target": "load/sale/api-5xx",
+          "status": "skipped",
+          "confidence": "metadata",
+          "message": "its kind reads no load"
+        }
+      ],
+      "warnings": [],
+      "report": "/private<ROOT>/room/docs/infra/load/.check-report.infra-load.json"
+    },
+    {
+      "name": "infra-code",
+      "type": "builtin:infra-code",
+      "status": "ok",
+      "summary": {
+        "ok": 0,
+        "mismatch": 0,
+        "missing_in_impl": 0,
+        "missing_in_doc": 0,
+        "skipped": 0,
+        "warning": 1,
+        "unit": "reference"
+      },
+      "results": [
+        {
+          "target": "stripe/stripe#evidence/0",
+          "status": "warning",
+          "confidence": "proof",
+          "expected": "backend/app/config.py",
+          "message": "the evidence file is not there"
+        }
+      ],
+      "warnings": [
+        "[unverified] *: only Python and JavaScript / TypeScript imports, AWS SDK clients and environment variable names are read (not values, not calls): a service reached another way is not seen"
+      ],
+      "report": "/private<ROOT>/room/docs/infra/.check-report.infra-code.json"
+    }
+  ]
+}
