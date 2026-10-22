@@ -14,7 +14,8 @@ import { FIRST, failure, need, problems, runDocJson, text } from "./infra_common
  *
  * With `plan` (jsonui-cli 2.3.20+, `--migration <name>`): the same engine run on the old model and on the new one (old
  * + changes − removals), and the difference — the totals, per node (what the plan added, replaced, removed or left),
- * per provider, after each step of the plan, and for one account when `account` is given. Nothing is computed here.
+ * per provider, after each step of the plan, and with `account` the account's month (its environments priced
+ * together). Nothing is computed here.
  * A plan with an error is not priced: the CLI refuses it (exit 2, reason bad_plan, the plan's problems), as it does a
  * plan name with no folder (no_plan) — both answered by the refusal path below, problems counted.
  */
@@ -23,6 +24,7 @@ function migrationSummary(data: any) {
   need(data, ["migration", "scenario", "old", "new", "diff", "byNode", "byProvider", "steps", "account"],
     "cost infra --migration");
   for (const k of ["old", "new", "diff"]) need(data[k], ["usd"], `cost infra --migration ${k}`);
+  need(data.new, ["noPrice", "noRule", "loadUndefined"], "cost infra --migration new");
   for (const n of data.byNode) need(n, ["node", "change", "old", "new", "diff"], "cost infra --migration node");
   for (const s of data.steps) need(s, ["index", "node", "usd", "diff"], "cost infra --migration step");
   if (data.account !== null) need(data.account, ["on", "old", "new", "diff"], "cost infra --migration account");
@@ -33,6 +35,8 @@ function migrationSummary(data: any) {
     migration: data.migration,
     scenario: data.scenario,
     usd: { old: data.old.usd, new: data.new.usd, diff: data.diff.usd },
+    // what the new model cannot price: a node the plan adds with no load counts 0 in the difference, not a saving
+    newUnpriced: { noPrice: data.new.noPrice, noRule: data.new.noRule, loadUndefined: data.new.loadUndefined },
     nodes: byChange,
     // the biggest movements first, whichever way
     topChanges: [...changed].sort((a: any, b: any) => Math.abs(b.diff) - Math.abs(a.diff)).slice(0, FIRST),
@@ -101,14 +105,14 @@ function daySummary(day: any) {
 export function register(server: McpServer, config: ServerConfig) {
   server.tool(
     "infra_cost",
-    "Simulate the server room's cost with `jsonui-doc cost infra --json` (the model, a load scenario under docs/infra/load, prices: the room's own, then fetched, then bundled — USD, on demand). Without date: the month's total, totals by provider (or by node), the top nodes, the dearest day, what has no price / no rule / no load, hours over capacity, notes. With date (YYYY-MM-DD in the scenario's month): that day's top nodes, each with its charge by meter, the price layer, and its peak hour. Also the scenarios there are, the load problems and the price-book warnings (prices.free_dropped: a room's price row dropping a bundled free amount). With plan (a migration plan's name, docs/infra/migrations/<name>): the month's old, new and difference — per node (added / replaced / removed / same, the biggest changes first), per provider, after each step of the plan, and for one account with account; date and by do not apply. Needs jsonui-cli 2.3.15+ (plan: 2.3.20+).",
+    "Simulate the server room's cost with `jsonui-doc cost infra --json` (the model, a load scenario under docs/infra/load, prices: the room's own, then fetched, then bundled — USD, on demand). Without date: the month's total, totals by provider (or by node), the top nodes, the dearest day, what has no price / no rule / no load, hours over capacity, notes. With date (YYYY-MM-DD in the scenario's month): that day's top nodes, each with its charge by meter, the price layer, and its peak hour. Also the scenarios there are, the load problems and the price-book warnings (prices.free_dropped: a room's price row dropping a bundled free amount). With plan (a migration plan's name, docs/infra/migrations/<name>): the month's old, new and difference — per node (added / replaced / removed / same, the biggest changes first), per provider, after each step of the plan, and with account the account's month too (its environments priced together); date and by do not apply. Needs jsonui-cli 2.3.15+ (plan: 2.3.20+).",
     {
       project_dir: z.string().optional().describe("Project directory with jui.config.json (overrides JUI_PROJECT_DIR env)"),
       scenario: z.string().optional().describe("Load scenario id (default: the first)"),
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("One day of the scenario's month (YYYY-MM-DD)"),
       by: z.enum(["provider", "node"]).optional().describe("Group the month's totals by provider (default) or node"),
       plan: z.string().optional().describe("A migration plan's name: the month's old / new / difference instead"),
-      account: z.string().optional().describe("With plan: one account (its group id) old / new / difference"),
+      account: z.boolean().optional().describe("With plan: the account's month too — its environments priced together, old / new / difference"),
     },
     async ({ project_dir, scenario, date, by, plan, account }) => {
       try {
@@ -117,7 +121,7 @@ export function register(server: McpServer, config: ServerConfig) {
         const projectDir = config.resolveProjectDir(project_dir);
         const args = ["cost", "infra", projectDir, "--json"];
         if (plan) args.push("--migration", plan);
-        if (account) args.push("--account", account);
+        if (account) args.push("--account");
         if (scenario) args.push("--scenario", scenario);
         if (date) args.push("--date", date);
         if (by) args.push("--by", by);

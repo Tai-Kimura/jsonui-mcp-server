@@ -1,0 +1,539 @@
+{
+  "ok": true,
+  "dir": "docs/infra",
+  "version": 0,
+  "files": [
+    "external.json",
+    "main.json"
+  ],
+  "environments": [
+    {
+      "id": "production",
+      "label": "本番",
+      "kind": "production"
+    },
+    {
+      "id": "staging",
+      "label": "ステージング",
+      "kind": "staging"
+    }
+  ],
+  "flows": [],
+  "problems": [],
+  "icons": {},
+  "migrations": [
+    {
+      "name": "duplicate",
+      "dir": "docs/infra/migrations/duplicate",
+      "steps": [
+        {
+          "index": 1,
+          "node": "worker-prod",
+          "kind": "add",
+          "edgesRemoved": [],
+          "edgesAdded": []
+        }
+      ],
+      "counts": {
+        "added": 1,
+        "replaced": 0,
+        "removed": 0,
+        "edgesAdded": 0,
+        "edgesRemoved": 0
+      },
+      "model": {
+        "version": 0,
+        "files": [
+          "external.json",
+          "main.json",
+          "duplicate/changes.json"
+        ],
+        "environments": [
+          {
+            "id": "production",
+            "label": "本番",
+            "kind": "production"
+          },
+          {
+            "id": "staging",
+            "label": "ステージング",
+            "kind": "staging"
+          }
+        ],
+        "groups": [
+          {
+            "id": "aws-prod",
+            "kind": "account",
+            "provider": "aws",
+            "label": "本番アカウント",
+            "environments": [
+              "production"
+            ],
+            "providerResolved": "aws"
+          },
+          {
+            "id": "aws-stg",
+            "kind": "account",
+            "provider": "aws",
+            "label": "ステージングアカウント",
+            "environments": [
+              "staging"
+            ],
+            "providerResolved": "aws"
+          },
+          {
+            "id": "apne1-prod",
+            "kind": "region",
+            "region": "ap-northeast-1",
+            "parent": "aws-prod",
+            "environments": [
+              "production"
+            ],
+            "label": "apne1-prod",
+            "providerResolved": "aws"
+          },
+          {
+            "id": "apne1-stg",
+            "kind": "region",
+            "region": "ap-northeast-1",
+            "parent": "aws-stg",
+            "environments": [
+              "staging"
+            ],
+            "label": "apne1-stg",
+            "providerResolved": "aws"
+          },
+          {
+            "id": "vpc-prod",
+            "kind": "network",
+            "parent": "apne1-prod",
+            "label": "VPC (2 AZ)",
+            "environments": [
+              "production"
+            ],
+            "providerResolved": "aws"
+          },
+          {
+            "id": "vpc-stg",
+            "kind": "network",
+            "parent": "apne1-stg",
+            "label": "VPC (1 AZ)",
+            "environments": [
+              "staging"
+            ],
+            "providerResolved": "aws"
+          },
+          {
+            "id": "private-prod",
+            "kind": "subnet",
+            "parent": "vpc-prod",
+            "visibility": "private",
+            "environments": [
+              "production"
+            ],
+            "label": "private-prod",
+            "providerResolved": "aws"
+          },
+          {
+            "id": "private-stg",
+            "kind": "subnet",
+            "parent": "vpc-stg",
+            "visibility": "private",
+            "environments": [
+              "staging"
+            ],
+            "label": "private-stg",
+            "providerResolved": "aws"
+          }
+        ],
+        "nodes": [
+          {
+            "id": "stripe",
+            "category": "external.saas",
+            "provider": "stripe",
+            "label": "Stripe",
+            "managed_by": "external",
+            "evidence": [
+              {
+                "file": "backend/app/config.py",
+                "pattern": "stripe_"
+              }
+            ],
+            "count": 1,
+            "providerResolved": "stripe",
+            "regionResolved": "",
+            "fold": false,
+            "environments": [
+              "production",
+              "staging"
+            ]
+          },
+          {
+            "id": "mailer",
+            "category": "mail",
+            "provider": "sendgrid",
+            "label": "メール配信",
+            "managed_by": "external",
+            "count": 1,
+            "providerResolved": "sendgrid",
+            "regionResolved": "",
+            "fold": false,
+            "environments": [
+              "production",
+              "staging"
+            ]
+          },
+          {
+            "id": "cdn",
+            "category": "edge.cdn",
+            "service": "cloudfront",
+            "provider": "aws",
+            "label": "CloudFront",
+            "count": 1,
+            "providerResolved": "aws",
+            "regionResolved": "",
+            "managed_by": "iac",
+            "fold": false,
+            "environments": [
+              "production",
+              "staging"
+            ]
+          },
+          {
+            "id": "alb-prod",
+            "category": "load_balancer",
+            "service": "elb.alb",
+            "group": "vpc-prod",
+            "environments": [
+              "production"
+            ],
+            "label": "alb-prod",
+            "count": 1,
+            "providerResolved": "aws",
+            "regionResolved": "ap-northeast-1",
+            "managed_by": "iac",
+            "fold": false
+          },
+          {
+            "id": "alb-stg",
+            "category": "load_balancer",
+            "service": "elb.alb",
+            "group": "vpc-stg",
+            "environments": [
+              "staging"
+            ],
+            "label": "alb-stg",
+            "count": 1,
+            "providerResolved": "aws",
+            "regionResolved": "ap-northeast-1",
+            "managed_by": "iac",
+            "fold": false
+          },
+          {
+            "id": "api-prod",
+            "category": "compute.container",
+            "service": "ecs.fargate",
+            "group": "private-prod",
+            "count": 3,
+            "app": "backend",
+            "iac": [
+              "module.api.aws_ecs_service.this"
+            ],
+            "environments": [
+              "production"
+            ],
+            "spec": [
+              {
+                "key": "cpu",
+                "value": "1024"
+              },
+              {
+                "key": "memory",
+                "value": "2048"
+              },
+              {
+                "key": "tasks",
+                "value": "3"
+              }
+            ],
+            "label": "api-prod",
+            "providerResolved": "aws",
+            "regionResolved": "ap-northeast-1",
+            "managed_by": "iac",
+            "fold": false
+          },
+          {
+            "id": "api-stg",
+            "category": "compute.container",
+            "service": "ecs.fargate",
+            "group": "private-stg",
+            "app": "backend",
+            "environments": [
+              "staging"
+            ],
+            "label": "api-stg",
+            "count": 1,
+            "providerResolved": "aws",
+            "regionResolved": "ap-northeast-1",
+            "managed_by": "iac",
+            "fold": false
+          },
+          {
+            "id": "db-prod",
+            "category": "database.relational",
+            "service": "rds.mysql",
+            "group": "private-prod",
+            "engine": "mysql 8.4",
+            "ha": "multi-az",
+            "data_doc": "docs/db",
+            "environments": [
+              "production"
+            ],
+            "spec": [
+              {
+                "key": "instance_class",
+                "value": "db.r6g.large"
+              },
+              {
+                "key": "storage_gb",
+                "value": "200"
+              },
+              {
+                "key": "multi_az",
+                "value": "true"
+              }
+            ],
+            "label": "db-prod",
+            "count": 1,
+            "providerResolved": "aws",
+            "regionResolved": "ap-northeast-1",
+            "managed_by": "iac",
+            "fold": false
+          },
+          {
+            "id": "db-stg",
+            "category": "database.relational",
+            "service": "rds.mysql",
+            "group": "private-stg",
+            "engine": "mysql 8.4",
+            "data_doc": "docs/db",
+            "environments": [
+              "staging"
+            ],
+            "label": "db-stg",
+            "count": 1,
+            "providerResolved": "aws",
+            "regionResolved": "ap-northeast-1",
+            "managed_by": "iac",
+            "fold": false
+          },
+          {
+            "id": "assets",
+            "category": "storage.object",
+            "service": "s3",
+            "provider": "aws",
+            "region": "ap-northeast-1",
+            "label": "アセットのバケツ",
+            "count": 1,
+            "providerResolved": "aws",
+            "regionResolved": "ap-northeast-1",
+            "managed_by": "iac",
+            "fold": false,
+            "environments": [
+              "production",
+              "staging"
+            ]
+          },
+          {
+            "id": "api-role",
+            "category": "security.iam",
+            "service": "iam.role",
+            "provider": "aws",
+            "label": "API の実行ロール",
+            "count": 1,
+            "providerResolved": "aws",
+            "regionResolved": "",
+            "managed_by": "iac",
+            "fold": true,
+            "environments": [
+              "production",
+              "staging"
+            ]
+          },
+          {
+            "id": "api-5xx",
+            "category": "monitoring.alarm",
+            "service": "cloudwatch.alarm",
+            "provider": "aws",
+            "label": "API の 5xx",
+            "environments": [
+              "production"
+            ],
+            "count": 1,
+            "providerResolved": "aws",
+            "regionResolved": "",
+            "managed_by": "iac",
+            "fold": true
+          },
+          {
+            "id": "worker-prod",
+            "category": "compute.container",
+            "service": "ecs.fargate",
+            "group": "private-prod",
+            "count": 1,
+            "environments": [
+              "production"
+            ],
+            "spec": [
+              {
+                "key": "cpu",
+                "value": "512"
+              },
+              {
+                "key": "memory",
+                "value": "1024"
+              },
+              {
+                "key": "tasks",
+                "value": "1"
+              }
+            ],
+            "label": "worker-prod",
+            "providerResolved": "aws",
+            "regionResolved": "ap-northeast-1",
+            "managed_by": "iac",
+            "fold": false
+          }
+        ],
+        "edges": [
+          {
+            "from": "api-prod",
+            "to": "stripe",
+            "protocol": "https",
+            "direction": "out",
+            "environments": [
+              "production"
+            ],
+            "crossProvider": true
+          },
+          {
+            "from": "api-prod",
+            "to": "mailer",
+            "protocol": "https",
+            "direction": "out",
+            "environments": [
+              "production"
+            ],
+            "crossProvider": true
+          },
+          {
+            "from": "api-stg",
+            "to": "stripe",
+            "protocol": "https",
+            "label": "テストモード",
+            "environments": [
+              "staging"
+            ],
+            "direction": "out",
+            "crossProvider": true
+          },
+          {
+            "from": "cdn",
+            "to": "alb-prod",
+            "protocol": "https",
+            "port": 443,
+            "environments": [
+              "production"
+            ],
+            "direction": "out",
+            "crossProvider": false
+          },
+          {
+            "from": "cdn",
+            "to": "alb-stg",
+            "protocol": "https",
+            "port": 443,
+            "environments": [
+              "staging"
+            ],
+            "direction": "out",
+            "crossProvider": false
+          },
+          {
+            "from": "alb-prod",
+            "to": "api-prod",
+            "protocol": "http",
+            "port": 8000,
+            "direction": "out",
+            "environments": [
+              "production"
+            ],
+            "crossProvider": false
+          },
+          {
+            "from": "alb-stg",
+            "to": "api-stg",
+            "protocol": "http",
+            "port": 8000,
+            "direction": "out",
+            "environments": [
+              "staging"
+            ],
+            "crossProvider": false
+          },
+          {
+            "from": "api-prod",
+            "to": "db-prod",
+            "protocol": "mysql",
+            "port": 3306,
+            "direction": "out",
+            "environments": [
+              "production"
+            ],
+            "crossProvider": false
+          },
+          {
+            "from": "api-stg",
+            "to": "db-stg",
+            "protocol": "mysql",
+            "port": 3306,
+            "direction": "out",
+            "environments": [
+              "staging"
+            ],
+            "crossProvider": false
+          },
+          {
+            "from": "cdn",
+            "to": "assets",
+            "protocol": "https",
+            "direction": "out",
+            "environments": [
+              "production",
+              "staging"
+            ],
+            "crossProvider": false
+          }
+        ],
+        "flows": []
+      },
+      "problems": [
+        {
+          "file": "duplicate/changes.json",
+          "path": "/nodes/1/id",
+          "code": "migration.duplicate",
+          "message": "id 'worker-prod' is already in changes (/nodes/0)",
+          "severity": "error",
+          "short": "docs/infra/migrations/duplicate/changes.json: /nodes/1/id に、同じものが 2 度書かれています（先の物を使います）（migration.duplicate）"
+        }
+      ],
+      "ok": false
+    }
+  ],
+  "readMs": 5,
+  "counts": {
+    "groups": 8,
+    "nodes": 12,
+    "edges": 10
+  }
+}

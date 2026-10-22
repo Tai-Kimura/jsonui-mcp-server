@@ -1,0 +1,137 @@
+{
+  "ok": true,
+  "dir": "docs/infra/load",
+  "migration": "move",
+  "scenario": "sale",
+  "scenarios": [
+    {
+      "id": "ordinary",
+      "label": "ふだんの月",
+      "file": "ordinary.json",
+      "month": "2026-11",
+      "environment": "production"
+    },
+    {
+      "id": "sale",
+      "label": "セールの月",
+      "file": "sale.json",
+      "month": "2026-11",
+      "environment": "production"
+    },
+    {
+      "id": "staging",
+      "label": "staging",
+      "file": "staging.json",
+      "month": "2026-11",
+      "environment": "staging"
+    }
+  ],
+  "old": {
+    "usd": 2679.3521999999975
+  },
+  "new": {
+    "usd": 2710.6381999999967,
+    "noRule": [
+      "api-role"
+    ],
+    "loadUndefined": [
+      "stripe",
+      "mailer",
+      "assets"
+    ],
+    "noPrice": [
+      "api-5xx",
+      "worker-prod"
+    ]
+  },
+  "diff": {
+    "usd": 31.28599999999915
+  },
+  "byNode": [
+    {
+      "node": "db-prod",
+      "change": "replaced",
+      "old": 598.2749999999991,
+      "new": 629.5609999999991,
+      "diff": 31.286000000000058
+    },
+    {
+      "node": "alb-prod",
+      "change": "same",
+      "old": 17.496,
+      "new": 17.496,
+      "diff": 0.0
+    },
+    {
+      "node": "api-prod",
+      "change": "same",
+      "old": 88.13999999999996,
+      "new": 88.13999999999996,
+      "diff": 0.0
+    },
+    {
+      "node": "api-stg",
+      "change": "removed",
+      "old": 0.0,
+      "new": 0.0,
+      "diff": 0.0
+    },
+    {
+      "node": "cdn",
+      "change": "same",
+      "old": 1975.4412000000011,
+      "new": 1975.4412000000011,
+      "diff": 0.0
+    },
+    {
+      "node": "worker-prod",
+      "change": "added",
+      "old": 0.0,
+      "new": 0.0,
+      "diff": 0.0
+    }
+  ],
+  "byProvider": [
+    {
+      "provider": "aws",
+      "old": 2679.352199999997,
+      "new": 2710.6381999999967,
+      "diff": 31.285999999999603
+    }
+  ],
+  "steps": [
+    {
+      "index": 1,
+      "node": "db-prod",
+      "usd": 2710.6381999999967,
+      "diff": 31.28599999999915
+    },
+    {
+      "index": 2,
+      "node": "worker-prod",
+      "usd": 2710.6381999999967,
+      "diff": 0.0
+    },
+    {
+      "index": 3,
+      "node": "api-stg",
+      "usd": 2710.6381999999967,
+      "diff": 0.0
+    }
+  ],
+  "account": {
+    "on": true,
+    "old": 2788.8881999999976,
+    "new": 2809.3741999999966,
+    "diff": 20.485999999998967
+  },
+  "problems": {
+    "count": 0,
+    "errors": 0,
+    "first": []
+  },
+  "prices": {
+    "warnings": [],
+    "warningCount": 0
+  }
+}

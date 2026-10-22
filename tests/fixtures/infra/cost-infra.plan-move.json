@@ -1,0 +1,145 @@
+{
+  "ok": true,
+  "dir": "docs/infra/load",
+  "migration": "move",
+  "scenario": "ordinary",
+  "scenarios": [
+    {
+      "id": "ordinary",
+      "label": "ふだんの月",
+      "file": "ordinary.json",
+      "month": "2026-11",
+      "environment": "production"
+    },
+    {
+      "id": "sale",
+      "label": "セールの月",
+      "file": "sale.json",
+      "month": "2026-11",
+      "environment": "production"
+    },
+    {
+      "id": "staging",
+      "label": "staging",
+      "file": "staging.json",
+      "month": "2026-11",
+      "environment": "staging"
+    }
+  ],
+  "old": {
+    "usd": 1018.5974779999989
+  },
+  "new": {
+    "usd": 1040.1974779999987,
+    "noRule": [
+      "api-role"
+    ],
+    "loadUndefined": [
+      "stripe"
+    ],
+    "noPrice": [
+      "api-5xx",
+      "mailer",
+      "worker-prod"
+    ]
+  },
+  "diff": {
+    "usd": 21.599999999999795
+  },
+  "byNode": [
+    {
+      "node": "db-prod",
+      "change": "replaced",
+      "old": 422.3999999999987,
+      "new": 443.99999999999915,
+      "diff": 21.60000000000042
+    },
+    {
+      "node": "alb-prod",
+      "change": "same",
+      "old": 29.015999999999977,
+      "new": 29.015999999999977,
+      "diff": 0.0
+    },
+    {
+      "node": "api-prod",
+      "change": "same",
+      "old": 64.80000000000005,
+      "new": 64.80000000000005,
+      "diff": 0.0
+    },
+    {
+      "node": "api-prod>db-prod",
+      "change": "same",
+      "old": 2.3447999999999984,
+      "new": 2.3447999999999984,
+      "diff": 0.0
+    },
+    {
+      "node": "api-stg",
+      "change": "removed",
+      "old": 0.0,
+      "new": 0.0,
+      "diff": 0.0
+    },
+    {
+      "node": "assets",
+      "change": "same",
+      "old": 44.55927800000017,
+      "new": 44.55927800000017,
+      "diff": 0.0
+    },
+    {
+      "node": "cdn",
+      "change": "same",
+      "old": 455.4774000000002,
+      "new": 455.4774000000002,
+      "diff": 0.0
+    },
+    {
+      "node": "worker-prod",
+      "change": "added",
+      "old": 0.0,
+      "new": 0.0,
+      "diff": 0.0
+    }
+  ],
+  "byProvider": [
+    {
+      "provider": "aws",
+      "old": 1018.5974779999992,
+      "new": 1040.1974779999987,
+      "diff": 21.599999999999454
+    }
+  ],
+  "steps": [
+    {
+      "index": 1,
+      "node": "db-prod",
+      "usd": 1040.1974779999987,
+      "diff": 21.599999999999795
+    },
+    {
+      "index": 2,
+      "node": "worker-prod",
+      "usd": 1040.1974779999987,
+      "diff": 0.0
+    },
+    {
+      "index": 3,
+      "node": "api-stg",
+      "usd": 1040.1974779999987,
+      "diff": 0.0
+    }
+  ],
+  "account": null,
+  "problems": {
+    "count": 0,
+    "errors": 0,
+    "first": []
+  },
+  "prices": {
+    "warnings": [],
+    "warningCount": 0
+  }
+}

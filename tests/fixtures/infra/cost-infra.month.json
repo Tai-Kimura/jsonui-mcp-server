@@ -329,10 +329,11 @@
       }
     ],
     "noRule": [
-      "stripe",
       "api-role"
     ],
-    "loadUndefined": [],
+    "loadUndefined": [
+      "stripe"
+    ],
     "overflowHours": {},
     "warnings": [
       {

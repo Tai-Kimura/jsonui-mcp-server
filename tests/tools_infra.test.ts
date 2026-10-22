@@ -361,3 +361,116 @@ describe("without plan, the answers are the ones before plans", () => {
     expect(got).toBe(JSON.parse(readFileSync(BEFORE, "utf-8"))[label]);
   });
 });
+
+/**
+ * Migration plans (jsonui-cli 2.3.20, --migration): the summaries read the keys the CLI promised, recorded from it —
+ * a plan that holds, one plan per migration.* code, and the cost's old / new / difference with and without the
+ * account. A key the output lacks is named, never summarised as an empty plan.
+ */
+describe("infra_validate with plan", () => {
+  it("passes --migration and summarises the plan: counts, steps in order, edges taken and added", async () => {
+    answer = { stdout: raw("validate-infra.plan-move.json") };
+    const out = await call("infra_validate", { plan: "move" });
+    expect(calls[0].args).toEqual(["validate", "infra", projectDir, "--json", "--migration", "move"]);
+    const [m] = fixture("validate-infra.plan-move.json").migrations;
+    expect(out.ok).toBe(true);
+    expect(out.migrations).toHaveLength(1);
+    expect(out.migrations[0]).toMatchObject({ name: "move", ok: true, counts: m.counts, steps: m.steps.length });
+    expect(out.migrations[0].problems.count).toBe(0);
+    expect(out.migrations[0].firstSteps.map((s: any) => [s.index, s.kind, s.node]))
+      .toEqual(m.steps.map((s: any) => [s.index, s.kind, s.node]));
+    // a step with no edge moved carries no empty lists
+    expect(out.migrations[0].firstSteps[0]).toEqual({ index: 1, kind: "replace", node: "db-prod" });
+    expect(out.migrations[0].firstSteps[2].edgesRemoved).toEqual(m.steps[2].edgesRemoved);
+  });
+
+  it("without plan, a room that has plans lists each", async () => {
+    answer = { stdout: raw("validate-infra.plans.json") };
+    const out = await call("infra_validate");
+    expect(calls[0].args).toEqual(["validate", "infra", projectDir, "--json"]);
+    expect(out.migrations.map((m: any) => m.name)).toEqual(["move"]);
+  });
+
+  it.each([
+    ["remove-missing", "migration.remove_missing"],
+    ["duplicate", "migration.duplicate"],
+    ["both", "migration.both"],
+    ["order-unknown", "migration.order_unknown"],
+    ["edge-end", "migration.edge_end"],
+    ["none", "migration.no_plan"],
+  ])("a plan with %s: exit 1 while the model is fine, and the answer shows why (%s)", async (name, code) => {
+    answer = { code: 1, stdout: raw(`validate-infra.plan-${name}.json`) };
+    const out = await call("infra_validate", { plan: name });
+    const rec = fixture(`validate-infra.plan-${name}.json`);
+    expect(rec.problems).toEqual([]);              // the model's own list is empty: only the plan says it
+    expect(out).toMatchObject({ ok: false, exit: 1, readable: true });
+    expect(out.problems.count).toBe(0);
+    expect(out.migrations[0].ok).toBe(false);
+    expect(out.migrations[0].problems.byCode).toEqual({ [code]: 1 });
+    const [p] = rec.migrations[0].problems;
+    expect(out.migrations[0].problems.first[0]).toEqual(
+      Object.fromEntries(["severity", "code", "file", "path", "message"].filter((k) => p[k] != null).map((k) => [k, p[k]])));
+  });
+
+  it.each(["name", "dir", "ok", "problems", "steps", "counts"])("names %s when a plan lacks it", async (key) => {
+    const data = fixture("validate-infra.plan-move.json");
+    delete data.migrations[0][key];
+    answer = { stdout: JSON.stringify(data) };
+    expect(await harness.call("infra_validate", { project_dir: projectDir, plan: "move" }))
+      .toMatch(new RegExp(`^Error: validate infra migration: the JSON has no "${key}"`));
+  });
+
+  it("with plan, an output with no migrations at all is a CLI these tools do not know", async () => {
+    answer = { stdout: raw("validate-infra.ok.json") };
+    expect(await harness.call("infra_validate", { project_dir: projectDir, plan: "move" }))
+      .toMatch(/^Error: validate infra --migration: the JSON has no "migrations"/);
+  });
+});
+
+describe("infra_cost with plan", () => {
+  it("passes --migration and answers old / new / difference, the biggest node changes first, and each step", async () => {
+    answer = { stdout: raw("cost-infra.plan-move.json") };
+    const out = await call("infra_cost", { plan: "move" });
+    expect(calls[0].args).toEqual(["cost", "infra", projectDir, "--json", "--migration", "move"]);
+    const rec = fixture("cost-infra.plan-move.json");
+    expect(out).toMatchObject({ ok: true, exit: 0, migration: "move", scenario: rec.scenario, dir: rec.dir,
+      scenarios: rec.scenarios, usd: { old: rec.old.usd, new: rec.new.usd, diff: rec.diff.usd },
+      steps: rec.steps, byProvider: rec.byProvider, account: null, loadProblems: rec.problems,
+      priceWarnings: rec.prices.warnings, priceWarningCount: rec.prices.warningCount });
+    expect(out.newUnpriced).toEqual({ noPrice: rec.new.noPrice, noRule: rec.new.noRule, loadUndefined: rec.new.loadUndefined });
+    expect(out.topChanges[0].node).toBe("db-prod");
+    expect(out.topChanges.map((n: any) => n.change).sort()).toEqual(["added", "removed", "replaced"]);
+    expect(out.nodes).toMatchObject({ added: 1, replaced: 1, removed: 1 });
+  });
+
+  it("account is a switch: --account, and the account's old / new / difference", async () => {
+    answer = { stdout: raw("cost-infra.plan-move-account.json") };
+    const out = await call("infra_cost", { plan: "move", account: true, scenario: "sale" });
+    expect(calls[0].args).toEqual(["cost", "infra", projectDir, "--json", "--migration", "move", "--account", "--scenario", "sale"]);
+    expect(out.account).toEqual(fixture("cost-infra.plan-move-account.json").account);
+  });
+
+  it.each([["bad", "bad_plan"], ["none", "no_plan"]])("a %s plan is refused, priced nothing, the reason and problems kept", async (file, reason) => {
+    answer = { code: 2, stdout: raw(`cost-infra.plan-${file}.json`) };
+    const rec = fixture(`cost-infra.plan-${file}.json`);
+    const out = await call("infra_cost", { plan: "x" });
+    expect(out).toMatchObject({ ok: false, exit: 2, reason, message: rec.message });
+    expect(out.problems.byCode).toEqual(Object.fromEntries(rec.problems.map((p: any) => [p.code, 1])));
+    expect(out.usd).toBeUndefined();
+  });
+
+  it.each(["migration", "scenario", "old", "new", "diff", "byNode", "byProvider", "steps", "account",
+    "dir", "scenarios", "problems", "prices", "new.noPrice", "new.noRule", "new.loadUndefined", "diff.usd"])(
+    "names %s when the plan's answer lacks it", async (key) => {
+      answer = { stdout: without("cost-infra.plan-move.json", key) };
+      expect(await harness.call("infra_cost", { project_dir: projectDir, plan: "move" }))
+        .toMatch(new RegExp(`^Error: cost infra[^:]*: the JSON has no "${key.split(".").pop()}"`));
+    });
+
+  it("refuses date, by and account where they do not apply, without running the CLI", async () => {
+    for (const params of [{ plan: "move", date: "2026-11-03" }, { plan: "move", by: "node" }, { account: true }]) {
+      expect(await harness.call("infra_cost", { project_dir: projectDir, ...params })).toMatch(/^Error: /);
+    }
+    expect(calls).toHaveLength(0);
+  });
+});

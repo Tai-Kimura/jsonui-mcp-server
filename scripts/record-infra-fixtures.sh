@@ -65,6 +65,46 @@ doc "${WORK}/room" cost infra --date 2026-11-03 --json > "${OUT}/cost-infra.day.
 doc "${WORK}/room" cost infra --scenario nope --json > "${OUT}/cost-infra.refused.json"
 doc "${WORK}/room" check infra --json 2>/dev/null > "${OUT}/check-infra.json"
 
+# Migration plans (jsonui-cli 2.3.20+), in a copy of their own so the room above stays a room without plans: one plan
+# that holds (replace db-prod, add worker-prod and its edge, remove api-stg with its edges, in a written order), and one
+# plan per migration.* code with exactly that error.
+plan() {  # plan <room> <name> <changes json> <removals json>
+  mkdir -p "$1/docs/infra/migrations/$2"
+  printf '%s' "$3" > "$1/docs/infra/migrations/$2/changes.json"
+  printf '%s' "$4" > "$1/docs/infra/migrations/$2/removals.json"
+}
+cp -R "${FIX}/aws-three-tier" "${WORK}/plans"
+DB='{"id": "db-prod", "category": "database.relational", "service": "rds.postgres", "group": "private-prod", "ha": "multi-az", "environments": ["production"], "spec": [{"key": "instance_class", "value": "db.r6g.large"}, {"key": "storage_gb", "value": "200"}]}'
+WORKER='{"id": "worker-prod", "category": "compute.container", "service": "ecs.fargate", "group": "private-prod", "count": 1, "environments": ["production"], "spec": [{"key": "cpu", "value": "512"}, {"key": "memory", "value": "1024"}, {"key": "tasks", "value": "1"}]}'
+NONE='{"version": 0, "nodes": [], "groups": [], "edges": []}'
+plan "${WORK}/plans" move "{\"version\": 0, \"order\": [\"db-prod\", \"worker-prod\", \"api-stg\"], \"nodes\": [${DB}, ${WORKER}], \"edges\": [{\"from\": \"api-prod\", \"to\": \"worker-prod\", \"protocol\": \"https\", \"port\": 443}]}" \
+  '{"version": 0, "nodes": ["api-stg"], "groups": [], "edges": []}'
+# the account's month needs a load in two environments: staging gets one here (only in this copy)
+python3 - "${WORK}/plans/docs/infra/load" <<'EOF'
+import json, sys
+d = json.load(open(f"{sys.argv[1]}/ordinary.json", encoding="utf-8"))
+d.update(id="staging", label="staging", environment="staging",
+         loads=[{"node": "alb-stg", "quantities": {"lcu": 1}}, {"node": "api-stg", "quantities": {"vcpu": 0.25, "memory_gb": 0.5}},
+                {"node": "db-stg", "sku": "db.t4g.medium", "quantities": {"storage_gb": 20}}], edges=[])
+json.dump(d, open(f"{sys.argv[1]}/staging.json", "w", encoding="utf-8"), ensure_ascii=False)
+EOF
+cp -R "${FIX}/aws-three-tier" "${WORK}/badplans"
+plan "${WORK}/badplans" remove-missing "{\"version\": 0, \"nodes\": [${WORKER}]}" '{"version": 0, "nodes": ["nope"], "groups": [], "edges": []}'
+plan "${WORK}/badplans" duplicate "{\"version\": 0, \"nodes\": [${WORKER}, ${WORKER}]}" "${NONE}"
+plan "${WORK}/badplans" both "{\"version\": 0, \"nodes\": [${DB}]}" '{"version": 0, "nodes": ["db-prod"], "groups": [], "edges": []}'
+plan "${WORK}/badplans" order-unknown "{\"version\": 0, \"order\": [\"ghost\"], \"nodes\": [${WORKER}]}" "${NONE}"
+plan "${WORK}/badplans" edge-end "{\"version\": 0, \"nodes\": [${WORKER}], \"edges\": [{\"from\": \"worker-prod\", \"to\": \"ghost\", \"protocol\": \"https\", \"port\": 443}]}" "${NONE}"
+doc "${WORK}/plans" validate infra --json > "${OUT}/validate-infra.plans.json"
+doc "${WORK}/plans" validate infra --migration move --json > "${OUT}/validate-infra.plan-move.json"
+doc "${WORK}/plans" validate infra --migration nope --json > "${OUT}/validate-infra.plan-none.json"
+for code in remove-missing duplicate both order-unknown edge-end; do
+  doc "${WORK}/badplans" validate infra --migration "${code}" --json > "${OUT}/validate-infra.plan-${code}.json"
+done
+doc "${WORK}/plans" cost infra --migration move --json > "${OUT}/cost-infra.plan-move.json"
+doc "${WORK}/plans" cost infra --migration move --account --scenario sale --json > "${OUT}/cost-infra.plan-move-account.json"
+doc "${WORK}/badplans" cost infra --migration both --json > "${OUT}/cost-infra.plan-bad.json"
+doc "${WORK}/plans" cost infra --migration nope --json > "${OUT}/cost-infra.plan-none.json"
+
 # The temp folder's path is not part of the contract
 for f in "${OUT}"/*.json; do
   python3 - "$f" "${WORK}" <<'EOF'

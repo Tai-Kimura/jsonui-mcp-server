@@ -1,0 +1,15 @@
+{
+  "ok": false,
+  "reason": "bad_plan",
+  "message": "the plan 'both' has errors: jsonui-doc validate infra --migration both",
+  "problems": [
+    {
+      "file": "both/removals.json",
+      "path": "/nodes/0",
+      "code": "migration.both",
+      "message": "node 'db-prod' is in changes too: it is replaced, not removed",
+      "severity": "error",
+      "node": null
+    }
+  ]
+}

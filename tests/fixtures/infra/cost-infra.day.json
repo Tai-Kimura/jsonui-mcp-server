@@ -8834,8 +8834,8 @@
         "node": "stripe",
         "label": "Stripe",
         "provider": "stripe",
-        "rule": null,
-        "note": "no rule",
+        "rule": "generic/external.saas",
+        "note": "load undefined",
         "usd": 0.0,
         "hours": [
           {

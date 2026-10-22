@@ -441,10 +441,10 @@
       }
     ],
     "noRule": [
-      "stripe",
       "api-role"
     ],
     "loadUndefined": [
+      "stripe",
       "mailer",
       "assets"
     ],
