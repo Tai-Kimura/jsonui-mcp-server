@@ -13,7 +13,8 @@
       "message": "not JSON (line 1, column 2)",
       "severity": "error",
       "fn": "read_file",
-      "line": 1
+      "line": 1,
+      "short": "docs/infra/load/broken.json: 1 行目の JSON が壊れています"
     }
   ],
   "scenarios": [

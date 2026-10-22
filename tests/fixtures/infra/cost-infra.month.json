@@ -339,16 +339,32 @@
       {
         "fn": "price_meter",
         "message": "no price for (no service) emails (email) in ap-northeast-1",
+        "detail": {
+          "keyword": "cost.no_price",
+          "service": "",
+          "sku": "emails",
+          "unit": "email",
+          "region": "ap-northeast-1"
+        },
         "node": "mailer",
         "hour": "2026-11-01T00",
-        "meter": "emails"
+        "meter": "emails",
+        "short": "（service 無し） emails（email）の価格が、ap-northeast-1 にありません"
       },
       {
         "fn": "price_meter",
         "message": "no price for cloudwatch.alarm alarm (month) in no region",
+        "detail": {
+          "keyword": "cost.no_price",
+          "service": "cloudwatch.alarm",
+          "sku": "alarm",
+          "unit": "month",
+          "region": ""
+        },
         "node": "api-5xx",
         "hour": "2026-11-01T00",
-        "meter": "alarm"
+        "meter": "alarm",
+        "short": "cloudwatch.alarm alarm（month）の価格が、（region 無し） にありません"
       }
     ],
     "warningCount": 2

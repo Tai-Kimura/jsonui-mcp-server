@@ -348,6 +348,17 @@ describe("without plan, the answers are the ones before plans", () => {
   ];
   const BEFORE = join(FIX, "answers-without-plan.json");
 
+  // the CLI's problems now carry short (the page's language) and detail; the summaries keep the English message
+  // only, so the answers above stay byte for byte — this arm is not empty only while the fixtures carry them
+  it("the recorded problems carry short and detail, which the answers leave out", () => {
+    const v = fixture("validate-infra.errors.json").problems;
+    expect(v.length).toBeGreaterThan(0);
+    expect(v.every((p: any) => typeof p.short === "string" && "detail" in p)).toBe(true);
+    expect(fixture("cost-infra.plan-bad.json").problems.every((p: any) => typeof p.short === "string")).toBe(true);
+    const before = JSON.parse(readFileSync(BEFORE, "utf-8"));
+    expect(before["validate errors"]).not.toMatch(/"short"|"detail"/);
+  });
+
   it.each(CASES)("%s", async (label, file, code, params) => {
     answer = { code, stdout: raw(file) };
     const tool = label.startsWith("validate") ? "infra_validate" : "infra_cost";

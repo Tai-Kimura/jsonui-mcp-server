@@ -26,7 +26,11 @@
       "code": "schema",
       "message": "must be one of client, compute.vm, compute.container, compute.function, compute.k8s, compute.paas, edge.cdn, edge.dns, edge.waf, load_balancer, gateway.api, gateway.nat, network.ip, database.relational, database.document, database.kv, database.search, cache, storage.object, storage.file, storage.block, queue, stream, scheduler, mail, auth, secrets, monitoring, ci, external.saas, security.iam, security.policy, monitoring.alarm",
       "severity": "error",
-      "short": "docs/infra/bad.json: /nodes/0/category がスキーマに合いません"
+      "detail": {
+        "keyword": "enum",
+        "allowed": "client, compute.vm, compute.container, compute.function, compute.k8s, compute.paas, edge.cdn, edge.dns, edge.waf, load_balancer, gateway.api, gateway.nat, network.ip, database.relational, database.document, database.kv, database.search, cache, storage.object, storage.file, storage.block, queue, stream, scheduler, mail, auth, secrets, monitoring, ci, external.saas, security.iam, security.policy, monitoring.alarm"
+      },
+      "short": "docs/infra/bad.json: /nodes/0/category は client, compute.vm, compute.container, compute.function, compute.k8s, compute.paas, edge.cdn, edge.dns, edge.waf, load_balancer, gateway.api, gateway.nat, network.ip, database.relational, database.document, database.kv, database.search, cache, storage.object, storage.file, storage.block, queue, stream, scheduler, mail, auth, secrets, monitoring, ci, external.saas, security.iam, security.policy, monitoring.alarm のどれかです"
     }
   ],
   "icons": {},

@@ -456,9 +456,17 @@
       {
         "fn": "price_meter",
         "message": "no price for cloudwatch.alarm alarm (month) in no region",
+        "detail": {
+          "keyword": "cost.no_price",
+          "service": "cloudwatch.alarm",
+          "sku": "alarm",
+          "unit": "month",
+          "region": ""
+        },
         "node": "api-5xx",
         "hour": "2026-11-01T00",
-        "meter": "alarm"
+        "meter": "alarm",
+        "short": "cloudwatch.alarm alarm（month）の価格が、（region 無し） にありません"
       }
     ],
     "warningCount": 1
