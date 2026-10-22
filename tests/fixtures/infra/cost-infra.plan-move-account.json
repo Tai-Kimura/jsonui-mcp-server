@@ -27,10 +27,7 @@
     }
   ],
   "old": {
-    "usd": 2679.3521999999975
-  },
-  "new": {
-    "usd": 2710.6381999999967,
+    "usd": 2679.3521999999975,
     "noRule": [
       "api-role"
     ],
@@ -40,17 +37,40 @@
       "assets"
     ],
     "noPrice": [
-      "api-5xx",
-      "worker-prod"
+      "api-5xx"
+    ]
+  },
+  "new": {
+    "usd": 2798.7781999999993,
+    "noRule": [
+      "api-role"
+    ],
+    "loadUndefined": [
+      "stripe",
+      "mailer",
+      "assets"
+    ],
+    "noPrice": [
+      "api-5xx"
     ]
   },
   "diff": {
-    "usd": 31.28599999999915
+    "usd": 119.42600000000175
   },
+  "unpricedChanged": [],
   "byNode": [
+    {
+      "node": "worker-prod",
+      "change": "added",
+      "unpriced": false,
+      "old": 0.0,
+      "new": 88.13999999999996,
+      "diff": 88.13999999999996
+    },
     {
       "node": "db-prod",
       "change": "replaced",
+      "unpriced": false,
       "old": 598.2749999999991,
       "new": 629.5609999999991,
       "diff": 31.286000000000058
@@ -58,6 +78,7 @@
     {
       "node": "alb-prod",
       "change": "same",
+      "unpriced": false,
       "old": 17.496,
       "new": 17.496,
       "diff": 0.0
@@ -65,6 +86,7 @@
     {
       "node": "api-prod",
       "change": "same",
+      "unpriced": false,
       "old": 88.13999999999996,
       "new": 88.13999999999996,
       "diff": 0.0
@@ -72,6 +94,7 @@
     {
       "node": "api-stg",
       "change": "removed",
+      "unpriced": false,
       "old": 0.0,
       "new": 0.0,
       "diff": 0.0
@@ -79,15 +102,9 @@
     {
       "node": "cdn",
       "change": "same",
+      "unpriced": false,
       "old": 1975.4412000000011,
       "new": 1975.4412000000011,
-      "diff": 0.0
-    },
-    {
-      "node": "worker-prod",
-      "change": "added",
-      "old": 0.0,
-      "new": 0.0,
       "diff": 0.0
     }
   ],
@@ -95,8 +112,8 @@
     {
       "provider": "aws",
       "old": 2679.352199999997,
-      "new": 2710.6381999999967,
-      "diff": 31.285999999999603
+      "new": 2798.778199999999,
+      "diff": 119.42600000000175
     }
   ],
   "steps": [
@@ -104,26 +121,39 @@
       "index": 1,
       "node": "db-prod",
       "usd": 2710.6381999999967,
-      "diff": 31.28599999999915
+      "diff": 31.28599999999915,
+      "moved": [
+        {
+          "node": "db-prod",
+          "diff": 31.286000000000058
+        }
+      ]
     },
     {
       "index": 2,
       "node": "worker-prod",
-      "usd": 2710.6381999999967,
-      "diff": 0.0
+      "usd": 2798.7781999999993,
+      "diff": 88.1400000000026,
+      "moved": [
+        {
+          "node": "worker-prod",
+          "diff": 88.13999999999996
+        }
+      ]
     },
     {
       "index": 3,
       "node": "api-stg",
-      "usd": 2710.6381999999967,
-      "diff": 0.0
+      "usd": 2798.7781999999993,
+      "diff": 0.0,
+      "moved": []
     }
   ],
   "account": {
     "on": true,
     "old": 2788.8881999999976,
-    "new": 2809.3741999999966,
-    "diff": 20.485999999998967
+    "new": 2897.514199999999,
+    "diff": 108.62600000000157
   },
   "problems": {
     "count": 0,

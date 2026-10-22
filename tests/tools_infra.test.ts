@@ -435,12 +435,35 @@ describe("infra_cost with plan", () => {
     const rec = fixture("cost-infra.plan-move.json");
     expect(out).toMatchObject({ ok: true, exit: 0, migration: "move", scenario: rec.scenario, dir: rec.dir,
       scenarios: rec.scenarios, usd: { old: rec.old.usd, new: rec.new.usd, diff: rec.diff.usd },
-      steps: rec.steps, byProvider: rec.byProvider, account: null, loadProblems: rec.problems,
+      byProvider: rec.byProvider, account: null, loadProblems: rec.problems,
       priceWarnings: rec.prices.warnings, priceWarningCount: rec.prices.warningCount });
     expect(out.newUnpriced).toEqual({ noPrice: rec.new.noPrice, noRule: rec.new.noRule, loadUndefined: rec.new.loadUndefined });
+    expect(out.oldUnpriced).toEqual({ noPrice: rec.old.noPrice, noRule: rec.old.noRule, loadUndefined: rec.old.loadUndefined });
+    // worker-prod is added with no price: its part is out of the difference, said by name and on its row
+    expect(rec.unpricedChanged).toEqual(["worker-prod"]);
+    expect(out.unpricedChanged).toEqual(rec.unpricedChanged);
+    expect(out.topChanges.find((n: any) => n.node === "worker-prod").unpriced).toBe(true);
+    expect(out.topChanges.find((n: any) => n.node === "db-prod").unpriced).toBe(false);
+    expect(out.steps).toEqual(rec.steps.map((s: any) => ({ index: s.index, node: s.node, usd: s.usd, diff: s.diff,
+      moved: s.moved, movedCount: s.moved.length })));
     expect(out.topChanges[0].node).toBe("db-prod");
     expect(out.topChanges.map((n: any) => n.change).sort()).toEqual(["added", "removed", "replaced"]);
     expect(out.nodes).toMatchObject({ added: 1, replaced: 1, removed: 1 });
+  });
+
+  it("a step's moved is kept whole, a neighbour that moved with the step's node too (the step's diff is not its node's)", async () => {
+    const data = fixture("cost-infra.plan-move.json");
+    const [first] = data.steps;
+    first.moved = [{ node: "db-prod", diff: 20 }, { node: "api-prod>db-prod", diff: 1.6 }];   // a line's transfer moved with it
+    answer = { stdout: JSON.stringify(data) };
+    const out = await call("infra_cost", { plan: "move" });
+    expect(out.steps[0]).toMatchObject({ node: "db-prod", diff: first.diff, movedCount: 2,
+      moved: [{ node: "db-prod", diff: 20 }, { node: "api-prod>db-prod", diff: 1.6 }] });
+    data.steps[0].moved = Array.from({ length: 30 }, (_, i) => ({ node: `n${i}`, diff: 30 - i }));
+    answer = { stdout: JSON.stringify(data) };
+    const many = await call("infra_cost", { plan: "move" });
+    expect(many.steps[0].moved).toHaveLength(20);
+    expect(many.steps[0].movedCount).toBe(30);
   });
 
   it("account is a switch: --account, and the account's old / new / difference", async () => {
@@ -460,7 +483,8 @@ describe("infra_cost with plan", () => {
   });
 
   it.each(["migration", "scenario", "old", "new", "diff", "byNode", "byProvider", "steps", "account",
-    "dir", "scenarios", "problems", "prices", "new.noPrice", "new.noRule", "new.loadUndefined", "diff.usd"])(
+    "dir", "scenarios", "problems", "prices", "new.noPrice", "new.noRule", "new.loadUndefined", "diff.usd", "unpricedChanged",
+    "old.noPrice", "old.noRule", "old.loadUndefined", "byNode.0.unpriced", "steps.0.moved", "steps.0.moved.0.node", "steps.0.moved.0.diff"])(
     "names %s when the plan's answer lacks it", async (key) => {
       answer = { stdout: without("cost-infra.plan-move.json", key) };
       expect(await harness.call("infra_cost", { project_dir: projectDir, plan: "move" }))

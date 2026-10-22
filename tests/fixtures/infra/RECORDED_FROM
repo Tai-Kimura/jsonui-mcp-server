@@ -1,1 +1,1 @@
-f6435312 infra: migration plans: old model + changes - removals = new, one node a step; validate infra and cost infra take --migration
+8ec3b727 viz / jsonui-doc infra: a migration's step is ステップ in Japanese, not 歩

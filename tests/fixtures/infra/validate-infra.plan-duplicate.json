@@ -530,7 +530,7 @@
       "ok": false
     }
   ],
-  "readMs": 5,
+  "readMs": 10,
   "counts": {
     "groups": 8,
     "nodes": 12,

@@ -21,12 +21,15 @@ import { FIRST, failure, need, problems, runDocJson, text } from "./infra_common
  */
 
 function migrationSummary(data: any) {
-  need(data, ["migration", "scenario", "old", "new", "diff", "byNode", "byProvider", "steps", "account"],
+  need(data, ["migration", "scenario", "old", "new", "diff", "byNode", "byProvider", "steps", "account", "unpricedChanged"],
     "cost infra --migration");
   for (const k of ["old", "new", "diff"]) need(data[k], ["usd"], `cost infra --migration ${k}`);
-  need(data.new, ["noPrice", "noRule", "loadUndefined"], "cost infra --migration new");
-  for (const n of data.byNode) need(n, ["node", "change", "old", "new", "diff"], "cost infra --migration node");
-  for (const s of data.steps) need(s, ["index", "node", "usd", "diff"], "cost infra --migration step");
+  for (const k of ["old", "new"]) need(data[k], ["noPrice", "noRule", "loadUndefined"], `cost infra --migration ${k}`);
+  for (const n of data.byNode) need(n, ["node", "change", "unpriced", "old", "new", "diff"], "cost infra --migration node");
+  for (const s of data.steps) {
+    need(s, ["index", "node", "usd", "diff", "moved"], "cost infra --migration step");
+    for (const m of s.moved) need(m, ["node", "diff"], "cost infra --migration step moved");
+  }
   if (data.account !== null) need(data.account, ["on", "old", "new", "diff"], "cost infra --migration account");
   const changed = data.byNode.filter((n: any) => n.change !== "same" || n.diff !== 0);
   const byChange: Record<string, number> = {};
@@ -35,14 +38,20 @@ function migrationSummary(data: any) {
     migration: data.migration,
     scenario: data.scenario,
     usd: { old: data.old.usd, new: data.new.usd, diff: data.diff.usd },
-    // what the new model cannot price: a node the plan adds with no load counts 0 in the difference, not a saving
+    // what either model cannot price (no price, no rule, no load): its part is 0 there, so not in the difference
+    oldUnpriced: { noPrice: data.old.noPrice, noRule: data.old.noRule, loadUndefined: data.old.loadUndefined },
     newUnpriced: { noPrice: data.new.noPrice, noRule: data.new.noRule, loadUndefined: data.new.loadUndefined },
+    // the nodes the plan changes whose month is not all priced: the difference leaves their part out — not a saving
+    unpricedChanged: data.unpricedChanged,
     nodes: byChange,
     // the biggest movements first, whichever way
     topChanges: [...changed].sort((a: any, b: any) => Math.abs(b.diff) - Math.abs(a.diff)).slice(0, FIRST),
     changedCount: changed.length,
     byProvider: data.byProvider,
-    steps: data.steps,
+    // a step's diff is the whole month's change at that step, not its node's own: a neighbour can move with it (a
+    // shared free amount); moved names what moved, biggest first (a node, or "a>b" for a line's transfer)
+    steps: data.steps.map((s: any) => ({ index: s.index, node: s.node, usd: s.usd, diff: s.diff,
+      moved: s.moved.slice(0, FIRST), movedCount: s.moved.length })),
     account: data.account,
   };
 }
@@ -105,7 +114,7 @@ function daySummary(day: any) {
 export function register(server: McpServer, config: ServerConfig) {
   server.tool(
     "infra_cost",
-    "Simulate the server room's cost with `jsonui-doc cost infra --json` (the model, a load scenario under docs/infra/load, prices: the room's own, then fetched, then bundled — USD, on demand). Without date: the month's total, totals by provider (or by node), the top nodes, the dearest day, what has no price / no rule / no load, hours over capacity, notes. With date (YYYY-MM-DD in the scenario's month): that day's top nodes, each with its charge by meter, the price layer, and its peak hour. Also the scenarios there are, the load problems and the price-book warnings (prices.free_dropped: a room's price row dropping a bundled free amount). With plan (a migration plan's name, docs/infra/migrations/<name>): the month's old, new and difference — per node (added / replaced / removed / same, the biggest changes first), per provider, after each step of the plan, and with account the account's month too (its environments priced together); date and by do not apply. Needs jsonui-cli 2.3.15+ (plan: 2.3.20+).",
+    "Simulate the server room's cost with `jsonui-doc cost infra --json` (the model, a load scenario under docs/infra/load, prices: the room's own, then fetched, then bundled — USD, on demand). Without date: the month's total, totals by provider (or by node), the top nodes, the dearest day, what has no price / no rule / no load, hours over capacity, notes. With date (YYYY-MM-DD in the scenario's month): that day's top nodes, each with its charge by meter, the price layer, and its peak hour. Also the scenarios there are, the load problems and the price-book warnings (prices.free_dropped: a room's price row dropping a bundled free amount). With plan (a migration plan's name, docs/infra/migrations/<name>): the month's old, new and difference — per node (added / replaced / removed / same, the biggest changes first), per provider, after each step of the plan (a step's difference is the whole month's change at that step, not its node's own: moved names each node or line's transfer that moved), what is not priced in the old or the new (unpricedChanged: changed nodes whose part the difference leaves out — not a saving), and with account the account's month too (its environments priced together); date and by do not apply. Needs jsonui-cli 2.3.15+ (plan: 2.3.20+).",
     {
       project_dir: z.string().optional().describe("Project directory with jui.config.json (overrides JUI_PROJECT_DIR env)"),
       scenario: z.string().optional().describe("Load scenario id (default: the first)"),
