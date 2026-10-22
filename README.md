@@ -146,12 +146,12 @@ Claude Code のセッションを見るローカルのビューア（`jui viz`�
 
 | Tool | Description | CLI |
 |------|-------------|-----|
-| `infra_validate` | モデルを読めるか（読めない時は理由）、使ったファイル・数・flow の数、problems を重さとコードで数え、最初の 20 件 | `jsonui-doc validate infra <project> --json` |
+| `infra_validate` | モデルを読めるか（読めない時は理由）、使ったファイル・数・flow の数、problems を重さとコードで数え、最初の 20 件。移管計画（`docs/infra/migrations/<名前>`）がある部屋では、計画ごとの problems（`migration.*` と、新の構成に今の検査を当てた分）・数・歩の順も（`plan` で 1 つだけ、2.3.20 以降） | `jsonui-doc validate infra <project> --json [--migration <名前>]` |
 | `infra_load_validate` | 負荷のシナリオ（id・環境・月・時間・行・edge）と problems（node・hour・quantity つき） | `jsonui-doc validate infra-load <project> --json` |
 | `infra_prices_validate` | 部屋の単価のファイル・単価の数・problems | `jsonui-doc validate infra-prices <project> --json` |
 | `infra_seed` | IaC・設定ファイル・コードから下書き。数・node・読んだ物・置けなかった物（unmatched）・skipped・notes。既定では一時フォルダに書いて読み戻し、プロジェクトは変えない（`write: true` で `<infra.dir>/seed`） | `jsonui-doc seed infra <project> -o <dir> [--force]` |
 | `infra_check` | 宣言した `builtin:infra-iac` / `infra-code` / `infra-load` の結果（status・数・ok でない結果の最初の 20 件・レポートの道） | `jsonui-doc check infra -p <project> --json` |
-| `infra_cost` | 月の合計・provider（か node）ごとの合計・上位 node・一番高い日・単価なし／規則なし／負荷なし・容量を超えた時間・注意。`date` で 1 日（上位 node の meter ごとの額と単価の層、ピークの時刻）。負荷の problems と単価の警告も | `jsonui-doc cost infra <project> --json [--scenario] [--date] [--by]` |
+| `infra_cost` | 月の合計・provider（か node）ごとの合計・上位 node・一番高い日・単価なし／規則なし／負荷なし・容量を超えた時間・注意。`date` で 1 日（上位 node の meter ごとの額と単価の層、ピークの時刻）。負荷の problems と単価の警告も。`plan` で移管計画の月の旧・新・差（node ごとの増減の大きい順・provider ごと・歩ごと、`account` で 1 アカウント、2.3.20 以降） | `jsonui-doc cost infra <project> --json [--scenario] [--date] [--by] [--migration <名前> [--account <id>]]` |
 
 > 単価の取得（`jui viz cloud-prices fetch`）はネットへ出て viz のホームに書くので **MCP 非公開**（CLI で行う）。jsonui-doc が古くて `--json` の形が違うと、どのキーが無いかを名指しして失敗する。
 

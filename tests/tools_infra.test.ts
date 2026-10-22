@@ -330,3 +330,34 @@ describe("a long problem list", () => {
     expect(out.problems.first[19].path).toBe("/nodes/19/category");
   });
 });
+
+/**
+ * Without `plan`, both tools answer exactly what they answered before plans existed (jsonui-mcp-server 6207831): the
+ * whole text, byte for byte, for every recorded output. Recorded once from that commit with RECORD_NO_PLAN=1; a
+ * change to these answers is a change to every agent that reads them, so it is made on purpose or not at all.
+ */
+describe("without plan, the answers are the ones before plans", () => {
+  const CASES: [string, string, number, Record<string, unknown>][] = [
+    ["validate ok", "validate-infra.ok.json", 0, {}],
+    ["validate errors", "validate-infra.errors.json", 1, {}],
+    ["validate unreadable", "validate-infra.unreadable.json", 2, {}],
+    ["cost month", "cost-infra.month.json", 0, {}],
+    ["cost month by node", "cost-infra.month-by-node.json", 0, { scenario: "sale", by: "node" }],
+    ["cost day", "cost-infra.day.json", 0, { date: "2026-11-03" }],
+    ["cost refused", "cost-infra.refused.json", 2, { scenario: "nope" }],
+  ];
+  const BEFORE = join(FIX, "answers-without-plan.json");
+
+  it.each(CASES)("%s", async (label, file, code, params) => {
+    answer = { code, stdout: raw(file) };
+    const tool = label.startsWith("validate") ? "infra_validate" : "infra_cost";
+    const got = await harness.call(tool, { project_dir: projectDir, ...params });
+    if (process.env.RECORD_NO_PLAN) {
+      const all = existsSync(BEFORE) ? JSON.parse(readFileSync(BEFORE, "utf-8")) : {};
+      all[label] = got;
+      writeFileSync(BEFORE, JSON.stringify(all, null, 2) + "\n");
+      return;
+    }
+    expect(got).toBe(JSON.parse(readFileSync(BEFORE, "utf-8"))[label]);
+  });
+});
