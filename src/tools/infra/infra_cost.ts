@@ -15,6 +15,8 @@ import { FIRST, failure, need, problems, runDocJson, text } from "./infra_common
  * With `plan` (jsonui-cli 2.3.20+, `--migration <name>`): the same engine run on the old model and on the new one (old
  * + changes − removals), and the difference — the totals, per node (what the plan added, replaced, removed or left),
  * per provider, after each step of the plan, and for one account when `account` is given. Nothing is computed here.
+ * A plan with an error is not priced: the CLI refuses it (exit 2, reason bad_plan, the plan's problems), as it does a
+ * plan name with no folder (no_plan) — both answered by the refusal path below, problems counted.
  */
 
 function migrationSummary(data: any) {
@@ -126,10 +128,15 @@ export function register(server: McpServer, config: ServerConfig) {
           return text({ ok: false, exit: exitCode, reason: data.reason, message: data.message,
             ...(data.problems ? { problems: problems(data.problems, "cost infra") } : {}) });
         }
-        if (plan) return text({ ok: exitCode === 0, exit: exitCode, ...migrationSummary(data) });
         need(data, ["dir", "scenario", "scenarios", "problems", "prices"], "cost infra");
         need(data.problems, ["count", "errors", "first"], "cost infra problems");
         need(data.prices, ["warnings", "warningCount"], "cost infra prices");
+        if (plan) {
+          // the load problems and price warnings are the old model's reading, as without plan
+          return text({ ok: exitCode === 0, exit: exitCode, dir: data.dir, scenarios: data.scenarios,
+            ...migrationSummary(data), loadProblems: data.problems, priceWarnings: data.prices.warnings,
+            priceWarningCount: data.prices.warningCount });
+        }
         const out: Record<string, unknown> = {
           ok: exitCode === 0,
           exit: exitCode,

@@ -34,7 +34,7 @@ function migrationSummary(m: any) {
 function migrations(data: any, plan: string | undefined) {
   if (plan) need(data, ["migrations"], "validate infra --migration");
   const list = data.migrations;
-  if (list === undefined || (Array.isArray(list) && !list.length && !plan)) return {};
+  if (list === undefined) return {};   // a room with no plan: the CLI prints no key, and nor does this
   if (!Array.isArray(list)) throw new ContractError('validate infra: "migrations" is not a list');
   return { migrations: list.map(migrationSummary) };
 }
