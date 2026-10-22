@@ -1,0 +1,49 @@
+{
+  "ok": true,
+  "dir": "docs/infra",
+  "version": 0,
+  "files": [
+    "external.json",
+    "main.json"
+  ],
+  "environments": [
+    {
+      "id": "production",
+      "label": "本番",
+      "kind": "production"
+    },
+    {
+      "id": "staging",
+      "label": "ステージング",
+      "kind": "staging"
+    }
+  ],
+  "flows": [],
+  "problems": [],
+  "icons": {},
+  "migrations": [
+    {
+      "name": "half",
+      "dir": "docs/infra/migrations/half",
+      "steps": [],
+      "counts": {},
+      "problems": [
+        {
+          "file": "half/changes.json",
+          "path": "/",
+          "code": "read.unreadable",
+          "message": "a plan needs changes.json or removals.json (regular files)",
+          "severity": "error",
+          "short": "docs/infra/migrations/half/changes.json: 読めません"
+        }
+      ],
+      "ok": false
+    }
+  ],
+  "readMs": 3,
+  "counts": {
+    "groups": 8,
+    "nodes": 12,
+    "edges": 10
+  }
+}

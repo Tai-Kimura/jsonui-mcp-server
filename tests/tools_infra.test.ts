@@ -379,6 +379,14 @@ describe("without plan, the answers are the ones before plans", () => {
  * account. A key the output lacks is named, never summarised as an empty plan.
  */
 describe("infra_validate with plan", () => {
+  it("a plan folder with nothing in it yet is a plan that is not ok, its read problem said (an empty folder lists none)", async () => {
+    answer = { code: 1, stdout: raw("validate-infra.plan-half.json") };
+    const out = await call("infra_validate", { plan: "half" });
+    expect(out.migrations).toHaveLength(1);
+    expect(out.migrations[0]).toMatchObject({ name: "half", ok: false, counts: {}, steps: 0, firstSteps: [] });
+    expect(out.migrations[0].problems.byCode).toEqual({ "read.unreadable": 1 });
+  });
+
   it("passes --migration and summarises the plan: counts, steps in order, edges taken and added", async () => {
     answer = { stdout: raw("validate-infra.plan-move.json") };
     const out = await call("infra_validate", { plan: "move" });
@@ -460,6 +468,27 @@ describe("infra_cost with plan", () => {
     expect(out.topChanges[0].node).toBe("db-prod");
     expect(out.topChanges.map((n: any) => n.change).sort()).toEqual(["added", "removed", "replaced"]);
     expect(out.nodes).toMatchObject({ added: 1, replaced: 1, removed: 1 });
+  });
+
+  it("the biggest movement first whichever way, and a node the plan does not touch that moves with it is a change", async () => {
+    // shrink: the database shrinks (the biggest, a fall), api-prod goes, and batch-prod — untouched, after api-prod
+    // in the model — takes more of the account's free egress: "same", yet its month moves
+    answer = { stdout: raw("cost-infra.plan-shrink.json") };
+    const out = await call("infra_cost", { plan: "shrink" });
+    const rec = fixture("cost-infra.plan-shrink.json");
+    const batch = rec.byNode.find((n: any) => n.node === "batch-prod");
+    expect(batch.change).toBe("same");
+    expect(batch.diff).toBeLessThan(0);
+    expect(out.topChanges[0]).toMatchObject({ node: "db-prod", change: "replaced" });
+    expect(out.topChanges[0].diff).toBeLessThan(0);
+    const sizes = out.topChanges.map((n: any) => Math.abs(n.diff));
+    expect(sizes).toEqual([...sizes].sort((x: number, y: number) => y - x));
+    expect(out.topChanges.map((n: any) => n.node)).toContain("batch-prod");
+    expect(out.changedCount).toBe(rec.byNode.filter((n: any) => n.change !== "same" || n.diff !== 0).length);
+    expect(out.changedCount).toBeGreaterThan(rec.byNode.filter((n: any) => n.change !== "same").length);
+    // the step that removes api-prod moves batch-prod and the line too, said in its moved
+    const step = out.steps.find((x: any) => x.node === "api-prod");
+    expect(step.moved.map((m: any) => m.node)).toEqual(expect.arrayContaining(["api-prod", "batch-prod"]));
   });
 
   it("a step's moved is kept whole, a neighbour that moved with the step's node too (the step's diff is not its node's)", async () => {

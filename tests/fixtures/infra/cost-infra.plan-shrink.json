@@ -1,0 +1,162 @@
+{
+  "ok": true,
+  "dir": "docs/infra/load",
+  "migration": "shrink",
+  "scenario": "ordinary",
+  "scenarios": [
+    {
+      "id": "ordinary",
+      "label": "ふだんの月",
+      "file": "ordinary.json",
+      "month": "2026-11",
+      "environment": "production"
+    },
+    {
+      "id": "sale",
+      "label": "セールの月",
+      "file": "sale.json",
+      "month": "2026-11",
+      "environment": "production"
+    }
+  ],
+  "old": {
+    "usd": 1033.0335079999993,
+    "noRule": [
+      "api-role"
+    ],
+    "loadUndefined": [
+      "stripe"
+    ],
+    "noPrice": [
+      "api-5xx",
+      "mailer"
+    ]
+  },
+  "new": {
+    "usd": 783.4526779999998,
+    "noRule": [
+      "api-role"
+    ],
+    "loadUndefined": [
+      "stripe"
+    ],
+    "noPrice": [
+      "api-5xx",
+      "mailer"
+    ]
+  },
+  "diff": {
+    "usd": -249.58082999999954
+  },
+  "unpricedChanged": [],
+  "byNode": [
+    {
+      "node": "db-prod",
+      "change": "replaced",
+      "unpriced": false,
+      "old": 422.3999999999987,
+      "new": 243.59999999999954,
+      "diff": -178.7999999999992
+    },
+    {
+      "node": "api-prod",
+      "change": "removed",
+      "unpriced": false,
+      "old": 64.80000000000005,
+      "new": 0.0,
+      "diff": -64.80000000000005
+    },
+    {
+      "node": "batch-prod",
+      "change": "same",
+      "unpriced": false,
+      "old": 14.436030000000027,
+      "new": 10.800000000000002,
+      "diff": -3.6360300000000247
+    },
+    {
+      "node": "api-prod>db-prod",
+      "change": "same",
+      "unpriced": false,
+      "old": 2.3447999999999984,
+      "new": 0.0,
+      "diff": -2.3447999999999984
+    },
+    {
+      "node": "alb-prod",
+      "change": "same",
+      "unpriced": false,
+      "old": 29.015999999999977,
+      "new": 29.015999999999977,
+      "diff": 0.0
+    },
+    {
+      "node": "assets",
+      "change": "same",
+      "unpriced": false,
+      "old": 44.55927800000017,
+      "new": 44.55927800000017,
+      "diff": 0.0
+    },
+    {
+      "node": "cdn",
+      "change": "same",
+      "unpriced": false,
+      "old": 455.4774000000002,
+      "new": 455.4774000000002,
+      "diff": 0.0
+    }
+  ],
+  "byProvider": [
+    {
+      "provider": "aws",
+      "old": 1033.0335079999993,
+      "new": 783.4526780000001,
+      "diff": -249.5808299999992
+    }
+  ],
+  "steps": [
+    {
+      "index": 1,
+      "node": "db-prod",
+      "usd": 854.2335079999995,
+      "diff": -178.79999999999984,
+      "moved": [
+        {
+          "node": "db-prod",
+          "diff": -178.7999999999992
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "node": "api-prod",
+      "usd": 783.4526779999998,
+      "diff": -70.7808299999997,
+      "moved": [
+        {
+          "node": "api-prod",
+          "diff": -64.80000000000005
+        },
+        {
+          "node": "batch-prod",
+          "diff": -3.6360300000000247
+        },
+        {
+          "node": "api-prod>db-prod",
+          "diff": -2.3447999999999984
+        }
+      ]
+    }
+  ],
+  "account": null,
+  "problems": {
+    "count": 0,
+    "errors": 0,
+    "first": []
+  },
+  "prices": {
+    "warnings": [],
+    "warningCount": 0
+  }
+}

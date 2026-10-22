@@ -105,6 +105,31 @@ doc "${WORK}/plans" cost infra --migration move --account --scenario sale --json
 doc "${WORK}/badplans" cost infra --migration both --json > "${OUT}/cost-infra.plan-bad.json"
 doc "${WORK}/plans" cost infra --migration nope --json > "${OUT}/cost-infra.plan-none.json"
 
+# A plan whose biggest change is a fall, and an unchanged node that moves with it: batch-prod (a node of this copy
+# only) comes after api-prod and shares the account's 100 GB internet egress with it (the free amount goes to the
+# first nodes); the plan shrinks the database and removes api-prod, so batch-prod takes more of the free amount.
+cp -R "${FIX}/aws-three-tier" "${WORK}/shrink"
+python3 - "${WORK}/shrink/docs/infra" <<'EOF'
+import json, sys
+infra = sys.argv[1]
+m = json.load(open(f"{infra}/main.json", encoding="utf-8"))
+m["nodes"].append({"id": "batch-prod", "category": "compute.container", "service": "ecs.fargate", "group": "private-prod", "count": 1,
+                   "environments": ["production"], "spec": [{"key": "cpu", "value": "256"}, {"key": "memory", "value": "512"}, {"key": "tasks", "value": "1"}]})
+json.dump(m, open(f"{infra}/main.json", "w", encoding="utf-8"), ensure_ascii=False)
+d = json.load(open(f"{infra}/load/ordinary.json", encoding="utf-8"))
+for row in d["loads"]:
+    if row.get("node") == "api-prod":
+        row["quantities"]["egress_gb"] = {"amount": 2.7, "per": "day"}
+d["loads"].append({"node": "batch-prod", "quantities": {"vcpu": 0.25, "memory_gb": 0.5, "egress_gb": {"amount": 2.7, "per": "day"}}})
+json.dump(d, open(f"{infra}/load/ordinary.json", "w", encoding="utf-8"), ensure_ascii=False)
+EOF
+SMALL='{"id": "db-prod", "category": "database.relational", "service": "rds.mysql", "group": "private-prod", "environments": ["production"], "spec": [{"key": "instance_class", "value": "db.t4g.medium"}, {"key": "storage_gb", "value": "200"}]}'
+plan "${WORK}/shrink" shrink "{\"version\": 0, \"nodes\": [${SMALL}]}" '{"version": 0, "nodes": ["api-prod"], "groups": [], "edges": []}'
+doc "${WORK}/shrink" cost infra --migration shrink --json > "${OUT}/cost-infra.plan-shrink.json"
+# a plan folder with nothing in it yet: listed, not ok, its read problem said (an empty migrations folder lists none)
+mkdir -p "${WORK}/badplans/docs/infra/migrations/half"
+doc "${WORK}/badplans" validate infra --migration half --json > "${OUT}/validate-infra.plan-half.json"
+
 # The temp folder's path is not part of the contract
 for f in "${OUT}"/*.json; do
   python3 - "$f" "${WORK}" <<'EOF'
