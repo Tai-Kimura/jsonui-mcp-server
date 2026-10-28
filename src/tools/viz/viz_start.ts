@@ -1,14 +1,14 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { CLAUDE_CODE_ONLY, runViz, vizResult } from "./viz_common.js";
+import { SESSION_SCOPE, runViz, vizResult } from "./viz_common.js";
 
 export function register(server: McpServer) {
   server.tool(
     "viz_start",
-    "Start the jui viz server (the local viewer of Claude Code sessions) in the background and return its URL " +
+    "Start the jui viz server (the local viewer of Claude Code and Codex sessions) in the background and return its URL " +
       "on 127.0.0.1. A server already running is reported (alreadyRunning), not started again. Hooks and the " +
       "relay are installed with the jui CLI, not here. " +
-      CLAUDE_CODE_ONLY,
+      SESSION_SCOPE,
     {
       port: z.number().int().min(1).max(65535).optional().describe("Port on 127.0.0.1 (default: the viz config, 7788)"),
     },

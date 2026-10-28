@@ -46,7 +46,7 @@ bash ~/.jsonui-mcp-server/install.sh
 bash ~/.jsonui-mcp-server/uninstall.sh
 ```
 
-## Available Tools (57)
+## Available Tools (59)
 
 ### Group A: コンポーネント仕様参照 (9)
 
@@ -126,9 +126,9 @@ bash ~/.jsonui-mcp-server/uninstall.sh
 
 > `jsonui-test mock serve`（常駐 HTTP + run-target 実行）は RCE 面のため **MCP 非公開**（CLI 直叩き限定）。
 
-### Group G: jui viz (5)
+### Group G: jui viz (7)
 
-Claude Code のセッションを見るローカルのビューア（`jui viz`）。**Claude Code のセッションだけを見せる**（Codex など他のエージェントのセッションは出ない）。どれもホームフォルダで走り、`JUI_PROJECT_DIR` は使わない。
+Claude Code と Codex（ローカルモデルを含む）の接続済みセッションを見るローカルのビューア（`jui viz`）。どれもホームフォルダで走り、`JUI_PROJECT_DIR` は使わない。
 
 | Tool | Description | CLI |
 |------|-------------|-----|
@@ -137,6 +137,10 @@ Claude Code のセッションを見るローカルのビューア（`jui viz`�
 | `viz_start` | サーバーをバックグラウンドで起動し、`/health` が応答したら URL を返す。動いていれば起動せずに `alreadyRunning` で返す | `jui viz start --json [--port N]` |
 | `viz_stop` | jui が記録したサーバーだけを止める | `jui viz stop` |
 | `viz_open` | 動いているサーバーのページをブラウザで開く（動いていなければ失敗。先に `viz_start`） | `jui viz open` |
+| `viz_peers` | 送信先のセッションID・名前・CLI・モデル・プロバイダー・送信可能状態を一覧で取得 | `jui viz peers` |
+| `viz_send_message` | `recipient`・`text`・`message_id`で1通送信。`sender`は省略時にCLIが検出。結果と再試行用IDを返す | `jui viz message --to=… --text=… --id=… [--from=…]` |
+
+`viz_send_message` は新しい通ごとに一意の `message_id`（ASCII英数字・`_`・`-`、8〜100文字）を渡す。同じ要求を再確認するときはIDと本文を維持し、到達未確認の通を新しいIDで再送しない。`sent`は受信経路の受付で、モデルの既読ではない。両側の「トーク」に履歴が残る。viz自体の導入/再起動とは別に、新ツールを認識するにはMCPクライアントの再接続が必要。
 
 > フックと中継の導入（`jui viz hooks install` / `jui viz relay install`）は `~/.claude/settings.json` と利用者の MCP 設定を書くので **MCP 非公開**（CLI で行う）。jui が古いと（`viz` / `start` / `--with-relay` が無い）、結果の `update_jui` に更新の手順が出る。
 

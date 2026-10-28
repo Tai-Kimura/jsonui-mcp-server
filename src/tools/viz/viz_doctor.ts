@@ -1,12 +1,12 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { CLAUDE_CODE_ONLY, runViz, vizResult } from "./viz_common.js";
+import { SESSION_SCOPE, runViz, vizResult } from "./viz_common.js";
 
 export function register(server: McpServer) {
   server.tool(
     "viz_doctor",
-    "Check the environment for jui viz (the local viewer of Claude Code sessions): Python packages, the hooks and " +
+    "Check the environment for jui viz (the local viewer of Claude Code and Codex sessions): Python packages, the hooks and " +
       "the Python they run, the port, the claude CLI. Each check has name, ok and detail. " +
-      CLAUDE_CODE_ONLY,
+      SESSION_SCOPE,
     {},
     async () => {
       try {

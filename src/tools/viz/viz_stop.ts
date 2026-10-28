@@ -1,11 +1,11 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { CLAUDE_CODE_ONLY, runViz, vizResult } from "./viz_common.js";
+import { SESSION_SCOPE, runViz, vizResult } from "./viz_common.js";
 
 export function register(server: McpServer) {
   server.tool(
     "viz_stop",
-    "Stop the jui viz server (the local viewer of Claude Code sessions). Only the server jui recorded is stopped. " +
-      CLAUDE_CODE_ONLY,
+    "Stop the jui viz server (the local viewer of Claude Code and Codex sessions). Only the server jui recorded is stopped. " +
+      SESSION_SCOPE,
     {},
     async () => {
       try {
