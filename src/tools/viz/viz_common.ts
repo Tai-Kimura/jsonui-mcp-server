@@ -2,14 +2,14 @@ import { homedir } from "os";
 import { runCli, CliResult } from "../../cli_runner.js";
 
 /**
- * Shared by the viz_* tools (`jui viz`, the local viewer of Claude Code
+ * Shared by the viz_* tools (`jui viz`, the local viewer of Claude Code and Codex
  * sessions). jui viz reads ~/.claude and ~/.jsonui-cli/viz, not a project, so
  * every call runs in the home folder — never JUI_PROJECT_DIR.
  */
 
-/** Said in every viz_* description: other agents' sessions (Codex, …) are not shown. */
-export const CLAUDE_CODE_ONLY =
-  "jui viz shows Claude Code sessions only (Claude Code のセッションだけを見せる).";
+/** Shared scope of the local viewer and messaging tools. */
+export const SESSION_SCOPE =
+  "jui viz shows connected Claude Code and Codex sessions, including Codex local-model providers.";
 
 export const UPDATE_JUI =
   "curl -fsSL https://raw.githubusercontent.com/Tai-Kimura/jsonui-cli/main/installer/bootstrap.sh | bash";
@@ -23,6 +23,8 @@ export const UPDATE_JUI =
 const OUTDATED: { pattern: RegExp; missing: string }[] = [
   { pattern: /invalid choice: 'viz'/, missing: "`jui viz`" },
   { pattern: /invalid choice: 'start'/, missing: "`jui viz start`" },
+  { pattern: /invalid choice: 'peers'/, missing: "`jui viz peers`" },
+  { pattern: /invalid choice: 'message'/, missing: "`jui viz message`" },
   { pattern: /unrecognized arguments: .*--with-relay/, missing: "`jui viz status --with-relay`" },
 ];
 

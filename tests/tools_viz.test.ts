@@ -17,6 +17,8 @@ import { register as registerVizDoctor } from "../src/tools/viz/viz_doctor.js";
 import { register as registerVizStart } from "../src/tools/viz/viz_start.js";
 import { register as registerVizStop } from "../src/tools/viz/viz_stop.js";
 import { register as registerVizOpen } from "../src/tools/viz/viz_open.js";
+import { register as registerVizPeers } from "../src/tools/viz/viz_peers.js";
+import { register as registerVizSendMessage } from "../src/tools/viz/viz_send_message.js";
 import { cleanupTempDirs, createToolHarness, makeTempDir, type ToolHarness } from "./helpers.js";
 
 type ExecCallback = (error: any, stdout: string, stderr: string) => void;
@@ -25,7 +27,7 @@ let recorded: { command: string; args: string[]; options: Record<string, any> }[
 let nextResponse: { error?: any; stdout?: string; stderr?: string };
 let harness: ToolHarness;
 
-const VIZ_TOOLS = ["viz_status", "viz_doctor", "viz_start", "viz_stop", "viz_open"];
+const VIZ_TOOLS = ["viz_status", "viz_doctor", "viz_start", "viz_stop", "viz_open", "viz_peers", "viz_send_message"];
 
 // jui 1.9.37 (no viz at all)
 const NO_VIZ =
@@ -62,6 +64,8 @@ beforeEach(() => {
   registerVizStart(harness.server);
   registerVizStop(harness.server);
   registerVizOpen(harness.server);
+  registerVizPeers(harness.server);
+  registerVizSendMessage(harness.server);
 });
 
 afterEach(() => {
@@ -70,10 +74,10 @@ afterEach(() => {
 });
 
 describe("viz tools", () => {
-  it("every description says only Claude Code sessions are shown", () => {
+  it("every description includes both Claude Code and Codex sessions", () => {
     expect([...harness.tools.keys()]).toEqual(VIZ_TOOLS);
     for (const name of VIZ_TOOLS) {
-      expect(harness.tools.get(name)!.description).toContain("Claude Code のセッションだけを見せる");
+      expect(harness.tools.get(name)!.description).toContain("Claude Code and Codex");
     }
   });
 
@@ -86,6 +90,9 @@ describe("viz tools", () => {
     ["viz_start", { port: 18011 }, ["viz", "start", "--json", "--port", "18011"]],
     ["viz_stop", {}, ["viz", "stop"]],
     ["viz_open", {}, ["viz", "open"]],
+    ["viz_peers", {}, ["viz", "peers"]],
+    ["viz_send_message", { recipient: "peer-id", text: "hello", message_id: "unique-id" }, ["viz", "message", "--to=peer-id", "--text=hello", "--id=unique-id"]],
+    ["viz_send_message", { recipient: "peer-id", text: "hello", message_id: "unique-id", sender: "my-id" }, ["viz", "message", "--to=peer-id", "--text=hello", "--id=unique-id", "--from=my-id"]],
   ])("%s %j runs jui %j in the home folder, not the project", async (tool, params, argv) => {
     process.env.JUI_PROJECT_DIR = makeTempDir("project");
     await harness.call(tool, params);
@@ -150,5 +157,47 @@ describe("viz tools", () => {
     const parsed = JSON.parse(await harness.call("viz_status"));
     expect(parsed.success).toBe(false);
     expect(parsed.update_jui).toMatch(/^jui is not installed \(not found on PATH\)\. Install it: curl /);
+  });
+});
+
+
+describe("viz messaging", () => {
+  const args = { recipient: "peer-id", text: "hello", message_id: "unique-id" };
+  it("preserves command-like values as data and waits beyond the CLI timeout", async () => {
+    const text = "--help \n $(touch /tmp/not-a-command); 'quoted'";
+    await harness.call("viz_send_message", { ...args, recipient: "--help", sender: "--version", text });
+    expect(recorded[0].args).toEqual(["viz", "message", "--to=--help", `--text=${text}`, "--id=unique-id", "--from=--version"]);
+    expect(recorded[0].options.timeout).toBeGreaterThan(40_000);
+  });
+  it.each([
+    { recipient: "peer-id", text: "hello" },
+    { ...args, recipient: " " }, { ...args, sender: "" }, { ...args, text: " " },
+    { ...args, text: "x".repeat(20_001) }, { ...args, message_id: "bad/id" },
+    { ...args, message_id: "short" },
+  ])("refuses invalid input before dispatch: %j", async (params) => {
+    await expect(harness.call("viz_send_message", params)).rejects.toThrow();
+    expect(recorded).toHaveLength(0);
+  });
+  it("counts Unicode characters as the CLI does", async () => {
+    await harness.call("viz_send_message", { ...args, text: "😀".repeat(20_000) });
+    expect(recorded).toHaveLength(1);
+  });
+  it("preserves the retry id and unknown delivery on a CLI failure", async () => {
+    failWithCode(1, JSON.stringify({ ok: false, state: "unknown", id: args.message_id }));
+    const result = JSON.parse(await harness.call("viz_send_message", args));
+    expect(result).toMatchObject({ success: false, message_id: args.message_id, result: { state: "unknown" } });
+    expect(recorded).toHaveLength(1);
+  });
+  it("returns an MCP error and retains the id when a wrapper fails", async () => {
+    execFileMock.mockImplementation(() => { throw new Error("dispatch failed"); });
+    const tool = harness.tools.get("viz_send_message")!;
+    const result = await tool.handler(args) as any;
+    expect(result.isError).toBe(true);
+    expect(JSON.parse(result.content[0].text)).toMatchObject({ success: false, message_id: args.message_id });
+  });
+  it.each(["peers", "message"])("explains an old jui missing %s", async (name) => {
+    failWithCode(2, "", `jui viz: error: argument viz_cmd: invalid choice: '${name}'`);
+    const result = JSON.parse(await harness.call(name === "peers" ? "viz_peers" : "viz_send_message", name === "peers" ? {} : args));
+    expect(result.update_jui).toContain(`jui viz ${name}`);
   });
 });

@@ -1,13 +1,13 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { CLAUDE_CODE_ONLY, runViz, vizResult } from "./viz_common.js";
+import { SESSION_SCOPE, runViz, vizResult } from "./viz_common.js";
 
 export function register(server: McpServer) {
   server.tool(
     "viz_status",
-    "Report jui viz (the local viewer of Claude Code sessions): whether its server runs (pid, URL), the hooks in " +
+    "Report jui viz (the local viewer of Claude Code and Codex sessions): whether its server runs (pid, URL), the hooks in " +
       "~/.claude/settings.json (installed of 18), and whether the permission relay is registered. " +
-      CLAUDE_CODE_ONLY,
+      SESSION_SCOPE,
     {
       relay: z.boolean().optional().describe(
         "Also ask claude whether the permission relay is registered (default true; runs `claude mcp get`, a few seconds)"

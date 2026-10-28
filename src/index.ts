@@ -53,12 +53,14 @@ import { register as registerDocGenerateHtml } from "./tools/doc/doc_generate_ht
 import { register as registerDocRulesInit } from "./tools/doc/doc_rules_init.js";
 import { register as registerDocRulesShow } from "./tools/doc/doc_rules_show.js";
 
-// --- Group G: jui viz (Claude Code sessions viewer) ---
+// --- Group G: jui viz (Claude Code / Codex sessions and messages) ---
 import { register as registerVizStatus } from "./tools/viz/viz_status.js";
 import { register as registerVizDoctor } from "./tools/viz/viz_doctor.js";
 import { register as registerVizStart } from "./tools/viz/viz_start.js";
 import { register as registerVizStop } from "./tools/viz/viz_stop.js";
 import { register as registerVizOpen } from "./tools/viz/viz_open.js";
+import { register as registerVizPeers } from "./tools/viz/viz_peers.js";
+import { register as registerVizSendMessage } from "./tools/viz/viz_send_message.js";
 import { register as registerInfraValidate } from "./tools/infra/infra_validate.js";
 import { register as registerInfraLoadValidate } from "./tools/infra/infra_load_validate.js";
 import { register as registerInfraPricesValidate } from "./tools/infra/infra_prices_validate.js";
@@ -172,13 +174,15 @@ registerTestArtifactsPull(server, config);
 registerTestArtifactsStatus(server, config);
 registerTestContractsCoverage(server, config);
 
-// Register Group G: jui viz (5 tools). Hooks / relay install stay with the
+// Register Group G: jui viz (7 tools). Hooks / relay install stay with the
 // jui CLI (they write ~/.claude/settings.json and the user's MCP config).
 registerVizStatus(server);
 registerVizDoctor(server);
 registerVizStart(server);
 registerVizStop(server);
 registerVizOpen(server);
+registerVizPeers(server);
+registerVizSendMessage(server);
 
 // Register Group H: the server room's infra (6 tools) — jsonui-doc's validate / seed / check / cost infra, each
 // summarised from its --json (jsonui-cli 2.3.15+). `jui viz cloud-prices fetch` stays with the CLI (it goes to the
@@ -190,7 +194,7 @@ registerInfraSeed(server, config);
 registerInfraCheck(server, config);
 registerInfraCost(server, config);
 
-log(`Registered 57 tools (9 spec + 7 context + 8 jui + 9 doc + 3 api + 10 test + 5 viz + 6 infra)`);
+log(`Registered 59 tools (9 spec + 7 context + 8 jui + 9 doc + 3 api + 10 test + 7 viz + 6 infra)`);
 
 async function main() {
   const transport = new StdioServerTransport();
