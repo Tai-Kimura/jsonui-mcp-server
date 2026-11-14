@@ -2500,6 +2500,13 @@
     "_comment": "Component alias of TextField (web naming). Resolved by the L1 normalizer type rewrite and by every validator/codegen consumer - do not add attribute copies here."
   },
   "Button": {
+    "accessibilitySelected": {
+      "type": [
+        "boolean",
+        "binding"
+      ],
+      "description": "Whether screen readers are told this control is the selected one (iOS the .isSelected trait, Android semantics selected, web aria-pressed): a boolean or a binding, as with two buttons of which one is chosen. `false` tells nothing, on all three platforms (VoiceOver says nothing of a control that is not selected; the other two follow it). It takes effect where the control is one button to a screen reader: a Button, and a View or IconLabel whose onClick makes it one button (it holds no control of its own: the tap rule's button / combine shape, as accessibilityLabel's View). Elsewhere the build warns and nothing is told. Radio, CheckBox, Switch, Segment, TabView and SelectBox say their own state."
+    },
     "accessibilityLabel": {
       "type": [
         "string",
@@ -3213,11 +3220,11 @@
     },
     "caretAttributes": {
       "type": "object",
-      "description": "Caret/arrow styling for the closed select. Absent: every face keeps its native indicator at its native inset (the picture each face drew before 1.8.101), so existing layouts do not move. Present: the face draws the caret itself from these keys, on every platform and mode — this object was UIKit-only (SJUISelectBox) until 1.8.101; SwiftUI codegen/dynamic, Compose codegen/dynamic and the web <select> now honour it too. `src` is optional: when it is absent the face draws its own default chevron glyph, so `{\"rightMargin\": 12}` alone moves the native-looking arrow away from the trailing edge. Not inherited from any other object; the multiple/list-box and Date modes have no closed-state caret and ignore it.",
+      "description": "Caret/arrow styling for the closed select. Absent: every face keeps its native indicator at its native inset (the picture each face drew before 1.8.101), so existing layouts do not move. Present: the face draws the caret itself from these keys, on every platform and mode — this object was UIKit-only (SJUISelectBox) until 1.8.101; SwiftUI codegen/dynamic, Compose codegen/dynamic and the web <select> now honour it too. `src` is optional: when it is absent the face draws its own default chevron glyph, so `{\"rightMargin\": 12}` alone moves the native-looking arrow away from the trailing edge. Not inherited from any other object. A Date box (selectItemType \"Date\") draws the same closed-state caret and honours it on every face; only the multiple/list-box mode has no closed-state caret and ignores it.",
       "properties": {
         "src": {
           "type": "string",
-          "description": "Caret image asset name. Optional — absent means the face's default chevron glyph."
+          "description": "Caret image asset name. Optional — absent means the face's default chevron glyph. Drawn in its own colours: tintColor does not paint it."
         },
         "width": {
           "type": "number",
@@ -3229,7 +3236,7 @@
         },
         "tintColor": {
           "type": "string",
-          "description": "Caret tint color - hex string or color name from colors.json. Applies to the default glyph and to a template `src`."
+          "description": "Caret tint color - hex string or color name from colors.json. Paints the default glyph only: a `src` picture keeps its own colours on every face, template asset or not (the requester's ruling 2026-11-14). Absent, the default glyph follows the text colour: Android tints it with the text colour, and the web strokes an inline svg with currentColor, so it follows fontColor, a bound one and the page's own dark mode (data-theme, prefers-color-scheme) at runtime; a Date input written colorScheme \"dark\" with no fontColor draws it light. Known difference: iOS draws the default glyph gray (.gray) whatever the text colour, readable on light and dark alike (ticket rjui-selectbox-caret-fixed-black-ignores-theme-dark-mode, the orchestrator's ruling 2026-11-14)."
         },
         "background": {
           "type": "string",
@@ -3237,7 +3244,7 @@
         },
         "rightMargin": {
           "type": "number",
-          "description": "Distance from the select's trailing edge to the caret's trailing edge (pt / dp / px). Absent: 0, which is the UIKit contract this object came from (the caret sits flush against the edge)."
+          "description": "Distance from the select's trailing edge to the caret's trailing edge (pt / dp / px). Absent: where the default arrow sits without caretAttributes (the select's trailing padding, 12 by default), on every face and mode, so the object's presence never moves the caret (the requester's ruling 2026-11-14). Write 0 to put it flush against the edge."
         }
       }
     },
@@ -3776,6 +3783,13 @@
     }
   },
   "View": {
+    "accessibilitySelected": {
+      "type": [
+        "boolean",
+        "binding"
+      ],
+      "description": "Whether screen readers are told this control is the selected one (iOS the .isSelected trait, Android semantics selected, web aria-pressed): a boolean or a binding, as with two buttons of which one is chosen. `false` tells nothing, on all three platforms (VoiceOver says nothing of a control that is not selected; the other two follow it). It takes effect where the control is one button to a screen reader: a Button, and a View or IconLabel whose onClick makes it one button (it holds no control of its own: the tap rule's button / combine shape, as accessibilityLabel's View). Elsewhere the build warns and nothing is told. Radio, CheckBox, Switch, Segment, TabView and SelectBox say their own state."
+    },
     "accessibilityLabel": {
       "type": [
         "string",
@@ -4418,6 +4432,14 @@
       "type": "binding",
       "description": "Called when a dragged row is released at a new place: `@{handler}` with (section: Int, from: Int, to: Int) — Swift `(Int, Int, Int) -> Void`, Kotlin `(Int, Int, Int) -> Unit`, TS `(section: number, from: number, to: number) => void`. `to` is the row's index in the order AFTER the move (iOS onMove's destination, counted before the row is taken out, is converted by the library). Same section only (v1: no move across sections); a single-section Collection is section 0. Not called when the row is released where it started. The screen reader's move up / move down call it with to = from - 1 / from + 1 (ticket jui-collection-drag-to-reorder, ruling B 2026-11-13)."
     },
+    "onReorderStart": {
+      "type": "binding",
+      "description": "Called when a row is picked up to be reordered: `@{handler}` with (section: Int, index: Int) — Swift `(Int, Int) -> Void`, Kotlin `(Int, Int) -> Unit`, TS `(section: number, index: number) => void`. `index` is the row's index when it is picked up. A ViewModel that rebuilds its rows by time can hold the rebuild until onReorderEnd. The screen reader's move up / move down call it right before their onReorder (ticket jui-collection-reorder-start-callback-missing, the requester's instruction 2026-11-14)."
+    },
+    "onReorderEnd": {
+      "type": "binding",
+      "description": "Called once when a drag that onReorderStart began is over: `@{handler}` with (section: Int) — Swift `(Int) -> Void`, Kotlin `(Int) -> Unit`, TS `(section: number) => void`. It follows onReorder when the row moved, and comes alone when the row was let go where it started, outside the Collection, or the drag was cancelled because the rows changed under it (shared/core/reorder_vectors.json rule.itemsChange). The screen reader's move up / move down call it right after their onReorder (ticket jui-collection-reorder-start-callback-missing)."
+    },
     "reorderHandle": {
       "type": "string",
       "description": "The id of an element in the cell layout that starts the drag when long-pressed (e.g. a grip at the row's right edge). Without it, a long press anywhere on the row starts it. The rest of the row keeps its taps (ticket jui-collection-drag-to-reorder, ruling B 2026-11-13)."
@@ -4425,6 +4447,10 @@
     "reorderLockedProperty": {
       "type": "string",
       "description": "A key of the cell data: a row whose value for it is true does not move, and no other row is moved past it (a divider row). Section headers and footers are not rows and never move (ticket jui-collection-drag-to-reorder, ruling B 2026-11-13)."
+    },
+    "reorderFixedProperty": {
+      "type": "string",
+      "description": "A key of the cell data: a row whose value for it is true does not move and has no screen reader move up / down, but other rows are moved past it (a cancelled or skipped row). A row of a Collection with a reorderHandle whose handle is not drawn is fixed the same way. reorderLockedProperty wins when a row is both (ticket jui-collection-reorder-fixed-row-vs-barrier-row, ruling 2026-11-14)."
     },
     "currentPage": {
       "type": "binding",
@@ -5082,6 +5108,13 @@
         "array"
       ],
       "description": "Icon size. A number sizes both edges; a two-element [width, height] sizes them separately (rjui icon_label_converter.rb:130-138 reads both, and its spec covers both). NOT the same shape as CheckBox.iconSize, which is a square glyph and takes a number only. sjui icon_label_converter.rb:50-51 interpolates the value straight into `iconSize:`, so the array form is web-only today — declared here because the attribute's value space is a property of the attribute, not of whichever face lags (plan 51-E)."
+    },
+    "accessibilitySelected": {
+      "type": [
+        "boolean",
+        "binding"
+      ],
+      "description": "Whether screen readers are told this control is the selected one (iOS the .isSelected trait, Android semantics selected, web aria-pressed): a boolean or a binding, as with two buttons of which one is chosen. `false` tells nothing, on all three platforms (VoiceOver says nothing of a control that is not selected; the other two follow it). It takes effect where the control is one button to a screen reader: a Button, and a View or IconLabel whose onClick makes it one button (it holds no control of its own: the tap rule's button / combine shape, as accessibilityLabel's View). Elsewhere the build warns and nothing is told. Radio, CheckBox, Switch, Segment, TabView and SelectBox say their own state."
     },
     "contentDescription": {
       "type": "string",
