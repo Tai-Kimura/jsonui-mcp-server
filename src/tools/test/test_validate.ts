@@ -33,7 +33,7 @@ export function register(server: McpServer, config: ServerConfig) {
         if (params.no_mock_check) { args.push("--no-mock-check"); }
         if (params.no_install) { args.push("--no-install"); }
 
-        const result = await runCli("jsonui-test", args, { cwd: projectDir });
+        const result = await runCli("jsonui-test", args, { cwd: projectDir, timeout: 180_000 });
         return { content: [{ type: "text", text: formatResult(result) }] };
       } catch (e: any) {
         return { content: [{ type: "text", text: `Error: ${e.message}` }] };

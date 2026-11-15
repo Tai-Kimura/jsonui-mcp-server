@@ -23,7 +23,7 @@ export function register(server: McpServer, config: ServerConfig) {
         if (params.fail_on_diff) { args.push("--fail-on-diff"); }
         if (params.platform) { args.push("--platform", params.platform); }
 
-        const result = await runCli("jui", args, { cwd: projectDir });
+        const result = await runCli("jui", args, { cwd: projectDir, timeout: 300_000 });
         return {
           content: [{
             type: "text",

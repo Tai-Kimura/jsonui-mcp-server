@@ -30,7 +30,12 @@ export function register(server: McpServer, config: ServerConfig) {
         if (params.layouts_dir) { args.push("--layouts-dir", params.layouts_dir); }
         if (params.with_checks) { args.push("--with-checks"); }
 
-        const result = await runCli("jsonui-doc", args, { cwd: projectDir });
+        // 10 minutes. Through 2.26.1 this ran on the 60 s default: a site of
+        // 754 pages took 22 s on an idle machine, and on a loaded one (load
+        // average 300+) passed 60 s, was stopped part-way and left docs/html
+        // half-rewritten (ticket mcp-doc-generate-html-timeout-leaves-partial-
+        // output). A run stopped at its limit says so, with the shell command.
+        const result = await runCli("jsonui-doc", args, { cwd: projectDir, timeout: 600_000 });
         return { content: [{ type: "text", text: formatResult(result) }] };
       } catch (e: any) {
         return { content: [{ type: "text", text: `Error: ${e.message}` }] };

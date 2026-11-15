@@ -5,10 +5,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const execFileMock = vi.hoisted(() => vi.fn());
-vi.mock("child_process", () => ({ execFile: execFileMock }));
-vi.mock("node:child_process", () => ({ execFile: execFileMock }));
+// execFileSync stays the real one: a timed-out run lists the child's
+// descendants with `ps` (the real-process arms below).
+vi.mock("child_process", async (importOriginal) => ({ ...(await importOriginal<any>()), execFile: execFileMock }));
+vi.mock("node:child_process", async (importOriginal) => ({ ...(await importOriginal<any>()), execFile: execFileMock }));
 
-import { runCli, formatResult, type CliResult } from "../src/cli_runner.js";
+import { runCli, formatResult, shellQuote, shellCommand, descendantPids, type CliResult } from "../src/cli_runner.js";
+import { existsSync, mkdtempSync, rmSync } from "fs";
+import { tmpdir } from "os";
+import { join } from "path";
 
 type ExecCallback = (error: any, stdout: string, stderr: string) => void;
 
@@ -71,11 +76,16 @@ describe("runCli", () => {
       stdout: "partial output",
     };
     const result = await runCli("jui", ["build"], { cwd: "/proj" });
-    expect(result).toEqual({
-      exitCode: 1,
-      stdout: "partial output",
-      stderr: "Command timed out after 60s",
-    });
+    expect(result).toMatchObject({ exitCode: 1, stdout: "partial output", timedOut: true });
+    expect(result.stderr).toMatch(/^Command timed out after 60s and was stopped, with every process it started\./);
+  });
+
+  it("says a stopped run may leave its files half-updated, and names the shell command that finishes it", async () => {
+    nextResponse = { error: Object.assign(new Error("killed"), { killed: true }) };
+    const result = await runCli("jsonui-doc", ["generate", "html", "tests", "-o", "docs/html", "-t", "My Docs"], { cwd: "/my proj" });
+    expect(result.stderr).toContain("half-updated");
+    expect(result.rerunInShell).toBe("cd '/my proj' && jsonui-doc generate html tests -o docs/html -t 'My Docs'");
+    expect(result.stderr).toContain(result.rerunInShell!);
   });
 
   it("reports custom timeouts in the timeout message", async () => {
@@ -83,7 +93,7 @@ describe("runCli", () => {
       error: Object.assign(new Error("killed"), { killed: true }),
     };
     const result = await runCli("jui", ["build"], { cwd: "/proj", timeout: 5_000 });
-    expect(result.stderr).toBe("Command timed out after 5s");
+    expect(result.stderr).toMatch(/^Command timed out after 5s /);
   });
 
   it("forwards cwd / timeout / maxBuffer / UTF-8 env to execFile", async () => {
@@ -138,7 +148,81 @@ describe("the child's stdin", () => {
   });
 });
 
+describe("shellQuote / shellCommand", () => {
+  it("leaves a plain word as it is and single-quotes anything else", () => {
+    expect(shellQuote("docs/html")).toBe("docs/html");
+    expect(shellQuote("--app=admin:./a")).toBe("--app=admin:./a");
+    expect(shellQuote("My Docs")).toBe("'My Docs'");
+    expect(shellQuote("it's")).toBe(`'it'"'"'s'`);
+    expect(shellQuote("")).toBe("''");
+  });
+
+  it("is a cd into the project, then the command", () => {
+    expect(shellCommand("jui", ["build"], "/p")).toBe("cd /p && jui build");
+  });
+});
+
+// Through 2.26.1 the limit was execFile's own, which signals the direct child
+// only: `jui build` stopped while the kjui process it had started went on
+// writing the project, reparented to PID 1 (measured 2026-11-15, ticket
+// mcp-doc-generate-html-timeout-leaves-partial-output). The arm runs a real
+// child that starts a grandchild writing a file after 1.5 s, and stops the run
+// at 0.5 s: the file must never appear.
+describe("a timed-out run (real processes)", () => {
+  it.skipIf(process.platform === "win32")("stops every process the CLI started, not the CLI alone", async () => {
+    const actual = await vi.importActual<typeof import("child_process")>("child_process");
+    execFileMock.mockImplementation((...args: any[]) => (actual.execFile as any)(...args));
+    const dir = mkdtempSync(join(tmpdir(), "cli-runner-group-"));
+    const marker = join(dir, "written-after-the-stop");
+    try {
+      const grandchild = `setTimeout(() => require('fs').writeFileSync(${JSON.stringify(marker)}, 'x'), 1500)`;
+      // The grandchild's output goes elsewhere (as a tool's subprocess with
+      // its output captured): the CLI's own pipe closes when the CLI ends.
+      const cli =
+        `require('child_process').spawn(process.execPath, ['-e', ${JSON.stringify(grandchild)}], { stdio: 'ignore' });` +
+        " setInterval(() => {}, 1000);";
+      const result = await runCli(process.execPath, ["-e", cli], { cwd: dir, timeout: 500 });
+      expect(result.timedOut).toBe(true);
+      await new Promise((r) => setTimeout(r, 2_500));
+      expect(existsSync(marker)).toBe(false);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }, 10_000);
+
+});
+
+describe("descendantPids", () => {
+  it.skipIf(process.platform === "win32")("finds a child's child, deepest first", async () => {
+    const actual = await vi.importActual<typeof import("child_process")>("child_process");
+    const grandchild = "setTimeout(() => {}, 3000)";
+    const cli = `require('child_process').spawn(process.execPath, ['-e', ${JSON.stringify(grandchild)}], { stdio: 'ignore' }); setTimeout(() => {}, 3000)`;
+    const child = actual.spawn(process.execPath, ["-e", cli], { stdio: "ignore" });
+    try {
+      await new Promise((r) => setTimeout(r, 500));
+      const found = descendantPids(child.pid!);
+      expect(found).toHaveLength(1);
+      expect(descendantPids(process.pid)).toEqual(expect.arrayContaining([found[0], child.pid]));
+      expect(descendantPids(process.pid).indexOf(found[0])).toBeLessThan(descendantPids(process.pid).indexOf(child.pid!));
+    } finally {
+      for (const p of descendantPids(child.pid!)) { try { process.kill(p); } catch {} }
+      child.kill();
+    }
+  }, 10_000);
+});
+
 describe("formatResult", () => {
+  it("carries a timeout's flag and its shell command", () => {
+    const result: CliResult = { exitCode: 1, stdout: "", stderr: "Command timed out after 60s ...", timedOut: true, rerunInShell: "cd /p && jui build" };
+    expect(JSON.parse(formatResult(result))).toEqual({
+      success: false,
+      output: "",
+      errors: "Command timed out after 60s ...",
+      timedOut: true,
+      rerunInShell: "cd /p && jui build",
+    });
+  });
+
   it("marks exitCode 0 as success and omits empty errors", () => {
     const result: CliResult = { exitCode: 0, stdout: "ok", stderr: "" };
     const parsed = JSON.parse(formatResult(result));

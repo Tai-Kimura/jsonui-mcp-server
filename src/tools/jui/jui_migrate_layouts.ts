@@ -19,7 +19,7 @@ export function register(server: McpServer, config: ServerConfig) {
         if (params.source_platform) { args.push("--from", params.source_platform); }
         if (params.dry_run) { args.push("--dry-run"); }
 
-        const result = await runCli("jui", args, { cwd: projectDir });
+        const result = await runCli("jui", args, { cwd: projectDir, timeout: 300_000 });
         return { content: [{ type: "text", text: formatResult(result) }] };
       } catch (e: any) {
         return { content: [{ type: "text", text: `Error: ${e.message}` }] };
