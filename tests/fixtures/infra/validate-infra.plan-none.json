@@ -1,0 +1,49 @@
+{
+  "ok": true,
+  "dir": "docs/infra",
+  "version": 0,
+  "files": [
+    "external.json",
+    "main.json"
+  ],
+  "environments": [
+    {
+      "id": "production",
+      "label": "本番",
+      "kind": "production"
+    },
+    {
+      "id": "staging",
+      "label": "ステージング",
+      "kind": "staging"
+    }
+  ],
+  "flows": [],
+  "problems": [],
+  "icons": {},
+  "migrations": [
+    {
+      "name": "nope",
+      "dir": "docs/infra/migrations/nope",
+      "ok": false,
+      "steps": [],
+      "counts": {},
+      "problems": [
+        {
+          "file": "nope",
+          "path": "/",
+          "code": "migration.no_plan",
+          "message": "no plan 'nope' in docs/infra/migrations",
+          "severity": "error",
+          "short": "docs/infra/migrations/nope: / という計画がありません（migration.no_plan）"
+        }
+      ]
+    }
+  ],
+  "readMs": 2,
+  "counts": {
+    "groups": 8,
+    "nodes": 12,
+    "edges": 10
+  }
+}

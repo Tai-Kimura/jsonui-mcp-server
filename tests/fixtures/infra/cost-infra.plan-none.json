@@ -1,0 +1,16 @@
+{
+  "ok": false,
+  "reason": "no_plan",
+  "message": "no plan 'nope'",
+  "problems": [
+    {
+      "file": "nope",
+      "path": "/",
+      "code": "migration.no_plan",
+      "message": "no plan 'nope' in docs/infra/migrations",
+      "short": "docs/infra/migrations/nope: / という計画がありません（migration.no_plan）",
+      "severity": "error",
+      "node": null
+    }
+  ]
+}

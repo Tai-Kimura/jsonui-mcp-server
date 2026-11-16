@@ -1,0 +1,917 @@
+import { createHash } from "crypto";
+import { existsSync, readFileSync, statSync } from "fs";
+import { homedir } from "os";
+import { join, resolve } from "path";
+import { fileURLToPath } from "url";
+
+import {
+  BINDING_RULES,
+  MODIFIER_ORDER,
+  PLATFORM_MAPPING,
+  categorizeCommonAttributes,
+} from "./data/derived.js";
+
+export interface ComponentMetadata {
+  description: string;
+  aliases: string[];
+  platforms: {
+    swift_generated: boolean;
+    swift_dynamic: boolean;
+    kotlin_generated: boolean;
+    kotlin_dynamic: boolean;
+    react: boolean;
+  };
+  platformSpecific: Record<string, Record<string, string>>;
+  rules: string[];
+}
+
+export interface ComponentSpec {
+  name: string;
+  description: string;
+  aliases: string[];
+  platforms: Record<string, boolean>;
+  attributes: Record<string, any>;
+  bindingBehavior: Record<string, any>;
+  platformSpecific: Record<string, any>;
+  rules: string[];
+}
+
+export type FallbackLayer = "env" | "cwd" | "home" | "bundled";
+
+/**
+ * sha256 of a file's bytes, or "" when it cannot be read.
+ *
+ * "" never equals a real digest, so an unreadable file compares as CHANGED
+ * rather than as unchanged — the safe direction for a staleness check.
+ */
+function hashFile(path: string): string {
+  try {
+    return createHash("sha256").update(readFileSync(path)).digest("hex");
+  } catch {
+    return "";
+  }
+}
+
+export interface FileInfo {
+  /** Which fallback layer provided the file. */
+  layer: FallbackLayer;
+  /** Absolute path actually loaded. */
+  path: string;
+  /** ISO 8601 mtime. */
+  lastModified: string;
+  /** Freshness bucket. "fresh" <= 30d, "aging" <= 90d, "stale" > 90d. */
+  freshness: "fresh" | "aging" | "stale";
+  /**
+   * sha256 of the bytes this process actually read.
+   *
+   * 🚨 THE STALENESS QUESTION IS ABOUT CONTENT, NOT ABOUT mtime. Every
+   * jsonui-cli distribution replaces `~/.jsonui-cli` wholesale, so an install
+   * moves every mtime whether or not a byte changed — measured 2026-09-09: a
+   * release whose `shared/core` was blob-identical to the previous one moved
+   * all seven timestamps, and every running server then reported "restart it"
+   * while serving exactly the right content. An alarm that fires on every
+   * distribution stops being read.
+   *
+   * The same toolchain already learned this one repo over: `jui build`'s
+   * generation manifest records a sha256 and says why — "a record that changes
+   * when nothing changed is noise, and noise is what gets ignored" — after an
+   * mtime-based version churned 89 entries between two builds with nothing
+   * edited. Same conclusion, reached twice, applied once.
+   */
+  contentHash: string;
+}
+
+/** One automatic reload attempt. `ok: false` means the previous content is
+ *  still being served — a file did not parse — and `error` says which. */
+export interface ReloadRecord {
+  at: string;
+  changed: string[];
+  ok: boolean;
+  error?: string;
+}
+
+/// A spelling the build accepts for a type it is not, as type_synonyms.json
+/// says: its canonical section, the type it is drawn as when that differs,
+/// and the attributes the spelling itself means.
+export interface TypeSynonym {
+  spelling: string;
+  canonical: string;
+  renderAs?: string;
+  implies?: Record<string, unknown>;
+  source: string;
+}
+
+export interface DataSourceInfo {
+  attributeDefinitions: FileInfo;
+  componentMetadata: FileInfo;
+  /// Present only when the optional canon file resolved. Reported for the
+  /// same reason as the two above: a caller who cannot see WHICH file the
+  /// running server read has no way to tell a stale snapshot from a server
+  /// that simply has not been restarted.
+  screenIdentity: FileInfo | null;
+  bindingSemantics: FileInfo | null;
+  /// shared/core/attribute_semantics.json — adjudicated attribute-semantics
+  /// contract (cross-effect rulings, plan 33). Optional: absent on older
+  /// jsonui-cli checkouts.
+  attributeSemantics: FileInfo | null;
+  /// shared/core/platform_semantics.json — platform-scoped layout semantics
+  /// (the node-level 'platform' directive, root 'platforms', vs
+  /// 'responsive'). Optional: absent on older jsonui-cli checkouts.
+  platformSemantics: FileInfo | null;
+  /// conformance/coverage.json — declared-but-unimplemented (component,
+  /// attribute, platform) pairs with their recorded reasons. Optional: absent
+  /// on older jsonui-cli checkouts.
+  coverage: FileInfo | null;
+  /// shared/core/type_synonyms.json — type spellings the build accepts for a
+  /// section they are not (ProgressBar, HStack, Text …). Optional: absent on
+  /// jsonui-cli before 1.9.0.
+  typeSynonyms: FileInfo | null;
+  /// sjui_tools/lib/swiftui/views/modifier_order.json — the order sjui
+  /// codegen emits SwiftUI modifiers in, which SwiftJsonUI's Dynamic chain
+  /// is held to. get_modifier_order serves its Swift order from it. Optional:
+  /// absent on jsonui-cli before 1.9.x.
+  swiftModifierOrder: FileInfo | null;
+  componentCount: number;
+  commonAttributeCount: number;
+}
+
+const ALL_PLATFORMS: ComponentMetadata["platforms"] = {
+  swift_generated: true,
+  swift_dynamic: true,
+  kotlin_generated: true,
+  kotlin_dynamic: true,
+  react: true,
+};
+
+const DEFAULT_METADATA: ComponentMetadata = {
+  description: "",
+  aliases: [],
+  platforms: ALL_PLATFORMS,
+  platformSpecific: {},
+  rules: [],
+};
+
+/**
+ * Resolution order for each jsonui-cli data file:
+ *
+ *   1. `$JSONUI_CLI_PATH` env var (custom install / monorepo)
+ *   2. `./.jsonui-cli/` in process.cwd() (project-local)
+ *   3. `~/.jsonui-cli/` (default location of the jsonui-cli bootstrap installer)
+ *   4. `<mcp-server>/data/<file>` (bundled snapshot, populated by
+ *      `scripts/fetch-definitions.js` at npm install time)
+ *
+ * A missing higher-priority layer falls through to the next. If all four fail,
+ * the loader throws — that's a hard misconfiguration.
+ */
+export class SpecLoader {
+  private components: Map<string, ComponentSpec> = new Map();
+  private commonAttributesRaw: Record<string, any> = {};
+  private bindingSemantics: Record<string, any> | null = null;
+  private attributeSemantics: Record<string, any> | null = null;
+  private platformSemantics: Record<string, any> | null = null;
+  /// `${component}.${attribute}` -> [{platform, reason, note}] from the
+  /// coverage ledger. The ledger tracks pairs that ARE declared (platform
+  /// field includes them) but that the platform's codegen does not consume —
+  /// the note explains why (backlog, alias normalization, runtime-only, ...).
+  private coverageGaps: Map<string, any[]> | null = null;
+  private screenIdentity: Record<string, any> | null = null;
+  private swiftModifierOrder: Record<string, any> | null = null;
+  private commonAttributes: any = null;
+  private aliasMap: Map<string, string> = new Map();
+  /// Lower-cased spelling -> its entry in type_synonyms.json, for the
+  /// spellings that resolve through it (not a section, `_alias_of` or
+  /// metadata alias of their own).
+  private typeSynonyms: Map<string, TypeSynonym> = new Map();
+  private metadata: Record<string, ComponentMetadata> = {};
+  private dataSource!: DataSourceInfo;
+  /** When this process read the files. Data is cached in memory from then
+   *  on, so a file edited later is not what the server is serving. */
+  private loadedAt: string = new Date().toISOString();
+  /** What the last automatic reload did — see `refreshIfChanged`. */
+  private lastReload: ReloadRecord | null = null;
+
+  constructor(private mcpRootDir: string) {
+    this.load();
+  }
+
+  /**
+   * Re-read the canon when its CONTENT changed since this process loaded it.
+   *
+   * 🚨 WHY THIS EXISTS. Every jsonui-cli distribution replaces `~/.jsonui-cli`
+   * under a running server, and until 2.12.0 the only remedy was "restart the
+   * MCP server" — in every session, on every release. Measured 2026-09-10:
+   * the check costs ~0.2 ms per call (seven sha256s of small files), which is
+   * nothing against a tool call, so every tool handler runs it first
+   * (`installAutoReload`) and a restart is no longer part of a distribution.
+   *
+   * ⚠️ A reload is ALL OR NOTHING. A distribution writes files one by one, so
+   * a call can land on a half-written JSON. The fresh state is built in a
+   * separate instance and swapped in only when every file parsed; on failure
+   * the server keeps serving the last good content and records the error
+   * (`getLastReload`), and the next call tries again.
+   *
+   * Returns the paths whose content differed (empty = nothing to do).
+   */
+  refreshIfChanged(): string[] {
+    const changed = this.getChangedSinceLoad();
+    if (changed.length === 0) return [];
+    const at = new Date().toISOString();
+    try {
+      const fresh = new SpecLoader(this.mcpRootDir);
+      // Own enumerable fields only — the private state, all of it, in one
+      // step. Nothing observes a half-swapped loader.
+      Object.assign(this, fresh);
+      this.lastReload = { at, changed, ok: true };
+    } catch (error) {
+      this.lastReload = {
+        at,
+        changed,
+        ok: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+    return changed;
+  }
+
+  getLastReload(): ReloadRecord | null {
+    return this.lastReload;
+  }
+
+  // ----- public API ------------------------------------------------------
+
+  getComponent(name: string): ComponentSpec | null {
+    const key = name.toLowerCase();
+    const resolved = this.aliasMap.get(key) || key;
+    return this.components.get(resolved) || null;
+  }
+
+  getComponentWithCommon(name: string): any {
+    const comp = this.getComponent(name);
+    if (!comp) return null;
+    // Say which spelling was asked for and why it resolved: the build
+    // accepts `ProgressBar` as a Progress, and an HStack is a View that
+    // also means `orientation: horizontal`.
+    const synonym = this.typeSynonyms.get(name.toLowerCase());
+    if (synonym) {
+      return { ...comp, typeSynonym: synonym, commonAttributes: this.commonAttributes };
+    }
+    return { ...comp, commonAttributes: this.commonAttributes };
+  }
+
+  getAttribute(name: string): any {
+    if (this.commonAttributes?.categories) {
+      for (const [category, attrs] of Object.entries(
+        this.commonAttributes.categories
+      )) {
+        const attrMap = attrs as Record<string, any>;
+        if (attrMap[name]) {
+          return this.withImplementationGaps(`common.${name}`, {
+            name,
+            category,
+            scope: "common",
+            definition: attrMap[name],
+            components: "all",
+          });
+        }
+      }
+    }
+
+    const results: any[] = [];
+    for (const comp of this.components.values()) {
+      if (comp.attributes[name]) {
+        results.push(
+          this.withImplementationGaps(`${comp.name}.${name}`, {
+            name,
+            scope: "component",
+            component: comp.name,
+            definition: comp.attributes[name],
+            bindingBehavior: comp.bindingBehavior?.[name],
+          })
+        );
+      }
+    }
+
+    if (results.length === 1) return results[0];
+    if (results.length > 1) return { name, matches: results };
+    return null;
+  }
+
+  /// Attach the coverage ledger's record for this (component, attribute) when
+  /// one exists: platforms that DECLARE the attribute but whose codegen does
+  /// not consume it, each with the recorded reason. Complements the
+  /// definition's own `platform` (declared surface) and `platform_reasons`
+  /// (why a platform is excluded from the declaration).
+  private withImplementationGaps(key: string, result: Record<string, any>) {
+    const gaps = this.coverageGaps?.get(key);
+    if (gaps && gaps.length > 0) {
+      return { ...result, implementationGaps: gaps };
+    }
+    return result;
+  }
+
+  searchComponents(query: string): any[] {
+    const q = query.toLowerCase();
+    const results: any[] = [];
+
+    for (const comp of this.components.values()) {
+      let score = 0;
+      const matches: string[] = [];
+
+      if (comp.name.toLowerCase().includes(q)) {
+        score += 10;
+        matches.push(`name: ${comp.name}`);
+      }
+      if (comp.description.toLowerCase().includes(q)) {
+        score += 5;
+        matches.push(`description: ${comp.description}`);
+      }
+      for (const alias of comp.aliases) {
+        if (alias.toLowerCase().includes(q)) {
+          score += 8;
+          matches.push(`alias: ${alias}`);
+        }
+      }
+      for (const attrName of Object.keys(comp.attributes)) {
+        if (attrName.toLowerCase().includes(q)) {
+          score += 3;
+          matches.push(`attribute: ${attrName}`);
+        }
+      }
+      for (const rule of comp.rules) {
+        if (rule.toLowerCase().includes(q)) {
+          score += 2;
+          matches.push(`rule: ${rule}`);
+        }
+      }
+
+      // A spelling the build accepts for this type (type_synonyms.json).
+      for (const synonym of this.typeSynonyms.values()) {
+        if (this.getComponent(synonym.spelling) !== comp) continue;
+        if (synonym.spelling.toLowerCase().includes(q)) {
+          score += 8;
+          matches.push(`type synonym: ${synonym.spelling}`);
+        }
+      }
+
+      if (score > 0) results.push({ component: comp.name, score, matches });
+    }
+
+    if (this.commonAttributes?.categories) {
+      for (const [category, attrs] of Object.entries(
+        this.commonAttributes.categories
+      )) {
+        const attrMap = attrs as Record<string, any>;
+        for (const [attrName, attrDef] of Object.entries(attrMap)) {
+          if (
+            attrName.toLowerCase().includes(q) ||
+            (attrDef as any)?.description?.toLowerCase().includes(q)
+          ) {
+            results.push({
+              component: "common",
+              score: 4,
+              matches: [`common.${category}.${attrName}`],
+            });
+          }
+        }
+      }
+    }
+
+    // Topic-guide index: task vocabulary ("iOSだけ色を変える", "ios only",
+    // "platform override") does not contain any component or attribute
+    // name, so the loops above can't surface the mechanism. Each guide
+    // declares its own keywords (en + ja) in its semantics file; a hit
+    // pins a pointer to the dedicated tool at the top of the results.
+    for (const guide of this.topicGuides()) {
+      const hit = guide.keywords.some(
+        (kw) => q.includes(kw) || (q.length >= 3 && kw.includes(q))
+      );
+      if (hit) {
+        results.push({
+          guide: guide.topic,
+          score: 100,
+          matches: [guide.summary],
+          nextTool: guide.tool,
+        });
+      }
+    }
+
+    return results.sort((a, b) => b.score - a.score);
+  }
+
+  /** Keyword-indexed topical guides, each backed by a dedicated MCP tool. */
+  private topicGuides(): Array<{
+    topic: string;
+    tool: string;
+    summary: string;
+    keywords: string[];
+  }> {
+    const guides: Array<{
+      topic: string;
+      tool: string;
+      summary: string;
+      keywords: string[];
+    }> = [];
+    if (this.platformSemantics) {
+      const kws = Array.isArray(this.platformSemantics.keywords)
+        ? (this.platformSemantics.keywords as string[])
+        : [];
+      guides.push({
+        topic: "platform_rules",
+        tool: "get_platform_rules",
+        summary:
+          "Per-platform styling/visibility (e.g. change fontColor on iOS only): node-level 'platform' directive (object form = per-platform overrides, string form = platform filter), root 'platforms' whitelist, vs 'responsive'. Call get_platform_rules for the full semantics with examples.",
+        keywords: kws.map((k) => k.toLowerCase()),
+      });
+    }
+    return guides;
+  }
+
+  /**
+   * The Swift order is read from jsonui-cli's modifier_order.json, the order
+   * sjui codegen emits and SwiftJsonUI's Dynamic chain is tested against. It
+   * was a hand-written list here (derived.ts), and it had drifted: margins
+   * before offset, onClick after the margins — while jsonui-cli 1.9.20 puts
+   * the tap inside the offset and the margins (ticket mcp-get-modifier-order-
+   * swift-is-a-hand-written-list-that-drifted). Kotlin and React have no such
+   * file in jsonui-cli; they stay hand-written and say so (`source`).
+   */
+  getModifierOrder(platform?: string): any {
+    const swift = this.swiftModifierOrderEntry();
+    const all: Record<string, any> = { ...MODIFIER_ORDER, swift };
+    for (const key of ["kotlin", "react"]) {
+      all[key] = { source: "hand-written in jsonui-mcp-server (src/data/derived.ts); jsonui-cli has no order file for it", ...(MODIFIER_ORDER as any)[key] };
+    }
+    if (platform) return all[platform] || null;
+    return all;
+  }
+
+  private swiftModifierOrderEntry(): Record<string, any> {
+    const doc = this.swiftModifierOrder;
+    const file = this.dataSource?.swiftModifierOrder;
+    if (!doc || !file || !Array.isArray(doc.bag)) {
+      return {
+        source: "unavailable: sjui_tools/lib/swiftui/views/modifier_order.json did not resolve",
+        order: null,
+      };
+    }
+    const afterBag: string[] = Array.isArray(doc.after_bag) ? doc.after_bag : [];
+    return {
+      source: `jsonui-cli sjui_tools/lib/swiftui/views/modifier_order.json (${file.layer}: ${file.path})`,
+      // The bag in the order it is written, then what is written after it.
+      order: [...doc.bag, ...afterBag.map((k: string) => `${k} (after the bag)`)],
+      bag: doc.bag,
+      afterBag,
+      sharedSlots: doc.shared_slots ?? {},
+      about: doc._about ?? [],
+      criticalRules: (MODIFIER_ORDER as any).swift?.criticalRules ?? [],
+    };
+  }
+
+  /**
+   * The canonical screen-identity asset, or null when this checkout predates
+   * it. Served verbatim: it is a declaration, not something to restate.
+   */
+  /** ISO 8601 timestamp of when this process loaded its data files. */
+  getLoadedAt(): string {
+    return this.loadedAt;
+  }
+
+  /**
+   * Paths whose CONTENT differs from what this process read.
+   *
+   * 🔻 mtime is a PRE-FILTER, not the answer. It is cheap and right about the
+   * common case (nothing touched the file), so it saves a read — but a moved
+   * timestamp on identical bytes is not staleness, and that is exactly what a
+   * distribution produces: `~/.jsonui-cli` is replaced wholesale on every
+   * install, so every mtime moves every time. Reporting on mtime alone made
+   * this fire on 100% of distributions, which is the same as not reporting.
+   *
+   * ⚠️ A file that disappeared is still reported: the server is serving
+   * content whose source is gone, which a reader needs to know even though no
+   * hash can be computed for it.
+   */
+  getChangedSinceLoad(): string[] {
+    const tracked = [
+      this.dataSource.attributeDefinitions,
+      this.dataSource.componentMetadata,
+      this.dataSource.screenIdentity,
+      this.dataSource.bindingSemantics,
+      this.dataSource.attributeSemantics,
+      this.dataSource.platformSemantics,
+      this.dataSource.coverage,
+      this.dataSource.typeSynonyms,
+      this.dataSource.swiftModifierOrder,
+    ].filter((f): f is FileInfo => f != null);
+
+    const changed: string[] = [];
+    for (const file of tracked) {
+      try {
+        // 🚫 NO mtime PRE-FILTER. An earlier draft skipped the read when the
+        // timestamp had not moved, to save I/O — and an arm caught it missing
+        // an edit that landed in the same millisecond as the load. The saving
+        // was seven small reads on a diagnostic call nobody runs in a loop;
+        // the cost was a checker that answers "unchanged" for a file it never
+        // looked at. That is the same shape as the mtime comparison this
+        // replaced: a cheap proxy standing in for the question.
+        statSync(file.path); // still there? (throws into the catch if not)
+        if (hashFile(file.path) !== file.contentHash) changed.push(file.path);
+      } catch {
+        // Disappeared since load — also a reason to restart.
+        changed.push(file.path);
+      }
+    }
+    return changed;
+  }
+
+  getScreenIdentity(): any {
+    return this.screenIdentity;
+  }
+
+  getBindingRules(): any {
+    // BINDING_RULES carries the author-facing syntax guidance; the
+    // canonical resolution SEMANTICS (dot paths, `??` defaults,
+    // unresolved-key behavior, negation, coercion — SSoT:
+    // shared/core/binding_semantics.json) is attached when available so
+    // the MCP never re-states semantics by hand again.
+    if (!this.bindingSemantics) return BINDING_RULES;
+    return {
+      ...BINDING_RULES,
+      semanticsVersion: this.bindingSemantics.version,
+      semantics: this.bindingSemantics,
+    };
+  }
+
+  getPlatformRules(): any {
+    // Canonical platform-scoping semantics (SSoT:
+    // shared/core/platform_semantics.json — restates
+    // jui_tools/jui_cli/core/platform_resolver.py). Null on jsonui-cli
+    // checkouts that predate the file; the tool reports that instead of
+    // inventing rules.
+    return this.platformSemantics;
+  }
+
+  getPlatformMapping(category?: string): any {
+    if (category) return (PLATFORM_MAPPING as any)[category] || null;
+    return PLATFORM_MAPPING;
+  }
+
+  listComponents(): string[] {
+    return Array.from(this.components.values()).map((c) => c.name);
+  }
+
+  getDataSource(): DataSourceInfo {
+    return this.dataSource;
+  }
+
+  // ----- load pipeline ---------------------------------------------------
+
+  private load(): void {
+    const attrResolution = this.resolveFile(
+      "shared/core/attribute_definitions.json",
+      "data/attribute_definitions.json"
+    );
+    const metaResolution = this.resolveFile(
+      "shared/core/component_metadata.json",
+      "data/component_metadata.json"
+    );
+
+    const raw = JSON.parse(readFileSync(attrResolution.path, "utf-8")) as Record<
+      string,
+      any
+    >;
+    const metaRaw = JSON.parse(
+      readFileSync(metaResolution.path, "utf-8")
+    ) as Record<string, any>;
+
+    let bindingResolution: FileInfo | null = null;
+    let screenIdentityResolution: FileInfo | null = null;
+
+    // Canonical binding-resolution semantics (renderer SSoT track 15).
+    // Optional so older jsonui-cli checkouts without the file still load.
+    try {
+      const semanticsResolution = this.resolveFile(
+        "shared/core/binding_semantics.json",
+        "data/binding_semantics.json"
+      );
+      this.bindingSemantics = JSON.parse(
+        readFileSync(semanticsResolution.path, "utf-8")
+      ) as Record<string, any>;
+      bindingResolution = semanticsResolution;
+    } catch {
+      this.bindingSemantics = null;
+    }
+
+    // Adjudicated attribute-semantics contract (cross-effect, plan 33).
+    // Optional for the same backward-compat reason.
+    let attributeSemanticsResolution: FileInfo | null = null;
+    try {
+      const attrSemResolution = this.resolveFile(
+        "shared/core/attribute_semantics.json",
+        "data/attribute_semantics.json"
+      );
+      this.attributeSemantics = JSON.parse(
+        readFileSync(attrSemResolution.path, "utf-8")
+      ) as Record<string, any>;
+      attributeSemanticsResolution = attrSemResolution;
+    } catch {
+      this.attributeSemantics = null;
+    }
+
+    // Platform-scoped layout semantics (node 'platform' directive, root
+    // 'platforms', vs 'responsive'). Optional for the same backward-compat
+    // reason.
+    let platformSemanticsResolution: FileInfo | null = null;
+    try {
+      const platSemResolution = this.resolveFile(
+        "shared/core/platform_semantics.json",
+        "data/platform_semantics.json"
+      );
+      this.platformSemantics = JSON.parse(
+        readFileSync(platSemResolution.path, "utf-8")
+      ) as Record<string, any>;
+      platformSemanticsResolution = platSemResolution;
+    } catch {
+      this.platformSemantics = null;
+    }
+
+    // Canonical screen identity (screen-identity track). Optional so older
+    // jsonui-cli checkouts without the file still load.
+    try {
+      const screenResolution = this.resolveFile(
+        "shared/core/screen_identity.json",
+        "data/screen_identity.json"
+      );
+      this.screenIdentity = JSON.parse(
+        readFileSync(screenResolution.path, "utf-8")
+      ) as Record<string, any>;
+      screenIdentityResolution = screenResolution;
+    } catch {
+      this.screenIdentity = null;
+    }
+
+    // Conformance coverage ledger: declared-but-unimplemented pairs with
+    // recorded reasons. Optional for the same backward-compat reason.
+    let coverageResolution: FileInfo | null = null;
+    try {
+      const coverage = this.resolveFile(
+        "conformance/coverage.json",
+        "data/coverage.json"
+      );
+      const doc = JSON.parse(readFileSync(coverage.path, "utf-8")) as {
+        entries?: Array<Record<string, any>>;
+      };
+      const gaps = new Map<string, any[]>();
+      for (const entry of doc.entries ?? []) {
+        const key = `${entry.component}.${entry.attribute}`;
+        const list = gaps.get(key) ?? [];
+        for (const platform of entry.platforms ?? []) {
+          list.push({
+            platform,
+            reason: entry.reason ?? "",
+            note: entry.note ?? "",
+          });
+        }
+        gaps.set(key, list);
+      }
+      this.coverageGaps = gaps;
+      coverageResolution = coverage;
+    } catch {
+      this.coverageGaps = null;
+    }
+
+    this.metadata = {};
+    for (const [name, meta] of Object.entries(metaRaw)) {
+      if (name.startsWith("_")) continue;
+      if (typeof meta !== "object" || meta === null) continue;
+      this.metadata[name] = this.normalizeMetadata(meta);
+    }
+
+    this.commonAttributesRaw = raw.common || {};
+    this.commonAttributes = categorizeCommonAttributes(this.commonAttributesRaw);
+
+    let componentCount = 0;
+    for (const [compName, compAttrs] of Object.entries(raw)) {
+      if (compName.startsWith("_") || compName === "common") continue;
+      if (typeof compAttrs !== "object" || compAttrs === null) continue;
+
+      // Component alias (`_alias_of` pointer section, jsonui-cli B1): the
+      // section carries no attribute copies — register the spelling as an
+      // alias of the canonical component instead of building an empty
+      // ComponentSpec (Toggle -> Switch is NOT covered by the metadata
+      // aliases array, so this is the only route for it).
+      const aliasOf = (compAttrs as Record<string, unknown>)["_alias_of"];
+      if (typeof aliasOf === "string" && aliasOf.length > 0) {
+        this.aliasMap.set(compName.toLowerCase(), aliasOf.toLowerCase());
+        continue;
+      }
+
+      const spec = this.buildComponentSpec(compName, compAttrs);
+      const key = compName.toLowerCase();
+      this.components.set(key, spec);
+      for (const alias of spec.aliases) {
+        this.aliasMap.set(alias.toLowerCase(), key);
+      }
+      componentCount++;
+    }
+
+    const typeSynonymsResolution = this.loadTypeSynonyms();
+
+    // sjui's SwiftUI modifier order (get_modifier_order's Swift answer).
+    // Optional for the same backward-compat reason.
+    let swiftModifierOrderResolution: FileInfo | null = null;
+    try {
+      const orderResolution = this.resolveFile(
+        "sjui_tools/lib/swiftui/views/modifier_order.json",
+        "data/modifier_order.json"
+      );
+      this.swiftModifierOrder = JSON.parse(
+        readFileSync(orderResolution.path, "utf-8")
+      ) as Record<string, any>;
+      swiftModifierOrderResolution = orderResolution;
+    } catch {
+      this.swiftModifierOrder = null;
+    }
+
+    this.dataSource = {
+      attributeDefinitions: attrResolution,
+      componentMetadata: metaResolution,
+      screenIdentity: screenIdentityResolution,
+      bindingSemantics: bindingResolution,
+      attributeSemantics: attributeSemanticsResolution,
+      platformSemantics: platformSemanticsResolution,
+      coverage: coverageResolution,
+      typeSynonyms: typeSynonymsResolution,
+      swiftModifierOrder: swiftModifierOrderResolution,
+      componentCount,
+      commonAttributeCount: Object.keys(this.commonAttributesRaw).filter(
+        (k) => !k.startsWith("_")
+      ).length,
+    };
+  }
+
+  /**
+   * Type spellings the build accepts for a section they are not
+   * (shared/core/type_synonyms.json, jsonui-cli 1.9.0 — the one table the
+   * tools and the dynamic runtimes read). Until then lookup_component knew
+   * only `_alias_of` sections and metadata aliases, and answered "not found"
+   * for `ProgressBar`, which the build draws as a Progress.
+   *
+   * A section, an `_alias_of` section or a metadata alias of the same
+   * spelling wins: the exact match is found first, as in the tools. An entry
+   * whose canonical is not a section here is skipped.
+   *
+   * Absent (older jsonui-cli): no synonyms. Present but not JSON: the load
+   * throws, so an automatic reload keeps the last content that parsed rather
+   * than swapping in a loader that silently lost every synonym.
+   */
+  private loadTypeSynonyms(): FileInfo | null {
+    this.typeSynonyms = new Map();
+    let resolution: FileInfo;
+    try {
+      resolution = this.resolveFile("shared/core/type_synonyms.json", "data/type_synonyms.json");
+    } catch {
+      return null;
+    }
+    const doc = JSON.parse(readFileSync(resolution.path, "utf-8")) as {
+      synonyms?: Record<string, Record<string, unknown>>;
+    };
+    for (const [spelling, entry] of Object.entries(doc.synonyms ?? {})) {
+      if (typeof entry !== "object" || entry === null) continue;
+      const { canonical, render_as: renderAs, ...implies } = entry;
+      if (typeof canonical !== "string" || canonical.length === 0) continue;
+      const key = spelling.toLowerCase();
+      if (this.components.has(key) || this.aliasMap.has(key)) continue;
+      const target = this.aliasMap.get(canonical.toLowerCase()) ?? canonical.toLowerCase();
+      if (!this.components.has(target)) continue;
+      this.aliasMap.set(key, target);
+      this.typeSynonyms.set(key, {
+        spelling,
+        canonical,
+        ...(typeof renderAs === "string" ? { renderAs } : {}),
+        ...(Object.keys(implies).length > 0 ? { implies } : {}),
+        source: "shared/core/type_synonyms.json",
+      });
+    }
+    return resolution;
+  }
+
+  private normalizeMetadata(raw: Record<string, any>): ComponentMetadata {
+    return {
+      description: raw.description ?? "",
+      aliases: Array.isArray(raw.aliases) ? raw.aliases : [],
+      platforms: {
+        ...ALL_PLATFORMS,
+        ...(raw.platforms ?? {}),
+      },
+      platformSpecific:
+        typeof raw.platformSpecific === "object" && raw.platformSpecific
+          ? raw.platformSpecific
+          : {},
+      rules: Array.isArray(raw.rules) ? raw.rules : [],
+    };
+  }
+
+  private getMetadata(componentName: string): ComponentMetadata {
+    return (
+      this.metadata[componentName] ?? {
+        ...DEFAULT_METADATA,
+        description: `${componentName} component`,
+      }
+    );
+  }
+
+  private buildComponentSpec(
+    name: string,
+    attrs: Record<string, any>
+  ): ComponentSpec {
+    const meta = this.getMetadata(name);
+
+    const attributes: Record<string, any> = {};
+    const bindingBehavior: Record<string, any> = {};
+
+    for (const [attrName, attrDef] of Object.entries(attrs)) {
+      if (attrName.startsWith("_")) continue;
+      attributes[attrName] = attrDef;
+
+      const attrType = (attrDef as any)?.type;
+      let hasBinding = false;
+      if (Array.isArray(attrType)) hasBinding = attrType.includes("binding");
+      else if (attrType === "binding") hasBinding = true;
+
+      if (hasBinding) {
+        const declared = (attrDef as any)?.binding_direction;
+        bindingBehavior[attrName] = {
+          direction: declared === "two-way" ? "two-way" : "read-only",
+        };
+      }
+    }
+
+    return {
+      name,
+      description: meta.description || `${name} component`,
+      aliases: meta.aliases,
+      platforms: meta.platforms,
+      attributes,
+      bindingBehavior,
+      platformSpecific: meta.platformSpecific,
+      rules: meta.rules,
+    };
+  }
+
+  /**
+   * Resolve a jsonui-cli file through the 4-layer fallback and return FileInfo.
+   * @param cliRelPath  Path inside a jsonui-cli checkout (e.g. "shared/core/attribute_definitions.json")
+   * @param bundledRelPath  Path inside this MCP's root (e.g. "data/attribute_definitions.json")
+   */
+  private resolveFile(cliRelPath: string, bundledRelPath: string): FileInfo {
+    const candidates: Array<{ path: string; layer: FallbackLayer }> = [];
+
+    const env = process.env.JSONUI_CLI_PATH;
+    if (env) {
+      candidates.push({ path: join(resolve(env), cliRelPath), layer: "env" });
+    }
+    candidates.push({
+      path: join(process.cwd(), ".jsonui-cli", cliRelPath),
+      layer: "cwd",
+    });
+    candidates.push({
+      path: join(homedir(), ".jsonui-cli", cliRelPath),
+      layer: "home",
+    });
+    candidates.push({
+      path: join(this.mcpRootDir, bundledRelPath),
+      layer: "bundled",
+    });
+
+    for (const candidate of candidates) {
+      if (existsSync(candidate.path)) {
+        const mtime = statSync(candidate.path).mtime;
+        const ageDays = (Date.now() - mtime.getTime()) / (1000 * 60 * 60 * 24);
+        const freshness: FileInfo["freshness"] =
+          ageDays <= 30 ? "fresh" : ageDays <= 90 ? "aging" : "stale";
+        return {
+          layer: candidate.layer,
+          path: candidate.path,
+          lastModified: mtime.toISOString(),
+          freshness,
+          contentHash: hashFile(candidate.path),
+        };
+      }
+    }
+
+    const tried = candidates.map((c) => `  [${c.layer}] ${c.path}`).join("\n");
+    throw new Error(
+      `jsonui-cli file not found: ${cliRelPath}. Tried:\n` +
+        tried +
+        "\n\nInstall jsonui-cli (the bootstrap places files under ~/.jsonui-cli/),\n" +
+        "or set JSONUI_CLI_PATH to point at a jsonui-cli checkout,\n" +
+        "or reinstall jsonui-mcp-server so the postinstall script can fetch a bundled snapshot."
+    );
+  }
+}
+
+// Helper to derive the MCP server root from an import.meta.url (e.g. in index.ts).
+export function mcpRootFromImportMetaUrl(url: string): string {
+  const dir = fileURLToPath(new URL(".", url));
+  return resolve(dir, "..");
+}

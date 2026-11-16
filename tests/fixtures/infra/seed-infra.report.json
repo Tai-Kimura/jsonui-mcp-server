@@ -1,0 +1,46 @@
+{
+ "version": 0,
+ "inputs": {
+  "code": [
+   "1 file(s)"
+  ],
+  "compose": [
+   "docker-compose.yml"
+  ],
+  "terraform": [
+   "main.tf"
+  ],
+  "terraform_providers": [
+   "aws"
+  ]
+ },
+ "unmatched": {
+  "aws": {
+   "count": 2,
+   "items": [
+    {
+     "file": "main.tf",
+     "what": "aws_glue_job.etl",
+     "why": "no category for this resource type"
+    },
+    {
+     "file": "app/main.py",
+     "what": "boto3",
+     "why": "SDK import: which service is not clear from the import alone"
+    }
+   ]
+  }
+ },
+ "notDrawn": {},
+ "skipped": [],
+ "skippedCount": 0,
+ "notes": [
+  "compose service web (docker-compose.yml): the image is not one seed knows; drawn as a container",
+  "nodes from code: an app node per code root (where it runs is not known), and what it talks to; a node with no provider needs one, and a node may be the same as one from IaC — merge them"
+ ],
+ "specValues": 0,
+ "flows": 0,
+ "withheld": 0,
+ "withheldFrom": [],
+ "withheldFromCount": 0
+}
