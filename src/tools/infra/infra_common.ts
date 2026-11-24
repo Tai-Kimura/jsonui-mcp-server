@@ -25,6 +25,12 @@ export async function runDocJson(args: string[], cwd: string, timeout?: number):
   try {
     data = JSON.parse(result.stdout);
   } catch {
+    if (/^Traceback /m.test(result.stderr)) {   // it ran and failed: not a jsonui-doc too old for --json
+      throw new ContractError(
+        `jsonui-doc ${args.slice(0, 2).join(" ")} failed (exit ${result.exitCode}): ` +
+          result.stderr.trim().split("\n").slice(-3).join(" / ")
+      );
+    }
     throw new ContractError(
       `jsonui-doc ${args.slice(0, 2).join(" ")} printed no JSON (exit ${result.exitCode})` +
         (result.stderr ? `: ${result.stderr.trim().split("\n").slice(-3).join(" / ")}` : "") +
@@ -44,8 +50,13 @@ export function need(obj: any, keys: string[], what: string): void {
   }
 }
 
+/** The counts over a whole list the CLI cut (cost infra's refusal, jsonui-cli 2.5.55+: problemCount, problemErrors,
+ * problemByCode — its problems are the first 20 only). Without them the counts are the list's own. */
+export interface Totals { count: number; errors: number; byCode: Record<string, number> }
+
 /** A problem list as counts (by severity, by code) and the first FIRST, each as written. */
-export function problems(list: any[], what: string, keep: string[] = ["severity", "code", "file", "path", "message"]) {
+export function problems(list: any[], what: string, keep: string[] = ["severity", "code", "file", "path", "message"],
+  totals?: Totals) {
   if (!Array.isArray(list)) throw new ContractError(`${what}: "problems" is not a list`);
   const bySeverity: Record<string, number> = {};
   const byCode: Record<string, number> = {};
@@ -57,7 +68,32 @@ export function problems(list: any[], what: string, keep: string[] = ["severity"
   const first = list.slice(0, FIRST).map((p) =>
     Object.fromEntries(keep.filter((k) => p[k] !== undefined && p[k] !== null).map((k) => [k, p[k]]))
   );
+  if (totals) {   // an infra problem is an error or a warning: the rest of the count are warnings
+    return { count: totals.count, errors: totals.errors, warnings: totals.count - totals.errors, byCode: totals.byCode, first };
+  }
   return { count: list.length, errors: bySeverity.error ?? 0, warnings: bySeverity.warning ?? 0, byCode, first };
+}
+
+/** A cut list's totals when the CLI gives them (all three, or none). */
+export function totals(data: any, what: string): Totals | undefined {
+  if (!("problemCount" in data)) return undefined;
+  need(data, ["problemCount", "problemErrors", "problemByCode"], what);
+  return { count: data.problemCount, errors: data.problemErrors, byCode: data.problemByCode };
+}
+
+/**
+ * What a validate command answers when ok is false: nothing could be used, so readable is false, with the CLI's reason
+ * and message, and the problems it gives — invalid: every model file was left out and they say why (the files'
+ * schema errors); no_infra: the files it would not read. An empty or missing list adds nothing.
+ */
+export function refusal(data: any, exitCode: number, what: string, keep?: string[]) {
+  need(data, ["reason", "message"], what);
+  const found = data.problems;
+  return {
+    ok: false, exit: exitCode, readable: false, reason: data.reason, message: data.message,
+    ...(typeof data.dir === "string" ? { dir: data.dir } : {}),
+    ...(Array.isArray(found) && found.length ? { problems: problems(found, what, keep) } : {}),
+  };
 }
 
 export function text(value: unknown) {

@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { ServerConfig } from "../../config.js";
-import { FIRST, failure, need, problems, runDocJson, text } from "./infra_common.js";
+import { FIRST, failure, need, problems, runDocJson, text, totals } from "./infra_common.js";
 
 /**
  * `jsonui-doc cost infra <project> --json`: the cost simulator's month (or one day) for a load scenario, the same
@@ -17,7 +17,9 @@ import { FIRST, failure, need, problems, runDocJson, text } from "./infra_common
  * per provider, after each step of the plan, and with `account` the account's month (its environments priced
  * together). Nothing is computed here.
  * A plan with an error is not priced: the CLI refuses it (exit 2, reason bad_plan, the plan's problems), as it does a
- * plan name with no folder (no_plan) — both answered by the refusal path below, problems counted.
+ * plan name with no folder (no_plan) — both answered by the refusal path below, problems counted. The CLI's
+ * refusal lists the first 20 problems; jsonui-cli 2.5.55+ counts them all (problemCount, problemErrors,
+ * problemByCode), and the counts here are those.
  */
 
 function migrationSummary(data: any) {
@@ -139,7 +141,7 @@ export function register(server: McpServer, config: ServerConfig) {
         if (!data.ok) {
           need(data, ["reason", "message"], "cost infra");
           return text({ ok: false, exit: exitCode, reason: data.reason, message: data.message,
-            ...(data.problems ? { problems: problems(data.problems, "cost infra") } : {}) });
+            ...(data.problems ? { problems: problems(data.problems, "cost infra", undefined, totals(data, "cost infra")) } : {}) });
         }
         need(data, ["dir", "scenario", "scenarios", "problems", "prices"], "cost infra");
         need(data.problems, ["count", "errors", "first"], "cost infra problems");

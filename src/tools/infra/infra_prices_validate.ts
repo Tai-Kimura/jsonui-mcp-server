@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { ServerConfig } from "../../config.js";
-import { failure, need, problems, runDocJson, text } from "./infra_common.js";
+import { failure, need, problems, refusal, runDocJson, text } from "./infra_common.js";
 
 /**
  * `jsonui-doc validate infra-prices <project> --json`: the room's own price files (<infra.dir>/prices, or
@@ -19,10 +19,7 @@ export function register(server: McpServer, config: ServerConfig) {
         const projectDir = config.resolveProjectDir(project_dir);
         const { exitCode, data } = await runDocJson(["validate", "infra-prices", projectDir, "--json"], projectDir);
         need(data, ["ok"], "validate infra-prices");
-        if (!data.ok) {
-          need(data, ["reason", "message"], "validate infra-prices");
-          return text({ ok: false, exit: exitCode, readable: false, reason: data.reason, message: data.message });
-        }
+        if (!data.ok) return text(refusal(data, exitCode, "validate infra-prices"));
         need(data, ["dir", "files", "problems", "count"], "validate infra-prices");
         return text({
           ok: exitCode === 0,

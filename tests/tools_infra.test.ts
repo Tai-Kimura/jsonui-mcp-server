@@ -538,3 +538,91 @@ describe("infra_cost with plan", () => {
     expect(calls).toHaveLength(0);
   });
 });
+
+/**
+ * Nothing could be used (jsonui-mcp-server 2.32.0, recorded from jsonui-cli 2.5.55): a refusal is a reason, never a
+ * jsonui-doc these tools do not know, and the problems that say why are counted as any reading's are. The room of
+ * validate-infra.invalid.json has one model file, failing the schema in more than 20 places: every file is left out,
+ * so the CLI answers ok false, reason invalid, with no "files" (2.31.0 named that as a version it does not know).
+ */
+describe("a room nothing could be used from", () => {
+  const schemaProblems = (name: string) => fixture(name).problems.filter((p: any) => p.code === "schema").length;
+
+  it("the recorded rooms are what these arms say", () => {
+    const v = fixture("validate-infra.invalid.json");
+    expect(v).toMatchObject({ ok: false, reason: "invalid" });
+    expect("files" in v).toBe(false);
+    expect(v.problems.length).toBeGreaterThan(20);
+    const c = fixture("cost-infra.invalid.json");
+    expect(c.problems.length).toBe(20);
+    expect(c.problemCount).toBe(v.problems.length);
+    expect(fixture("validate-infra.skipped.json").problems.map((p: any) => p.severity)).toEqual(["warning"]);
+    expect(fixture("check-infra.bad-config.json")).toMatchObject({ ok: false, exit: 2, checks: [], reason: "bad_config" });
+  });
+
+  it("infra_validate: readable false with the reason, and every problem counted, the first 20 kept", async () => {
+    answer = { code: 1, stdout: raw("validate-infra.invalid.json") };
+    const rec = fixture("validate-infra.invalid.json");
+    const out = await call("infra_validate");
+    expect(out).toMatchObject({ ok: false, exit: 1, readable: false, reason: "invalid", message: rec.message, dir: rec.dir });
+    expect(out.problems).toMatchObject({ count: rec.problems.length, errors: rec.problems.length, warnings: 0,
+      byCode: { schema: schemaProblems("validate-infra.invalid.json") } });
+    expect(out.problems.first).toHaveLength(20);
+    const [p] = rec.problems;
+    expect(out.problems.first[0]).toEqual({ severity: p.severity, code: p.code, file: p.file, path: p.path, message: p.message });
+  });
+
+  it("infra_validate with plan: the same refusal (the model is read first)", async () => {
+    answer = { code: 1, stdout: raw("validate-infra.invalid.json") };
+    const out = await call("infra_validate", { plan: "move" });
+    expect(out).toMatchObject({ ok: false, readable: false, reason: "invalid" });
+    expect(out.problems.count).toBe(fixture("validate-infra.invalid.json").problems.length);
+  });
+
+  it("infra_load_validate: the model's problems that leave it unread are there", async () => {
+    answer = { code: 2, stdout: raw("validate-infra-load.invalid.json") };
+    const rec = fixture("validate-infra-load.invalid.json");
+    const out = await call("infra_load_validate");
+    expect(out).toMatchObject({ ok: false, exit: 2, readable: false, reason: "invalid", message: rec.message });
+    expect(out.problems.count).toBe(rec.problems.length);
+    expect(out.problems.first[0]).toMatchObject({ code: "schema", file: "main.json" });
+  });
+
+  it("no model file, a folder named like one: the warning that says why is kept", async () => {
+    answer = { code: 2, stdout: raw("validate-infra.skipped.json") };
+    const out = await call("infra_validate");
+    expect(out).toMatchObject({ ok: false, readable: false, reason: "no_infra" });
+    expect(out.problems).toMatchObject({ count: 1, errors: 0, warnings: 1 });
+  });
+
+  it("infra_cost: the CLI's list is the first 20, the counts are all of them", async () => {
+    answer = { code: 2, stdout: raw("cost-infra.invalid.json") };
+    const rec = fixture("cost-infra.invalid.json");
+    const out = await call("infra_cost");
+    expect(out).toMatchObject({ ok: false, exit: 2, reason: "invalid" });
+    expect(out.problems).toMatchObject({ count: rec.problemCount, errors: rec.problemErrors,
+      warnings: rec.problemCount - rec.problemErrors, byCode: rec.problemByCode });
+    expect(out.problems.count).toBeGreaterThan(20);
+    expect(out.problems.first).toHaveLength(20);
+  });
+
+  it("infra_cost: a CLI before the counts is read as before (the list's own)", async () => {
+    const old = fixture("cost-infra.invalid.json");
+    for (const k of ["problemCount", "problemErrors", "problemByCode"]) delete old[k];
+    answer = { code: 2, stdout: JSON.stringify(old) };
+    expect((await call("infra_cost")).problems.count).toBe(20);
+  });
+
+  it("infra_check: a config that is not JSON is the CLI's refusal, with its reason", async () => {
+    answer = { code: 2, stdout: raw("check-infra.bad-config.json") };
+    const rec = fixture("check-infra.bad-config.json");
+    expect(await call("infra_check")).toEqual({ ok: false, exit: 2, checks: [], reason: "bad_config", message: rec.message });
+  });
+
+  it("a jsonui-doc that crashed is said as a failure, not as a version too old for --json", async () => {
+    answer = { code: 1, stdout: "", stderr: 'Traceback (most recent call last):\n  File "x", line 1\njson.decoder.JSONDecodeError: Expecting value' };
+    const got = await harness.call("infra_check", { project_dir: projectDir });
+    expect(got).toMatch(/^Error: jsonui-doc check infra failed \(exit 1\): .*JSONDecodeError: Expecting value/);
+    expect(got).not.toMatch(/2\.3\.15/);
+  });
+});

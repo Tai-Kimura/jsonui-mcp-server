@@ -1,0 +1,192 @@
+{
+  "ok": false,
+  "reason": "invalid",
+  "message": "the infra model cannot be read: no model file could be used",
+  "problems": [
+    {
+      "file": "main.json",
+      "path": "/nodes/0/spec",
+      "code": "schema",
+      "message": "more than 20 items (it has 25)",
+      "short": "docs/infra/main.json: /nodes/0/spec は 20 個までです（今 25 個）",
+      "severity": "error",
+      "node": null
+    },
+    {
+      "file": "main.json",
+      "path": "/nodes/0/spec/0/key",
+      "code": "schema",
+      "message": "does not have the allowed form (^[a-z][a-z0-9_]{0,39}$)",
+      "short": "docs/infra/main.json: /nodes/0/spec/0/key の形が違います（書ける形: ^[a-z][a-z0-9_]{0,39}$）",
+      "severity": "error",
+      "node": null
+    },
+    {
+      "file": "main.json",
+      "path": "/nodes/0/spec/1/key",
+      "code": "schema",
+      "message": "does not have the allowed form (^[a-z][a-z0-9_]{0,39}$)",
+      "short": "docs/infra/main.json: /nodes/0/spec/1/key の形が違います（書ける形: ^[a-z][a-z0-9_]{0,39}$）",
+      "severity": "error",
+      "node": null
+    },
+    {
+      "file": "main.json",
+      "path": "/nodes/0/spec/2/key",
+      "code": "schema",
+      "message": "does not have the allowed form (^[a-z][a-z0-9_]{0,39}$)",
+      "short": "docs/infra/main.json: /nodes/0/spec/2/key の形が違います（書ける形: ^[a-z][a-z0-9_]{0,39}$）",
+      "severity": "error",
+      "node": null
+    },
+    {
+      "file": "main.json",
+      "path": "/nodes/0/spec/3/key",
+      "code": "schema",
+      "message": "does not have the allowed form (^[a-z][a-z0-9_]{0,39}$)",
+      "short": "docs/infra/main.json: /nodes/0/spec/3/key の形が違います（書ける形: ^[a-z][a-z0-9_]{0,39}$）",
+      "severity": "error",
+      "node": null
+    },
+    {
+      "file": "main.json",
+      "path": "/nodes/0/spec/4/key",
+      "code": "schema",
+      "message": "does not have the allowed form (^[a-z][a-z0-9_]{0,39}$)",
+      "short": "docs/infra/main.json: /nodes/0/spec/4/key の形が違います（書ける形: ^[a-z][a-z0-9_]{0,39}$）",
+      "severity": "error",
+      "node": null
+    },
+    {
+      "file": "main.json",
+      "path": "/nodes/0/spec/5/key",
+      "code": "schema",
+      "message": "does not have the allowed form (^[a-z][a-z0-9_]{0,39}$)",
+      "short": "docs/infra/main.json: /nodes/0/spec/5/key の形が違います（書ける形: ^[a-z][a-z0-9_]{0,39}$）",
+      "severity": "error",
+      "node": null
+    },
+    {
+      "file": "main.json",
+      "path": "/nodes/0/spec/6/key",
+      "code": "schema",
+      "message": "does not have the allowed form (^[a-z][a-z0-9_]{0,39}$)",
+      "short": "docs/infra/main.json: /nodes/0/spec/6/key の形が違います（書ける形: ^[a-z][a-z0-9_]{0,39}$）",
+      "severity": "error",
+      "node": null
+    },
+    {
+      "file": "main.json",
+      "path": "/nodes/0/spec/7/key",
+      "code": "schema",
+      "message": "does not have the allowed form (^[a-z][a-z0-9_]{0,39}$)",
+      "short": "docs/infra/main.json: /nodes/0/spec/7/key の形が違います（書ける形: ^[a-z][a-z0-9_]{0,39}$）",
+      "severity": "error",
+      "node": null
+    },
+    {
+      "file": "main.json",
+      "path": "/nodes/0/spec/8/key",
+      "code": "schema",
+      "message": "does not have the allowed form (^[a-z][a-z0-9_]{0,39}$)",
+      "short": "docs/infra/main.json: /nodes/0/spec/8/key の形が違います（書ける形: ^[a-z][a-z0-9_]{0,39}$）",
+      "severity": "error",
+      "node": null
+    },
+    {
+      "file": "main.json",
+      "path": "/nodes/0/spec/9/key",
+      "code": "schema",
+      "message": "does not have the allowed form (^[a-z][a-z0-9_]{0,39}$)",
+      "short": "docs/infra/main.json: /nodes/0/spec/9/key の形が違います（書ける形: ^[a-z][a-z0-9_]{0,39}$）",
+      "severity": "error",
+      "node": null
+    },
+    {
+      "file": "main.json",
+      "path": "/nodes/0/spec/10/key",
+      "code": "schema",
+      "message": "does not have the allowed form (^[a-z][a-z0-9_]{0,39}$)",
+      "short": "docs/infra/main.json: /nodes/0/spec/10/key の形が違います（書ける形: ^[a-z][a-z0-9_]{0,39}$）",
+      "severity": "error",
+      "node": null
+    },
+    {
+      "file": "main.json",
+      "path": "/nodes/0/spec/11/key",
+      "code": "schema",
+      "message": "does not have the allowed form (^[a-z][a-z0-9_]{0,39}$)",
+      "short": "docs/infra/main.json: /nodes/0/spec/11/key の形が違います（書ける形: ^[a-z][a-z0-9_]{0,39}$）",
+      "severity": "error",
+      "node": null
+    },
+    {
+      "file": "main.json",
+      "path": "/nodes/0/spec/12/key",
+      "code": "schema",
+      "message": "does not have the allowed form (^[a-z][a-z0-9_]{0,39}$)",
+      "short": "docs/infra/main.json: /nodes/0/spec/12/key の形が違います（書ける形: ^[a-z][a-z0-9_]{0,39}$）",
+      "severity": "error",
+      "node": null
+    },
+    {
+      "file": "main.json",
+      "path": "/nodes/0/spec/13/key",
+      "code": "schema",
+      "message": "does not have the allowed form (^[a-z][a-z0-9_]{0,39}$)",
+      "short": "docs/infra/main.json: /nodes/0/spec/13/key の形が違います（書ける形: ^[a-z][a-z0-9_]{0,39}$）",
+      "severity": "error",
+      "node": null
+    },
+    {
+      "file": "main.json",
+      "path": "/nodes/0/spec/14/key",
+      "code": "schema",
+      "message": "does not have the allowed form (^[a-z][a-z0-9_]{0,39}$)",
+      "short": "docs/infra/main.json: /nodes/0/spec/14/key の形が違います（書ける形: ^[a-z][a-z0-9_]{0,39}$）",
+      "severity": "error",
+      "node": null
+    },
+    {
+      "file": "main.json",
+      "path": "/nodes/0/spec/15/key",
+      "code": "schema",
+      "message": "does not have the allowed form (^[a-z][a-z0-9_]{0,39}$)",
+      "short": "docs/infra/main.json: /nodes/0/spec/15/key の形が違います（書ける形: ^[a-z][a-z0-9_]{0,39}$）",
+      "severity": "error",
+      "node": null
+    },
+    {
+      "file": "main.json",
+      "path": "/nodes/0/spec/16/key",
+      "code": "schema",
+      "message": "does not have the allowed form (^[a-z][a-z0-9_]{0,39}$)",
+      "short": "docs/infra/main.json: /nodes/0/spec/16/key の形が違います（書ける形: ^[a-z][a-z0-9_]{0,39}$）",
+      "severity": "error",
+      "node": null
+    },
+    {
+      "file": "main.json",
+      "path": "/nodes/0/spec/17/key",
+      "code": "schema",
+      "message": "does not have the allowed form (^[a-z][a-z0-9_]{0,39}$)",
+      "short": "docs/infra/main.json: /nodes/0/spec/17/key の形が違います（書ける形: ^[a-z][a-z0-9_]{0,39}$）",
+      "severity": "error",
+      "node": null
+    },
+    {
+      "file": "main.json",
+      "path": "/nodes/0/spec/18/key",
+      "code": "schema",
+      "message": "does not have the allowed form (^[a-z][a-z0-9_]{0,39}$)",
+      "short": "docs/infra/main.json: /nodes/0/spec/18/key の形が違います（書ける形: ^[a-z][a-z0-9_]{0,39}$）",
+      "severity": "error",
+      "node": null
+    }
+  ],
+  "problemCount": 26,
+  "problemErrors": 26,
+  "problemByCode": {
+    "schema": 26
+  }
+}

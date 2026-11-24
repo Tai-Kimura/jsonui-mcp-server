@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { ServerConfig } from "../../config.js";
-import { failure, need, problems, runDocJson, text } from "./infra_common.js";
+import { failure, need, problems, refusal, runDocJson, text } from "./infra_common.js";
 
 /**
  * `jsonui-doc validate infra-load <project> --json`: the load scenarios the cost simulator reads (<infra.dir>/load,
@@ -11,7 +11,7 @@ import { failure, need, problems, runDocJson, text } from "./infra_common.js";
 export function register(server: McpServer, config: ServerConfig) {
   server.tool(
     "infra_load_validate",
-    "Validate the server room's load scenarios (docs/infra/load/*.json) with `jsonui-doc validate infra-load --json`. Returns each scenario (id, environment, month, hours, loads, edges) and the problems by severity and code with the first 20 (file, path, code, message, node, hour, quantity). load.overlap means a node has two rows and only one counts. Needs jsonui-cli 2.3.15+.",
+    "Validate the server room's load scenarios (docs/infra/load/*.json) with `jsonui-doc validate infra-load --json`. Returns each scenario (id, environment, month, hours, loads, edges) and the problems by severity and code with the first 20 (file, path, code, message, node, hour, quantity). load.overlap means a node has two rows and only one counts. When nothing can be read: the reason, and the problems that say why (the model's own when no model file could be used). Needs jsonui-cli 2.3.15+.",
     {
       project_dir: z.string().optional().describe("Project directory with jui.config.json (overrides JUI_PROJECT_DIR env)"),
     },
@@ -20,10 +20,7 @@ export function register(server: McpServer, config: ServerConfig) {
         const projectDir = config.resolveProjectDir(project_dir);
         const { exitCode, data } = await runDocJson(["validate", "infra-load", projectDir, "--json"], projectDir);
         need(data, ["ok"], "validate infra-load");
-        if (!data.ok) {
-          need(data, ["reason", "message"], "validate infra-load");
-          return text({ ok: false, exit: exitCode, readable: false, reason: data.reason, message: data.message });
-        }
+        if (!data.ok) return text(refusal(data, exitCode, "validate infra-load", ["severity", "code", "file", "path", "message", "node", "hour", "quantity"]));
         need(data, ["dir", "files", "problems", "scenarios"], "validate infra-load");
         for (const s of data.scenarios) need(s, ["id", "environment", "month", "hours", "loads", "edges"], "validate infra-load scenario");
         return text({

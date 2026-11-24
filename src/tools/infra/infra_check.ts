@@ -8,7 +8,8 @@ import { FIRST, failure, need, runDocJson, text } from "./infra_common.js";
  * builtin:infra-iac, builtin:infra-code, builtin:infra-load) — the model against the IaC, the code, and the load
  * definitions. This is the one jsonui-doc command that runs project-declared checks; the infra ones read files only.
  * Exit 0: clean (warnings alone are 0); 1: a mismatch (a finding of a check declared with gate: true); 2: an
- * execution error, or no infra check is declared.
+ * execution error, or no infra check is declared — or jui.config.json is not there or not JSON (2.5.55+: reason
+ * no_config / bad_config and message).
  */
 export function register(server: McpServer, config: ServerConfig) {
   server.tool(
@@ -22,6 +23,9 @@ export function register(server: McpServer, config: ServerConfig) {
         const projectDir = config.resolveProjectDir(project_dir);
         const { exitCode, data, stderr } = await runDocJson(["check", "infra", "-p", projectDir, "--json"], projectDir, 180_000);
         need(data, ["ok", "exit", "checks"], "check infra");
+        if (!data.ok && typeof data.reason === "string") {   // no check could be read (jsonui-cli 2.5.55+): the config's fault
+          return text({ ok: false, exit: exitCode, checks: [], reason: data.reason, message: data.message ?? "" });
+        }
         if (!data.checks.length) {
           return text({ ok: false, exit: exitCode, checks: [],
             message: stderr.trim() || "no builtin:infra-* check is declared in jui.config.json → checks",

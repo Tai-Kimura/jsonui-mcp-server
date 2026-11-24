@@ -1,0 +1,16 @@
+{
+  "ok": false,
+  "reason": "no_infra",
+  "message": "no model files in docs/infra (*.json)",
+  "short": "docs/infra に読める infra のファイル（*.json）がありません（普通のファイルでない物は読みません）",
+  "problems": [
+    {
+      "file": "sub.json",
+      "path": "/",
+      "code": "read.not_regular",
+      "message": "a folder, not a regular file: not read",
+      "severity": "warning",
+      "short": "docs/infra/sub.json: 普通のファイルでないため読みません（a folder）"
+    }
+  ]
+}

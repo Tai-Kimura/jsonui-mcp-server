@@ -130,6 +130,27 @@ doc "${WORK}/shrink" cost infra --migration shrink --json > "${OUT}/cost-infra.p
 mkdir -p "${WORK}/badplans/docs/infra/migrations/half"
 doc "${WORK}/badplans" validate infra --migration half --json > "${OUT}/validate-infra.plan-half.json"
 
+# Nothing could be used (jsonui-cli 2.5.55+ for the counts and check's refusal): a room whose one model file fails the
+# schema in 25 places (every file left out: reason invalid, no "files"; cost lists the first 20 and counts them all), a
+# model folder with nothing but a folder named like a model file (no_infra, with the warning that says why), and a
+# jui.config.json that is not JSON (check refuses it with its reason).
+cp -R "${FIX}/aws-three-tier" "${WORK}/unusable"
+rm "${WORK}/unusable/docs/infra/external.json"
+python3 - "${WORK}/unusable/docs/infra/main.json" <<'EOF'
+import json, sys
+m = json.load(open(sys.argv[1], encoding="utf-8"))
+m["nodes"][0]["spec"] = [{"key": f"K{i}", "value": "1"} for i in range(25)]
+json.dump(m, open(sys.argv[1], "w", encoding="utf-8"), ensure_ascii=False)
+EOF
+doc "${WORK}/unusable" validate infra --json > "${OUT}/validate-infra.invalid.json"
+doc "${WORK}/unusable" validate infra-load --json > "${OUT}/validate-infra-load.invalid.json"
+doc "${WORK}/unusable" cost infra --json > "${OUT}/cost-infra.invalid.json"
+mkdir -p "${WORK}/skipped/docs/infra/sub.json"
+doc "${WORK}/skipped" validate infra --json > "${OUT}/validate-infra.skipped.json"
+mkdir -p "${WORK}/badconfig"
+printf '{' > "${WORK}/badconfig/jui.config.json"
+doc "${WORK}/badconfig" check infra --json 2>/dev/null > "${OUT}/check-infra.bad-config.json"
+
 # The temp folder's path is not part of the contract
 for f in "${OUT}"/*.json; do
   python3 - "$f" "${WORK}" <<'EOF'

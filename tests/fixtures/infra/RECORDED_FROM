@@ -1,1 +1,1 @@
-290ce9df migration plans test: an edge whose two ends go at different steps goes at the first of them
+8f23cc890 jsonui-doc: check refuses a jui.config.json that is not JSON (or is not there) with its reason, in --json one object (ok false, exit 2, checks [], reason bad_config / no_config, message) instead of a traceback; cost infra's refusal keeps the first 20 problems and counts them all (problemCount, problemErrors, problemByCode)

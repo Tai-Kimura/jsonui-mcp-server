@@ -1,0 +1,7 @@
+{
+  "ok": false,
+  "exit": 2,
+  "checks": [],
+  "reason": "bad_config",
+  "message": "/private<ROOT>/badconfig/jui.config.json: not JSON (line 1, column 2)"
+}

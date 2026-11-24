@@ -12,5 +12,10 @@
       "severity": "error",
       "node": null
     }
-  ]
+  ],
+  "problemCount": 1,
+  "problemErrors": 1,
+  "problemByCode": {
+    "migration.no_plan": 1
+  }
 }
